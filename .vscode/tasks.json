@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "deploy_to_railway",
+			"type": "shell",
+			"command": "git add main.py && git commit -m \"Ajout commandes employer virer up\" && git push"
+		}
+	]
+}
