@@ -849,7 +849,12 @@ class CVButton(discord.ui.View):
             await channel.send(embed=confirm)
             
             try:
-                await interaction.user.send("✅ Candidature reçue !")
+                await interaction.user.send(
+                    "🚑 **Candidature envoyée** 🚑\n\n"
+                    "Nous avons bien reçu votre candidature.\n\n"
+                    "Nous vous recontacterons bientôt.\n\n"
+                    "Merci pour votre intérêt ! 👨‍⚕️"
+                )
             except:
                 pass
         except:
