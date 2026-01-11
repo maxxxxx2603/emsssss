@@ -973,14 +973,10 @@ async def send_weekly_taxi_announcement():
 
 # --- GESTION DES CANAUX UTILISATEURS ---
 def load_channel_map():
-    if os.path.exists(CHANNEL_MAP_FILE):
-        with open(CHANNEL_MAP_FILE, 'r') as f:
-            return json.load(f)
-    return {}
+    return robust_load_json(CHANNEL_MAP_FILE, {})
 
 def save_channel_map(data):
-    with open(CHANNEL_MAP_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
+    atomic_write_json(CHANNEL_MAP_FILE, data)
 
 def get_clean_name(member):
     """Récupère le nom sans le tag entre crochets"""
