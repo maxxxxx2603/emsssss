@@ -1026,15 +1026,15 @@ async def setup_categories(interaction: discord.Interaction):
     # ID de la catégorie cible (on veut positionner au-dessus)
     TARGET_CATEGORY_ID = 838110173368418325
     
-    # Définir les catégories à créer
+    # Définir les catégories à créer (ordre inversé : DIR en haut, EMT en bas)
     grade_names = [
-        ("EMT", "CATEGORY_EMT_ID"),
-        ("INT", "CATEGORY_INT_ID"),
-        ("ADS", "CATEGORY_ADS_ID"),
-        ("INF", "CATEGORY_INF_ID"),
-        ("MED", "CATEGORY_MED_ID"),
+        ("DIR", "CATEGORY_DIR_ID"),
         ("CDS", "CATEGORY_CDS_ID"),
-        ("DIR", "CATEGORY_DIR_ID")
+        ("MED", "CATEGORY_MED_ID"),
+        ("INF", "CATEGORY_INF_ID"),
+        ("ADS", "CATEGORY_ADS_ID"),
+        ("INT", "CATEGORY_INT_ID"),
+        ("EMT", "CATEGORY_EMT_ID")
     ]
     
     categories_data = load_categories()
