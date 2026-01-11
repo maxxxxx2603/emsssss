@@ -1316,6 +1316,161 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
 
     await interaction.followup.send(f"📈 **Promotion effectuée pour {membre.mention}** !\nPassage au grade **{next_step['tag']}**.{chan_msg}")
 
+@bot.tree.command(name="help", description="Affiche toutes les commandes et fonctionnalités du bot")
+async def help_command(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    # Embed principal
+    main_embed = discord.Embed(
+        title="🚑 EMS MANAGEMENT SYSTEM - GUIDE COMPLET",
+        description="Bienvenue dans le système de gestion EMS ! Voici toutes les fonctionnalités disponibles.",
+        color=EMS_RED
+    )
+    main_embed.set_thumbnail(url="https://media.discordapp.net/attachments/1458228261166518293/1458240230001086524/ambulance-emoji.png")
+    
+    # Embed Système de Réanimations
+    rea_embed = discord.Embed(
+        title="📊 SYSTÈME DE RÉANIMATIONS",
+        description="Comptage automatique des réanimations par employé",
+        color=EMS_RED
+    )
+    rea_embed.add_field(
+        name="📸 Comment ça marche ?",
+        value="• Envoyez une image dans votre channel personnel (🔴, 🟠, 🟢)\n"
+              "• Le bot ajoute automatiquement ✅\n"
+              "• Votre compteur augmente de +1\n"
+              "• La couleur du channel change selon vos performances",
+        inline=False
+    )
+    rea_embed.add_field(
+        name="🎨 Couleurs des channels",
+        value="🔴 **Rouge** : 0-49 réas\n🟠 **Orange** : 50-99 réas\n🟢 **Vert** : 100+ réas",
+        inline=False
+    )
+    
+    # Embed Commandes Admin
+    admin_embed = discord.Embed(
+        title="👨‍💼 GESTION DU PERSONNEL",
+        description="Commandes pour gérer les employés EMS",
+        color=EMS_RED
+    )
+    admin_embed.add_field(
+        name="/employer @membre",
+        value="📋 Recrute un nouvel employé\n• Renomme en [EMT] Nom\n• Ajoute les rôles EMS\n• Crée un channel personnel\n• Place dans la catégorie EMT",
+        inline=False
+    )
+    admin_embed.add_field(
+        name="/up @membre",
+        value="📈 Promotion au grade supérieur\n• EMT → INT → ADS → INF → MED → CDS → DIR\n• Change le tag du pseudo\n• Déplace le channel dans la bonne catégorie",
+        inline=False
+    )
+    admin_embed.add_field(
+        name="/virer @membre",
+        value="🚫 Licencie un employé\n• Retire tous les rôles EMS\n• Reset le pseudo\n• Envoie un message privé de licenciement",
+        inline=False
+    )
+    
+    # Embed Statistiques
+    stats_embed = discord.Embed(
+        title="📊 STATISTIQUES",
+        description="Commandes pour consulter et gérer les stats",
+        color=EMS_RED
+    )
+    stats_embed.add_field(
+        name="/total",
+        value="📈 Affiche toutes les statistiques de la semaine\n• Liste tous les employés\n• Nombre de réanimations par personne\n• Total général",
+        inline=False
+    )
+    stats_embed.add_field(
+        name="/semaine",
+        value="🔄 Réinitialise la semaine complète\n• Envoie le bilan hebdomadaire dans les logs\n• Remet tous les compteurs à 0\n• Change tous les channels en 🔴\n• Annonce la nouvelle semaine",
+        inline=False
+    )
+    stats_embed.add_field(
+        name="/reset",
+        value="♻️ Réinitialise uniquement les compteurs\n(Sans bilan ni annonce)",
+        inline=False
+    )
+    
+    # Embed CV
+    cv_embed = discord.Embed(
+        title="📝 SYSTÈME DE RECRUTEMENT",
+        description="Gestion automatique des candidatures",
+        color=EMS_RED
+    )
+    cv_embed.add_field(
+        name="/setup_cv",
+        value="🎯 Affiche le bouton de candidature\n• Les candidats cliquent pour postuler\n• 13 questions automatiques\n• Upload de documents\n• Validation par la direction",
+        inline=False
+    )
+    cv_embed.add_field(
+        name="🔄 Processus automatique",
+        value="• Channel privé créé pour chaque candidat\n• Questions posées une par une\n• 10 minutes par question\n• CV envoyé à la direction\n• Boutons ✅ Accepter / ❌ Refuser",
+        inline=False
+    )
+    
+    # Embed Taxi
+    taxi_embed = discord.Embed(
+        title="🚕 SYSTÈME TAXI",
+        description="Comptage des tests d'aptitude taxi",
+        color=discord.Color.gold()
+    )
+    taxi_embed.add_field(
+        name="📊 Fonctionnement",
+        value="• Réaction automatique ✅ sur chaque message dans le channel taxi\n"
+              "• Comptage automatique des tests\n"
+              "• Rapport hebdomadaire automatique (samedi 19h)\n"
+              "• Calcul des revenus (500 000$ par test)",
+        inline=False
+    )
+    taxi_embed.add_field(
+        name="/taxi",
+        value="📈 Affiche le compteur actuel des tests",
+        inline=False
+    )
+    taxi_embed.add_field(
+        name="/taxi_announce",
+        value="📣 Envoie manuellement le rapport hebdomadaire",
+        inline=False
+    )
+    
+    # Embed Catégories
+    cat_embed = discord.Embed(
+        title="🏗️ GESTION DES CATÉGORIES",
+        description="Organisation des channels par grade",
+        color=EMS_RED
+    )
+    cat_embed.add_field(
+        name="/setup_categories",
+        value="🔨 Crée automatiquement toutes les catégories\n• DIR, CDS, MED, INF, ADS, INT, EMT\n• Positionne au bon endroit\n• Sauvegarde les IDs pour les autres commandes",
+        inline=False
+    )
+    cat_embed.add_field(
+        name="/reorganize",
+        value="🔄 Réorganise tous les channels existants\n• Scanne tous les channels EMS\n• Détecte le grade (emt-, int-, etc.)\n• Déplace dans la bonne catégorie\n• Rapport détaillé des changements",
+        inline=False
+    )
+    
+    # Embed Footer
+    footer_embed = discord.Embed(
+        title="ℹ️ INFORMATIONS",
+        description=(
+            "**🔐 Permissions requises :**\n"
+            "La plupart des commandes nécessitent les permissions administrateur.\n\n"
+            "**📞 Support :**\n"
+            "En cas de problème, contactez la direction.\n\n"
+            "**🔄 Mises à jour :**\n"
+            "Le bot est automatiquement mis à jour via GitHub."
+        ),
+        color=EMS_RED
+    )
+    footer_embed.set_footer(text="🚑 EMS Management System | Développé avec ❤️")
+    
+    # Envoyer tous les embeds
+    embeds = [main_embed, rea_embed, admin_embed, stats_embed, cv_embed, taxi_embed, cat_embed, footer_embed]
+    for embed in embeds:
+        await interaction.followup.send(embed=embed)
+
 @bot.tree.command(name="reorganize", description="Réorganise tous les channels EMS dans leurs catégories respectives")
 @app_commands.checks.has_permissions(administrator=True)
 async def reorganize(interaction: discord.Interaction):
