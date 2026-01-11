@@ -1029,8 +1029,15 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
     channel_name = f"🔴emt-{clean_name.lower().replace(' ', '-')}"
     
     if category:
-        # Créer le channel
-        new_channel = await guild.create_text_channel(name=channel_name, category=category)
+        # Permissions pour que le membre ait accès à son channel
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            membre: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        }
+        
+        # Créer le channel avec les permissions
+        new_channel = await guild.create_text_channel(name=channel_name, category=category, overwrites=overwrites)
         
         # Positionnement
         anchor_channel = guild.get_channel(channel_anchor_id)
