@@ -1185,6 +1185,18 @@ async def virer(interaction: discord.Interaction, membre: discord.Member):
     except:
         pass # Si on peut pas, tant pis
 
+    # 3. Envoyer un message privé au membre viré
+    try:
+        await membre.send(
+            f"Cher {membre.mention},\n\n"
+            f"Nous regrettons de vous informer que, suite à une décision interne, vous êtes désormais licencié de l'hôpital de Los Santos.\n\n"
+            f"Cette décision a été prise après analyse de certains éléments qui ne sont pas en adéquation avec les valeurs et le fonctionnement de notre service.\n\n"
+            f"Nous vous remercions pour l'intérêt que vous avez porté à notre organisation et vous souhaitons bonne continuation dans vos projets.\n\n"
+            f"Cordialement,\n**La Direction des EMS.**"
+        )
+    except Exception as e:
+        print(f"Erreur envoi DM licenciement: {e}")
+
     # Optionnel: On pourrait supprimer le channel s'il existe dans la map, 
     # mais la demande ne le spécifiait pas explicitement ("enleve son pseudo... garde seulement le role").
     
