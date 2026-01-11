@@ -35,6 +35,53 @@ TAXI_ROLE_ID = 1163206112355561472
 ROLE_DIRECTION_EMS_ID = 838120186585940010
 ROLE_DIRECTION_TAXI_ID = 1311787019546136596
 
+# --- FONCTIONS UTILITAIRES JSON ---
+def atomic_write_json(path: str, data: dict, make_backup: bool = True):
+    tmp_path = f"{path}.tmp"
+    try:
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        # Ecrire/mettre à jour une sauvegarde simple
+        if make_backup:
+            try:
+                with open(f"{path}.bak", 'w', encoding='utf-8') as bf:
+                    json.dump(data, bf, ensure_ascii=False, indent=2)
+            except:
+                pass
+        os.replace(tmp_path, path)
+    except Exception:
+        # Nettoyage tmp si besoin
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except:
+            pass
+        raise
+
+def robust_load_json(path: str, default):
+    if not os.path.exists(path):
+        return default
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read().strip()
+            if not content:
+                raise ValueError("empty")
+            return json.loads(content)
+    except:
+        # Essayer la sauvegarde .bak
+        bak = f"{path}.bak"
+        if os.path.exists(bak):
+            try:
+                with open(bak, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    if content:
+                        return json.loads(content)
+            except:
+                pass
+        return default
+
 # Fonction pour charger les catégories
 def load_categories():
     default = {
@@ -97,56 +144,8 @@ def load_stats():
     except:
         return {}
 
-def atomic_write_json(path: str, data: dict, make_backup: bool = True):
-    tmp_path = f"{path}.tmp"
-    try:
-        with open(tmp_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-            f.flush()
-            os.fsync(f.fileno())
-        # Ecrire/mettre à jour une sauvegarde simple
-        if make_backup:
-            try:
-                with open(f"{path}.bak", 'w', encoding='utf-8') as bf:
-                    json.dump(data, bf, ensure_ascii=False, indent=2)
-            except:
-                pass
-        os.replace(tmp_path, path)
-    except Exception:
-        # Nettoyage tmp si besoin
-        try:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-        except:
-            pass
-        raise
-
-def robust_load_json(path: str, default):
-    if not os.path.exists(path):
-        return default
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            content = f.read().strip()
-            if not content:
-                raise ValueError("empty")
-            return json.loads(content)
-    except:
-        # Essayer la sauvegarde .bak
-        bak = f"{path}.bak"
-        if os.path.exists(bak):
-            try:
-                with open(bak, 'r', encoding='utf-8') as f:
-                    content = f.read().strip()
-                    if content:
-                        return json.loads(content)
-            except:
-                pass
-        return default
-
 def save_stats(stats):
     atomic_write_json(STATS_FILE, stats)
-
-## Système de badges supprimé pour simplifier et fiabiliser le flux
 
 def normalize_employee_key(name: str) -> str:
     """Normalise un identifiant d'employé pour correspondre aux clés de stats.json.
