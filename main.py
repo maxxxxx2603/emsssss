@@ -27,12 +27,39 @@ else:
 STATS_FILE = 'stats.json'
 TAXI_STATS_FILE = 'taxi_stats.json'
 CHANNEL_MAP_FILE = 'channel_map.json'
+CATEGORIES_FILE = 'categories.json'
 
 # Configuration Taxi
 TAXI_CHANNEL_ID = 1456000685190418514
 TAXI_ROLE_ID = 1163206112355561472
 ROLE_DIRECTION_EMS_ID = 838120186585940010
 ROLE_DIRECTION_TAXI_ID = 1311787019546136596
+
+# Fonction pour charger les catégories
+def load_categories():
+    default = {
+        "CATEGORY_EMT_ID": 0,
+        "CATEGORY_INT_ID": 0,
+        "CATEGORY_ADS_ID": 0,
+        "CATEGORY_INF_ID": 0,
+        "CATEGORY_MED_ID": 0,
+        "CATEGORY_CDS_ID": 0,
+        "CATEGORY_DIR_ID": 0
+    }
+    return robust_load_json(CATEGORIES_FILE, default)
+
+def save_categories(cats):
+    atomic_write_json(CATEGORIES_FILE, cats)
+
+# Charger les catégories au démarrage
+categories = load_categories()
+CATEGORY_EMT_ID = categories.get("CATEGORY_EMT_ID", 0)
+CATEGORY_INT_ID = categories.get("CATEGORY_INT_ID", 0)
+CATEGORY_ADS_ID = categories.get("CATEGORY_ADS_ID", 0)
+CATEGORY_INF_ID = categories.get("CATEGORY_INF_ID", 0)
+CATEGORY_MED_ID = categories.get("CATEGORY_MED_ID", 0)
+CATEGORY_CDS_ID = categories.get("CATEGORY_CDS_ID", 0)
+CATEGORY_DIR_ID = categories.get("CATEGORY_DIR_ID", 0)
 
 # Cooldown pour réactions
 processed_reactions = set()
@@ -990,6 +1017,67 @@ def get_clean_name(member):
 
 # --- COMMANDES DE MANAGEMENT EMS ---
 
+@bot.tree.command(name="setup_categories", description="Crée automatiquement toutes les catégories pour les grades EMS")
+@app_commands.checks.has_permissions(administrator=True)
+async def setup_categories(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    
+    # Définir les catégories à créer
+    grade_names = [
+        ("EMT", "CATEGORY_EMT_ID"),
+        ("INT", "CATEGORY_INT_ID"),
+        ("ADS", "CATEGORY_ADS_ID"),
+        ("INF", "CATEGORY_INF_ID"),
+        ("MED", "CATEGORY_MED_ID"),
+        ("CDS", "CATEGORY_CDS_ID"),
+        ("DIR", "CATEGORY_DIR_ID")
+    ]
+    
+    categories_data = load_categories()
+    created = []
+    errors = []
+    
+    for grade_name, key in grade_names:
+        try:
+            # Créer la catégorie
+            category = await guild.create_category(name=grade_name)
+            categories_data[key] = category.id
+            created.append(f"✅ {grade_name}: {category.id}")
+        except Exception as e:
+            errors.append(f"❌ {grade_name}: {e}")
+    
+    # Sauvegarder les IDs
+    if created:
+        save_categories(categories_data)
+        
+        # Recharger les variables globales
+        global CATEGORY_EMT_ID, CATEGORY_INT_ID, CATEGORY_ADS_ID, CATEGORY_INF_ID, CATEGORY_MED_ID, CATEGORY_CDS_ID, CATEGORY_DIR_ID
+        CATEGORY_EMT_ID = categories_data.get("CATEGORY_EMT_ID", 0)
+        CATEGORY_INT_ID = categories_data.get("CATEGORY_INT_ID", 0)
+        CATEGORY_ADS_ID = categories_data.get("CATEGORY_ADS_ID", 0)
+        CATEGORY_INF_ID = categories_data.get("CATEGORY_INF_ID", 0)
+        CATEGORY_MED_ID = categories_data.get("CATEGORY_MED_ID", 0)
+        CATEGORY_CDS_ID = categories_data.get("CATEGORY_CDS_ID", 0)
+        CATEGORY_DIR_ID = categories_data.get("CATEGORY_DIR_ID", 0)
+    
+    # Préparer le message de réponse
+    embed = discord.Embed(
+        title="🏗️ Configuration des Catégories",
+        description="Création des catégories pour chaque grade EMS",
+        color=EMS_RED
+    )
+    
+    if created:
+        embed.add_field(name="✅ Catégories créées", value="\n".join(created), inline=False)
+    
+    if errors:
+        embed.add_field(name="❌ Erreurs", value="\n".join(errors), inline=False)
+    
+    embed.set_footer(text="🚑 EMS System")
+    await interaction.followup.send(embed=embed)
+
 @bot.tree.command(name="employer", description="Recruter un EMS (Création channel, rôles, rename)")
 @app_commands.describe(membre="Le membre à employer")
 async def employer(interaction: discord.Interaction, membre: discord.Member):
@@ -1017,14 +1105,11 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
     if role_to_remove:
         await membre.remove_roles(role_to_remove)
 
-    # 3. Création du Channel
-    category_id = 1017849358366031922
-    channel_anchor_id = 995847557567746058
-    
-    category = guild.get_channel(category_id)
+    # 3. Création du Channel dans la catégorie EMT
+    category_emt = guild.get_channel(CATEGORY_EMT_ID) if CATEGORY_EMT_ID else None
     channel_name = f"🔴emt-{clean_name.lower().replace(' ', '-')}"
     
-    if category:
+    if category_emt:
         # Permissions pour que le membre ait accès à son channel
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -1032,26 +1117,17 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
             guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
         }
         
-        # Créer le channel avec les permissions
-        new_channel = await guild.create_text_channel(name=channel_name, category=category, overwrites=overwrites)
-        
-        # Positionnement
-        anchor_channel = guild.get_channel(channel_anchor_id)
-        if anchor_channel:
-             # On le met à la position de l'ancre (ce qui pousse l'ancre vers le bas)
-            try:
-                await new_channel.edit(position=anchor_channel.position)
-            except Exception as e:
-                print(f"Erreur positionnement channel: {e}")
+        # Créer le channel avec les permissions dans la catégorie EMT
+        new_channel = await guild.create_text_channel(name=channel_name, category=category_emt, overwrites=overwrites)
 
         # Sauvegarde du mapping
         mapping = load_channel_map()
         mapping[str(membre.id)] = new_channel.id
         save_channel_map(mapping)
         
-        await interaction.followup.send(f"✅ **{membre.mention}** a été employé avec succès !\n📛 Renommé en `{new_nickname}`\n📂 Dossier créé : {new_channel.mention}")
+        await interaction.followup.send(f"✅ **{membre.mention}** a été employé avec succès !\n📛 Renommé en `{new_nickname}`\n📂 Dossier créé : {new_channel.mention} dans la catégorie EMT")
     else:
-        await interaction.followup.send(f"⚠️ Catégorie introuvable, rôles et pseudo mis à jour mais pas le channel.")
+        await interaction.followup.send(f"⚠️ Catégorie EMT introuvable (ID: {CATEGORY_EMT_ID}), rôles et pseudo mis à jour mais pas le channel.")
 
 
 @bot.tree.command(name="virer", description="Virer un employé (Retrait rôles, reset pseudo)")
@@ -1122,42 +1198,42 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
         next_step = {
             "remove": R_EMT, "add": R_INT, 
             "tag": "INT", "chan_prefix": "🔴int",
-            "move_above_id": 1024094792780619836 # ID spécifique demandé
+            "category_id": CATEGORY_INT_ID
         }
     elif R_INT in member_roles_ids:
         # INT -> ADS
         next_step = {
             "remove": R_INT, "add": R_ADS,
             "tag": "ADS", "chan_prefix": "🔴ads",
-            "move_above_prefix": "🔴int" # Au dessus des INT
+            "category_id": CATEGORY_ADS_ID
         }
     elif R_ADS in member_roles_ids:
         # ADS -> INF
         next_step = {
             "remove": R_ADS, "add": R_INF,
             "tag": "INF", "chan_prefix": "🔴inf",
-            "move_above_prefix": "🔴ads" # Au dessus des ADS
+            "category_id": CATEGORY_INF_ID
         }
     elif R_INF in member_roles_ids:
         # INF -> MED
         next_step = {
             "remove": R_INF, "add": R_MED,
             "tag": "MED", "chan_prefix": "🔴med",
-            "move_above_prefix": "🔴inf"
+            "category_id": CATEGORY_MED_ID
         }
     elif R_MED in member_roles_ids:
         # MED -> CDS
         next_step = {
             "remove": R_MED, "add": R_CDS,
             "tag": "CDS", "chan_prefix": "🔴cds",
-            "move_above_prefix": "🔴med"
+            "category_id": CATEGORY_CDS_ID
         }
     elif R_CDS in member_roles_ids:
         # CDS -> DIR
         next_step = {
             "remove": R_CDS, "add": R_DIR,
             "tag": "DIR", "chan_prefix": "🔴dir",
-            "move_above_prefix": "🔴cds"
+            "category_id": CATEGORY_DIR_ID
         }
     else:
         await interaction.followup.send("❌ Ce membre n'a pas de grade évolutif connu ou est déjà au max.")
@@ -1185,42 +1261,23 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
     if channel:
         # Rename
         new_chan_name = f"{next_step['chan_prefix']}-{clean_name.lower().replace(' ', '-')}"
-        await channel.edit(name=new_chan_name)
         
-        # Move
-        target_pos = None
+        # Déplacer dans la nouvelle catégorie
+        new_category_id = next_step.get("category_id")
+        new_category = guild.get_channel(new_category_id) if new_category_id else None
         
-        # Cas 1: ID spécifique (EMT -> INT)
-        if "move_above_id" in next_step:
-            anchor = guild.get_channel(next_step["move_above_id"])
-            if anchor:
-                target_pos = anchor.position
-                
-        # Cas 2: Au dessus d'un groupe (prefix)
-        elif "move_above_prefix" in next_step:
-            # Trouver le channel le plus haut (position la plus petite) qui a ce prefixe
-            category = channel.category
-            if category:
-                prefix = next_step["move_above_prefix"]
-                # On cherche tous les channels avec ce prefixe
-                targets = [c for c in category.channels if c.name.startswith(prefix)]
-                if targets:
-                    # On veut être au dessus d'eux, donc on prend le min position
-                    target_pos = min(t.position for t in targets)
-                else:
-                    # S'il n'y a personne de ce grade en dessous, on essaye de se mettre
-                    # juste en dessous du grade actuel (ex: on est passé INF, y'a pas d'ADS, ou se met en bas des INF ?)
-                    # Simple fallback: on ne bouge pas si on trouve pas
-                    pass
-
-        if target_pos is not None:
+        if new_category:
             try:
-                await channel.edit(position=target_pos)
-                chan_msg = f"\n📂 Dossier déplacé et renommé : {channel.mention}"
+                await channel.edit(name=new_chan_name, category=new_category)
+                chan_msg = f"\n📂 Dossier déplacé dans la catégorie {next_step['tag']} et renommé : {channel.mention}"
             except Exception as e:
                 chan_msg = f"\n⚠️ Erreur déplacement dossier: {e}"
         else:
-            chan_msg = f"\n📂 Dossier renommé (position inchangée) : {channel.mention}"
+            try:
+                await channel.edit(name=new_chan_name)
+                chan_msg = f"\n📂 Dossier renommé : {channel.mention} (catégorie {next_step['tag']} introuvable)"
+            except Exception as e:
+                chan_msg = f"\n⚠️ Erreur renommage: {e}"
 
     await interaction.followup.send(f"📈 **Promotion effectuée pour {membre.mention}** !\nPassage au grade **{next_step['tag']}**.{chan_msg}")
 
