@@ -1023,6 +1023,9 @@ async def setup_categories(interaction: discord.Interaction):
     
     guild = interaction.guild
     
+    # ID de la catégorie cible (on veut positionner au-dessus)
+    TARGET_CATEGORY_ID = 838110173368418325
+    
     # Définir les catégories à créer
     grade_names = [
         ("EMT", "CATEGORY_EMT_ID"),
@@ -1036,6 +1039,7 @@ async def setup_categories(interaction: discord.Interaction):
     
     categories_data = load_categories()
     created = []
+    created_categories = []
     errors = []
     
     for grade_name, key in grade_names:
@@ -1044,6 +1048,7 @@ async def setup_categories(interaction: discord.Interaction):
             category = await guild.create_category(name=grade_name)
             categories_data[key] = category.id
             created.append(f"✅ {grade_name}: {category.id}")
+            created_categories.append(category)
         except Exception as e:
             errors.append(f"❌ {grade_name}: {e}")
     
@@ -1060,16 +1065,35 @@ async def setup_categories(interaction: discord.Interaction):
         CATEGORY_MED_ID = categories_data.get("CATEGORY_MED_ID", 0)
         CATEGORY_CDS_ID = categories_data.get("CATEGORY_CDS_ID", 0)
         CATEGORY_DIR_ID = categories_data.get("CATEGORY_DIR_ID", 0)
+        
+        # Positionner les catégories au-dessus de la catégorie cible
+        target_category = guild.get_channel(TARGET_CATEGORY_ID)
+        if target_category and created_categories:
+            try:
+                # Obtenir la position de la catégorie cible
+                target_position = target_category.position
+                
+                # Positionner chaque catégorie créée dans l'ordre, juste au-dessus
+                for i, category in enumerate(created_categories):
+                    new_position = target_position + i
+                    try:
+                        await category.edit(position=new_position)
+                    except Exception as e:
+                        errors.append(f"⚠️ Erreur positionnement {category.name}: {e}")
+                
+                created.append(f"📍 Catégories positionnées au-dessus de la catégorie cible")
+            except Exception as e:
+                errors.append(f"⚠️ Erreur positionnement global: {e}")
     
     # Préparer le message de réponse
     embed = discord.Embed(
         title="🏗️ Configuration des Catégories",
-        description="Création des catégories pour chaque grade EMS",
+        description="Création et positionnement des catégories pour chaque grade EMS",
         color=EMS_RED
     )
     
     if created:
-        embed.add_field(name="✅ Catégories créées", value="\n".join(created), inline=False)
+        embed.add_field(name="✅ Catégories créées et positionnées", value="\n".join(created), inline=False)
     
     if errors:
         embed.add_field(name="❌ Erreurs", value="\n".join(errors), inline=False)
