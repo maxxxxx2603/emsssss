@@ -1316,6 +1316,98 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
 
     await interaction.followup.send(f"📈 **Promotion effectuée pour {membre.mention}** !\nPassage au grade **{next_step['tag']}**.{chan_msg}")
 
+@bot.tree.command(name="reorganize", description="Réorganise tous les channels EMS dans leurs catégories respectives")
+@app_commands.checks.has_permissions(administrator=True)
+async def reorganize(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    
+    # Vérifier que les catégories sont configurées
+    if not all([CATEGORY_EMT_ID, CATEGORY_INT_ID, CATEGORY_ADS_ID, CATEGORY_INF_ID, CATEGORY_MED_ID, CATEGORY_CDS_ID, CATEGORY_DIR_ID]):
+        await interaction.followup.send("❌ Veuillez d'abord configurer les catégories avec `/setup_categories` !")
+        return
+    
+    # Mapping grade -> catégorie
+    grade_to_category = {
+        "emt": CATEGORY_EMT_ID,
+        "int": CATEGORY_INT_ID,
+        "ads": CATEGORY_ADS_ID,
+        "inf": CATEGORY_INF_ID,
+        "med": CATEGORY_MED_ID,
+        "cds": CATEGORY_CDS_ID,
+        "dir": CATEGORY_DIR_ID
+    }
+    
+    moved = []
+    errors = []
+    skipped = []
+    
+    # Scanner tous les channels texte
+    for channel in guild.text_channels:
+        # Vérifier si c'est un channel EMS (commence par un emoji)
+        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+            # Extraire le grade du nom du channel
+            # Format attendu: 🔴emt-nom, 🟠int-nom, etc.
+            channel_name_lower = channel.name.lower()
+            
+            found_grade = None
+            for grade in grade_to_category.keys():
+                # Chercher le grade dans le nom (après l'emoji)
+                if f"{grade}-" in channel_name_lower or f"{grade} " in channel_name_lower:
+                    found_grade = grade
+                    break
+            
+            if found_grade:
+                target_category_id = grade_to_category[found_grade]
+                target_category = guild.get_channel(target_category_id)
+                
+                if target_category:
+                    # Vérifier si le channel est déjà dans la bonne catégorie
+                    if channel.category_id == target_category_id:
+                        skipped.append(f"⏭️ {channel.mention} (déjà dans {found_grade.upper()})")
+                    else:
+                        try:
+                            await channel.edit(category=target_category)
+                            moved.append(f"✅ {channel.mention} → {found_grade.upper()}")
+                        except Exception as e:
+                            errors.append(f"❌ {channel.mention}: {e}")
+                else:
+                    errors.append(f"❌ {channel.mention}: Catégorie {found_grade.upper()} introuvable")
+            else:
+                skipped.append(f"⚠️ {channel.mention} (grade non identifié)")
+    
+    # Créer le message de réponse
+    embed = discord.Embed(
+        title="🔄 RÉORGANISATION DES CHANNELS",
+        description="Déplacement automatique des channels dans leurs catégories respectives",
+        color=EMS_RED
+    )
+    
+    if moved:
+        moved_text = "\n".join(moved[:25])  # Limiter à 25 pour ne pas dépasser la limite
+        if len(moved) > 25:
+            moved_text += f"\n... et {len(moved) - 25} autres"
+        embed.add_field(name=f"✅ Déplacés ({len(moved)})", value=moved_text, inline=False)
+    
+    if skipped:
+        skipped_text = "\n".join(skipped[:10])
+        if len(skipped) > 10:
+            skipped_text += f"\n... et {len(skipped) - 10} autres"
+        embed.add_field(name=f"⏭️ Ignorés ({len(skipped)})", value=skipped_text, inline=False)
+    
+    if errors:
+        errors_text = "\n".join(errors[:10])
+        if len(errors) > 10:
+            errors_text += f"\n... et {len(errors) - 10} autres"
+        embed.add_field(name=f"❌ Erreurs ({len(errors)})", value=errors_text, inline=False)
+    
+    if not moved and not skipped and not errors:
+        embed.description = "Aucun channel EMS trouvé à réorganiser."
+    
+    embed.set_footer(text="🚑 EMS System")
+    await interaction.followup.send(embed=embed)
+
 if __name__ == "__main__":
     if not config['TOKEN']:
         print("Erreur: TOKEN manquant. Vérifiez votre fichier config.json ou vos variables d'environnement.")
