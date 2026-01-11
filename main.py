@@ -1188,7 +1188,7 @@ async def virer(interaction: discord.Interaction, membre: discord.Member):
     # 3. Envoyer un message privé au membre viré
     try:
         await membre.send(
-            f"Cher {membre.mention},\n\n"
+            f"Cher **{clean_name}**,\n\n"
             f"Nous regrettons de vous informer que, suite à une décision interne, vous êtes désormais licencié de l'hôpital de Los Santos.\n\n"
             f"Cette décision a été prise après analyse de certains éléments qui ne sont pas en adéquation avec les valeurs et le fonctionnement de notre service.\n\n"
             f"Nous vous remercions pour l'intérêt que vous avez porté à notre organisation et vous souhaitons bonne continuation dans vos projets.\n\n"
