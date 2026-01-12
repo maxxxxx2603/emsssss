@@ -2004,11 +2004,27 @@ async def virer(interaction: discord.Interaction, membre: discord.Member):
                 channel_deleted = True
             except Exception as e:
                 print(f"Erreur suppression channel: {e}")
+    else:
+        # Si pas dans le mapping, chercher manuellement par nom
+        clean_name_normalized = clean_name.lower().replace(' ', '-')
+        for channel in guild.text_channels:
+            # Chercher un channel qui correspond au nom de l'employé (format: 🔴emt-nom ou 🔴int-nom, etc.)
+            if channel.name and len(channel.name) > 1:
+                # Retirer l'emoji au début
+                channel_name_clean = channel.name[1:].lower() if channel.name[0] in ["🔴", "🟠", "🟢"] else channel.name.lower()
+                # Vérifier si le nom correspond (emt-nom, int-nom, ads-nom, etc.)
+                if channel_name_clean.endswith(f"-{clean_name_normalized}") or channel_name_clean == f"emt-{clean_name_normalized}" or channel_name_clean == f"int-{clean_name_normalized}" or channel_name_clean == f"ads-{clean_name_normalized}" or channel_name_clean == f"inf-{clean_name_normalized}" or channel_name_clean == f"med-{clean_name_normalized}" or channel_name_clean == f"cds-{clean_name_normalized}" or channel_name_clean == f"dir-{clean_name_normalized}":
+                    try:
+                        await channel.delete()
+                        channel_deleted = True
+                        break
+                    except Exception as e:
+                        print(f"Erreur suppression channel manuel: {e}")
     
     if channel_deleted:
         await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés, pseudo réinitialisé et channel supprimé.")
     else:
-        await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés et pseudo réinitialisé.")
+        await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés et pseudo réinitialisé.\n⚠️ Aucun channel personnel trouvé.")
 
 @bot.tree.command(name="up", description="Promouvoir un employé au rang suivant")
 @app_commands.describe(membre="Le membre à promouvoir")
