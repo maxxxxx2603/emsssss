@@ -1611,6 +1611,138 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
         await interaction.followup.send(f"⚠️ Catégorie EMT introuvable (ID: {CATEGORY_EMT_ID}), rôles et pseudo mis à jour mais pas le channel.")
 
 
+@bot.tree.command(name="setup_all_employers", description="Emploie automatiquement tous les membres listés dans stats.json")
+@app_commands.checks.has_permissions(administrator=True)
+async def setup_all_employers(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    stats = load_stats()
+    
+    if not stats:
+        embed = discord.Embed(
+            title="❌ Aucune donnée",
+            description="Le fichier stats.json est vide. Rien à faire.",
+            color=EMS_DARK_RED
+        )
+        await interaction.followup.send(embed=embed)
+        return
+    
+    # Créer un embed de progression
+    progress_embed = discord.Embed(
+        title="🔄 Embauche en cours...",
+        description=f"Traitement de {len(stats)} employés...",
+        color=EMS_RED
+    )
+    progress_msg = await interaction.followup.send(embed=progress_embed)
+    
+    results = {
+        "success": [],
+        "not_found": [],
+        "errors": []
+    }
+    
+    for employee_key in stats.keys():
+        # Convertir la clé en nom recherchable (ex: "mahmoud-mendy" -> "mahmoud mendy")
+        search_name = employee_key.replace("-", " ").lower()
+        
+        # Chercher le membre sur le serveur
+        member = None
+        for m in guild.members:
+            # Comparer avec le display_name et le name
+            member_name = m.display_name.lower()
+            # Retirer les tags entre crochets si présents
+            if ']' in member_name:
+                member_name = member_name.split(']')[1].strip()
+            
+            if search_name in member_name.lower() or member_name in search_name:
+                member = m
+                break
+        
+        if not member:
+            results["not_found"].append(employee_key)
+            continue
+        
+        try:
+            # Logique d'embauche (identique à /employer)
+            clean_name = get_clean_name(member)
+            
+            # 1. Changement de pseudo
+            new_nickname = f"[EMT] {clean_name}"
+            try:
+                await member.edit(nick=new_nickname)
+            except:
+                pass
+            
+            # 2. Ajout des rôles
+            roles_add_ids = [838102445095256068, 895047492784238652, 838102445095256070]
+            role_remove_id = 896103247096471613
+            
+            roles_to_add = [guild.get_role(rid) for rid in roles_add_ids if guild.get_role(rid)]
+            role_to_remove = guild.get_role(role_remove_id)
+            
+            if roles_to_add:
+                await member.add_roles(*roles_to_add)
+            if role_to_remove:
+                await member.remove_roles(role_to_remove)
+            
+            # 3. Création du channel
+            category_emt = guild.get_channel(CATEGORY_EMT_ID) if CATEGORY_EMT_ID else None
+            channel_name = f"🔴emt-{clean_name.lower().replace(' ', '-')}"
+            
+            if category_emt:
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                    member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                    guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                }
+                
+                channel = await guild.create_text_channel(
+                    name=channel_name,
+                    category=category_emt,
+                    overwrites=overwrites
+                )
+                
+                # Sauvegarder le mapping channel -> employé
+                mapping = load_channel_map()
+                mapping[str(channel.id)] = employee_key
+                save_channel_map(mapping)
+            
+            results["success"].append(f"{employee_key} ({member.mention})")
+            
+        except Exception as e:
+            results["errors"].append(f"{employee_key}: {str(e)}")
+    
+    # Résumé final
+    final_embed = discord.Embed(
+        title="✅ Embauche terminée",
+        color=EMS_RED
+    )
+    
+    if results["success"]:
+        final_embed.add_field(
+            name=f"✅ Employés créés ({len(results['success'])})",
+            value="\n".join(results["success"][:10]) + (f"\n... et {len(results['success']) - 10} autres" if len(results['success']) > 10 else ""),
+            inline=False
+        )
+    
+    if results["not_found"]:
+        final_embed.add_field(
+            name=f"⚠️ Membres introuvables ({len(results['not_found'])})",
+            value="\n".join(results["not_found"][:10]) + (f"\n... et {len(results['not_found']) - 10} autres" if len(results['not_found']) > 10 else ""),
+            inline=False
+        )
+    
+    if results["errors"]:
+        final_embed.add_field(
+            name=f"❌ Erreurs ({len(results['errors'])})",
+            value="\n".join(results["errors"][:10]) + (f"\n... et {len(results['errors']) - 10} autres" if len(results['errors']) > 10 else ""),
+            inline=False
+        )
+    
+    final_embed.set_footer(text="🚑 EMS System")
+    await interaction.followup.send(embed=final_embed)
+
 @bot.tree.command(name="virer", description="Virer un employé (Retrait rôles, reset pseudo)")
 @app_commands.describe(membre="Le membre à virer")
 async def virer(interaction: discord.Interaction, membre: discord.Member):
