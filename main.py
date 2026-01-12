@@ -1303,8 +1303,6 @@ async def setup_appointment(interaction: discord.Interaction):
     embed.set_footer(text="📅 Système de tickets")
     await interaction.channel.send(embed=embed, view=AppointmentButton())
     await interaction.response.send_message("✅ Message de prise de rendez-vous posté !", ephemeral=True)
-    await interaction.channel.send(embed=embed, view=CVButton())
-    await interaction.response.send_message("✅ Message de recrutement posté !", ephemeral=True)
 
 @bot.event
 async def on_ready():
@@ -2068,21 +2066,22 @@ async def payes_test(interaction: discord.Interaction):
         color=EMS_RED
     )
     
-    # Construire le tableau
+    # Construire le tableau (limité à 15 employés pour rester sous 1024 caractères)
     salary_text = "```\n"
-    salary_text += f"{'NOM':<20} | {'RÉAS':<5} | {'GRADE':<10} | {'TOTAL':>15}\n"
-    salary_text += "-" * 65 + "\n"
+    salary_text += f"{'NOM':<18} | {'RÉAS':<4} | {'GRADE':<6} | {'TOTAL':>12}\n"
+    salary_text += "-" * 50 + "\n"
     
-    for emp in salary_data[:25]:  # Limiter à 25 premiers pour éviter dépassement
-        name_display = emp['name'][:18]
-        salary_text += f"{name_display:<20} | {emp['rea']:<5} | {emp['grade']:<10} | {emp['total']:>15,}$\n".replace(",", " ")
+    for emp in salary_data[:15]:  # Limiter à 15 pour éviter dépassement
+        name_display = emp['name'][:16]
+        grade_display = emp['grade'][:6]
+        salary_text += f"{name_display:<18} | {emp['rea']:<4} | {grade_display:<6} | {emp['total']:>12,}$\n".replace(",", " ")
     
-    if len(salary_data) > 25:
-        salary_text += f"\n... et {len(salary_data) - 25} autres employés\n"
+    if len(salary_data) > 15:
+        salary_text += f"\n... et {len(salary_data) - 15} autres employés\n"
     
     salary_text += "```"
     
-    preview_embed.add_field(name="📋 Liste des salaires", value=salary_text, inline=False)
+    preview_embed.add_field(name="📋 Liste des salaires (Top 15)", value=salary_text, inline=False)
     
     preview_embed.add_field(
         name="💵 TOTAL À RETIRER DU COFFRE",
