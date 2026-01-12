@@ -1566,10 +1566,27 @@ async def virer(interaction: discord.Interaction, membre: discord.Member):
     except Exception as e:
         print(f"Erreur envoi DM licenciement: {e}")
 
-    # Optionnel: On pourrait supprimer le channel s'il existe dans la map, 
-    # mais la demande ne le spécifiait pas explicitement ("enleve son pseudo... garde seulement le role").
+    # 4. Supprimer le channel personnel de l'employé
+    mapping = load_channel_map()
+    chan_id = mapping.get(str(membre.id))
+    channel_deleted = False
     
-    await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés et pseudo réinitialisé.")
+    if chan_id:
+        channel = guild.get_channel(int(chan_id))
+        if channel:
+            try:
+                await channel.delete()
+                # Retirer l'entrée du mapping
+                del mapping[str(membre.id)]
+                save_channel_map(mapping)
+                channel_deleted = True
+            except Exception as e:
+                print(f"Erreur suppression channel: {e}")
+    
+    if channel_deleted:
+        await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés, pseudo réinitialisé et channel supprimé.")
+    else:
+        await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés et pseudo réinitialisé.")
 
 @bot.tree.command(name="up", description="Promouvoir un employé au rang suivant")
 @app_commands.describe(membre="Le membre à promouvoir")
