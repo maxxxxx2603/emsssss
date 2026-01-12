@@ -1320,7 +1320,7 @@ async def on_ready():
     print(f'✅ Bot: {bot.user}')
     
     # Synchroniser les stats depuis les logs au démarrage
-    await sync_stats_from_logs()
+    # await sync_stats_from_logs()  # Désactivé pour utiliser stats.json directement
     
     stats = load_stats()
     print(f'📊 Stats chargées: {len(stats)} employés, {sum(stats.values())} réas totales')
