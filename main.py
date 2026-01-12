@@ -1971,6 +1971,137 @@ async def payes(interaction: discord.Interaction):
     confirm_embed.set_footer(text="🚑 EMS System")
     await interaction.followup.send(embed=confirm_embed)
 
+@bot.tree.command(name="payes_test", description="Test du calcul des salaires (sans reset ni annonce)")
+@app_commands.checks.has_permissions(administrator=True)
+async def payes_test(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    
+    guild = interaction.guild
+    
+    # Charger les stats actuelles (sans les modifier)
+    stats = load_stats()
+    
+    # Calculer les salaires pour tous les membres
+    salary_data = []
+    total_payroll = 0
+    
+    direction_role = guild.get_role(ROLE_DIRECTION_EMS_ID)
+    
+    for member in guild.members:
+        if member.bot:
+            continue
+        
+        # Vérifier si le membre a le rôle DIRECTION
+        has_direction_role = direction_role in member.roles if direction_role else False
+        
+        if has_direction_role:
+            # DIRECTION: 9M fixe
+            clean_name = get_clean_name(member)
+            salary = 9000000
+            total_payroll += salary
+            
+            salary_data.append({
+                "name": clean_name,
+                "rea": 0,
+                "grade": "DIRECTION",
+                "total": salary
+            })
+            continue
+        
+        # Détecter le grade par tag dans le pseudo
+        nick = member.display_name.upper()
+        grade = None
+        rate = 0
+        
+        if "[DIR]" in nick:
+            grade = "DIR"
+            rate = 55000
+        elif "[CDS]" in nick:
+            grade = "CDS"
+            rate = 50000
+        elif "[MED]" in nick:
+            grade = "MED"
+            rate = 45000
+        elif "[INF]" in nick:
+            grade = "INF"
+            rate = 40000
+        elif "[ADS]" in nick:
+            grade = "ADS"
+            rate = 40000
+        elif "[INT]" in nick:
+            grade = "INT"
+            rate = 35000
+        elif "[EMT]" in nick:
+            grade = "EMT"
+            rate = 30000
+        else:
+            continue
+        
+        # Récupérer les réas
+        employee_key = normalize_employee_key(member.display_name)
+        rea_count = stats.get(employee_key, 0)
+        
+        # Calculer le salaire
+        base_salary = rea_count * rate
+        bonus = 0
+        if rea_count > 50:
+            bonus = ((rea_count - 50) // 10) * 150000
+        salary = base_salary + bonus
+        
+        total_payroll += salary
+        
+        clean_name = get_clean_name(member)
+        salary_data.append({
+            "name": clean_name,
+            "rea": rea_count,
+            "grade": grade,
+            "total": salary
+        })
+    
+    # Trier par salaire décroissant
+    salary_data.sort(key=lambda x: x["total"], reverse=True)
+    
+    # Créer l'aperçu (uniquement visible par l'admin)
+    preview_embed = discord.Embed(
+        title="💰 TEST - APERÇU DES SALAIRES",
+        description="**📊 Simulation du calcul des salaires (rien n'est envoyé ou reset)**\n",
+        color=EMS_RED
+    )
+    
+    # Construire le tableau
+    salary_text = "```\n"
+    salary_text += f"{'NOM':<20} | {'RÉAS':<5} | {'GRADE':<10} | {'TOTAL':>15}\n"
+    salary_text += "-" * 65 + "\n"
+    
+    for emp in salary_data[:25]:  # Limiter à 25 premiers pour éviter dépassement
+        name_display = emp['name'][:18]
+        salary_text += f"{name_display:<20} | {emp['rea']:<5} | {emp['grade']:<10} | {emp['total']:>15,}$\n".replace(",", " ")
+    
+    if len(salary_data) > 25:
+        salary_text += f"\n... et {len(salary_data) - 25} autres employés\n"
+    
+    salary_text += "```"
+    
+    preview_embed.add_field(name="📋 Liste des salaires", value=salary_text, inline=False)
+    
+    preview_embed.add_field(
+        name="💵 TOTAL À RETIRER DU COFFRE",
+        value=f"```{total_payroll:,}$```".replace(",", " "),
+        inline=False
+    )
+    
+    preview_embed.add_field(
+        name="📊 STATISTIQUES",
+        value=f"**Employés payés :** {len(salary_data)}\n**Total semaine :** {sum(stats.values())} réanimations",
+        inline=False
+    )
+    
+    preview_embed.set_footer(text="🚑 EMS System | Mode Test - Aucune modification effectuée")
+    
+    await interaction.followup.send(embed=preview_embed, ephemeral=True)
+    confirm_embed.set_footer(text="🚑 EMS System")
+    await interaction.followup.send(embed=confirm_embed)
+
 @bot.tree.command(name="help", description="Affiche toutes les commandes et fonctionnalités du bot")
 async def help_command(interaction: discord.Interaction):
     await interaction.response.defer()
