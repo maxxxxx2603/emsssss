@@ -1852,75 +1852,73 @@ async def payes(interaction: discord.Interaction):
     # 4. Trier par salaire décroissant
     salary_data.sort(key=lambda x: x["total"], reverse=True)
     
-    # 5. Créer l'annonce des salaires
-    announcement_embed = discord.Embed(
-        title="💰 PAIEMENT DES SALAIRES",
-        description="**📊 Récapitulatif des salaires de la semaine**\n",
-        color=EMS_RED
-    )
+    # 5. Diviser en plusieurs embeds (10 employés par page pour éviter dépassement)
+    embeds_to_send = []
+    employees_per_embed = 10
     
-    # Ajouter l'image du coffre (si téléchargée avec succès)
-    if coffre_image_file:
-        announcement_embed.set_image(url=f"attachment://{coffre_image_file.filename}")
-    
-    # Construire le tableau des salaires
-    salary_text = "```\n"
-    salary_text += f"{'NOM':<20} | {'RÉAS':<5} | {'GRADE':<10} | {'TOTAL':>15}\n"
-    salary_text += "-" * 65 + "\n"
-    
-    for emp in salary_data:
-        name_display = emp['name'][:18]  # Limiter à 18 caractères
-        salary_text += f"{name_display:<20} | {emp['rea']:<5} | {emp['grade']:<10} | {emp['total']:>15,}$\n".replace(",", " ")
-    
-    salary_text += "```"
-    
-    # Ajouter au embed (diviser si trop long)
-    if len(salary_text) <= 1024:
-        announcement_embed.add_field(name="📋 Liste des salaires", value=salary_text, inline=False)
-    else:
-        # Diviser en plusieurs embeds si nécessaire
-        chunks = []
-        current_chunk = "```\n"
-        current_chunk += f"{'NOM':<20} | {'RÉAS':<5} | {'GRADE':<10} | {'TOTAL':>15}\n"
-        current_chunk += "-" * 65 + "\n"
+    for i in range(0, len(salary_data), employees_per_embed):
+        chunk = salary_data[i:i + employees_per_embed]
+        page_num = (i // employees_per_embed) + 1
+        total_pages = (len(salary_data) + employees_per_embed - 1) // employees_per_embed
         
-        for emp in salary_data:
-            line = f"{emp['name'][:18]:<20} | {emp['rea']:<5} | {emp['grade']:<10} | {emp['total']:>15,}$\n".replace(",", " ")
-            if len(current_chunk) + len(line) + 3 > 1020:  # 1024 - "```"
-                current_chunk += "```"
-                chunks.append(current_chunk)
-                current_chunk = "```\n" + line
-            else:
-                current_chunk += line
+        # Créer un embed pour ce groupe
+        if i == 0:
+            # Premier embed avec image du coffre
+            chunk_embed = discord.Embed(
+                title="💰 PAIEMENT DES SALAIRES",
+                description="**📊 Récapitulatif des salaires de la semaine**\n",
+                color=EMS_RED
+            )
+            if coffre_image_file:
+                chunk_embed.set_image(url=f"attachment://{coffre_image_file.filename}")
+        else:
+            # Embeds suivants
+            chunk_embed = discord.Embed(
+                title=f"💰 PAIEMENT DES SALAIRES (suite)",
+                description=f"**Page {page_num}/{total_pages}**\n",
+                color=EMS_RED
+            )
         
-        current_chunk += "```"
-        chunks.append(current_chunk)
+        # Construire le tableau pour ce groupe
+        salary_text = "```\n"
+        salary_text += f"{'NOM':<16} | {'R':<3} | {'GRD':<3} | {'TOTAL':>10}\n"
+        salary_text += "-" * 42 + "\n"
         
-        for i, chunk in enumerate(chunks):
-            announcement_embed.add_field(name=f"📋 Liste des salaires ({i+1}/{len(chunks)})", value=chunk, inline=False)
+        for emp in chunk:
+            name_display = emp['name'][:14]
+            grade_display = emp['grade'][:3]
+            salary_text += f"{name_display:<16} | {emp['rea']:<3} | {grade_display:<3} | {emp['total']:>10,}$\n".replace(",", " ")
+        
+        salary_text += "```"
+        
+        chunk_embed.add_field(name=f"📋 Liste (Page {page_num}/{total_pages})", value=salary_text, inline=False)
+        
+        # Ajouter le total uniquement sur le dernier embed
+        if i + employees_per_embed >= len(salary_data):
+            chunk_embed.add_field(
+                name="💵 TOTAL À RETIRER",
+                value=f"```{total_payroll:,}$```".replace(",", " "),
+                inline=False
+            )
+            chunk_embed.set_footer(text="🚑 EMS System | Bonne paie à tous !")
+            chunk_embed.timestamp = datetime.now()
+        else:
+            chunk_embed.set_footer(text=f"🚑 EMS System | Page {page_num}/{total_pages}")
+        
+        embeds_to_send.append(chunk_embed)
     
-    # Ajouter le total à retirer
-    announcement_embed.add_field(
-        name="💵 TOTAL À RETIRER DU COFFRE",
-        value=f"```{total_payroll:,}$```".replace(",", " "),
-        inline=False
-    )
-    
-    announcement_embed.set_footer(text="🚑 EMS System | Bonne paie à tous !")
-    announcement_embed.timestamp = datetime.now()
-    
-    # 6. Envoyer dans le channel de logs
+    # 6. Envoyer tous les embeds dans le channel de logs
     log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
     if log_channel:
-        try:
-            if coffre_image_file:
-                # Attacher l'image téléchargée
-                await log_channel.send(embed=announcement_embed, file=coffre_image_file)
-            else:
-                # Fallback si le téléchargement a échoué
-                await log_channel.send(embed=announcement_embed)
-        except Exception as e:
-            print(f"Erreur envoi annonce salaires : {e}")
+        for idx, embed in enumerate(embeds_to_send):
+            try:
+                if idx == 0 and coffre_image_file:
+                    # Premier embed avec image du coffre
+                    await log_channel.send(embed=embed, file=coffre_image_file)
+                else:
+                    await log_channel.send(embed=embed)
+            except Exception as e:
+                print(f"Erreur envoi annonce salaires (page {idx+1}): {e}")
     
     # 7. Réinitialiser la semaine (comme /semaine)
     # Réinitialiser stats
@@ -2059,45 +2057,65 @@ async def payes_test(interaction: discord.Interaction):
     # Trier par salaire décroissant
     salary_data.sort(key=lambda x: x["total"], reverse=True)
     
-    # Créer l'aperçu (uniquement visible par l'admin)
-    preview_embed = discord.Embed(
-        title="💰 TEST - APERÇU DES SALAIRES",
-        description="**📊 Simulation du calcul des salaires (rien n'est envoyé ou reset)**\n",
-        color=EMS_RED
-    )
+    # Diviser les employés en groupes de 10 pour éviter les dépassements
+    embeds_to_send = []
+    employees_per_embed = 10
     
-    # Construire le tableau (limité à 15 employés pour rester sous 1024 caractères)
-    salary_text = "```\n"
-    salary_text += f"{'NOM':<18} | {'RÉAS':<4} | {'GRADE':<6} | {'TOTAL':>12}\n"
-    salary_text += "-" * 50 + "\n"
+    for i in range(0, len(salary_data), employees_per_embed):
+        chunk = salary_data[i:i + employees_per_embed]
+        page_num = (i // employees_per_embed) + 1
+        total_pages = (len(salary_data) + employees_per_embed - 1) // employees_per_embed
+        
+        # Créer un embed pour ce groupe
+        if i == 0:
+            # Premier embed avec titre principal
+            chunk_embed = discord.Embed(
+                title="💰 TEST - APERÇU DES SALAIRES",
+                description="**📊 Simulation du calcul des salaires (rien n'est envoyé ou reset)**\n",
+                color=EMS_RED
+            )
+        else:
+            # Embeds suivants
+            chunk_embed = discord.Embed(
+                title=f"💰 APERÇU DES SALAIRES (suite)",
+                description=f"**Page {page_num}/{total_pages}**\n",
+                color=EMS_RED
+            )
+        
+        # Construire le tableau pour ce groupe
+        salary_text = "```\n"
+        salary_text += f"{'NOM':<16} | {'R':<3} | {'GRD':<3} | {'TOTAL':>10}\n"
+        salary_text += "-" * 42 + "\n"
+        
+        for emp in chunk:
+            name_display = emp['name'][:14]
+            grade_display = emp['grade'][:3]
+            salary_text += f"{name_display:<16} | {emp['rea']:<3} | {grade_display:<3} | {emp['total']:>10,}$\n".replace(",", " ")
+        
+        salary_text += "```"
+        
+        chunk_embed.add_field(name=f"📋 Liste (Page {page_num}/{total_pages})", value=salary_text, inline=False)
+        
+        # Ajouter les stats uniquement sur le dernier embed
+        if i + employees_per_embed >= len(salary_data):
+            chunk_embed.add_field(
+                name="💵 TOTAL À RETIRER",
+                value=f"```{total_payroll:,}$```".replace(",", " "),
+                inline=False
+            )
+            
+            chunk_embed.add_field(
+                name="📊 STATISTIQUES",
+                value=f"**Employés :** {len(salary_data)}\n**Réas totales :** {sum(stats.values())}",
+                inline=False
+            )
+        
+        chunk_embed.set_footer(text=f"🚑 EMS System | Mode Test - Page {page_num}/{total_pages}")
+        embeds_to_send.append(chunk_embed)
     
-    for emp in salary_data[:15]:  # Limiter à 15 pour éviter dépassement
-        name_display = emp['name'][:16]
-        grade_display = emp['grade'][:6]
-        salary_text += f"{name_display:<18} | {emp['rea']:<4} | {grade_display:<6} | {emp['total']:>12,}$\n".replace(",", " ")
-    
-    if len(salary_data) > 15:
-        salary_text += f"\n... et {len(salary_data) - 15} autres employés\n"
-    
-    salary_text += "```"
-    
-    preview_embed.add_field(name="📋 Liste des salaires (Top 15)", value=salary_text, inline=False)
-    
-    preview_embed.add_field(
-        name="💵 TOTAL À RETIRER DU COFFRE",
-        value=f"```{total_payroll:,}$```".replace(",", " "),
-        inline=False
-    )
-    
-    preview_embed.add_field(
-        name="📊 STATISTIQUES",
-        value=f"**Employés payés :** {len(salary_data)}\n**Total semaine :** {sum(stats.values())} réanimations",
-        inline=False
-    )
-    
-    preview_embed.set_footer(text="🚑 EMS System | Mode Test - Aucune modification effectuée")
-    
-    await interaction.followup.send(embed=preview_embed, ephemeral=True)
+    # Envoyer tous les embeds
+    for embed in embeds_to_send:
+        await interaction.followup.send(embed=embed, ephemeral=True)
     confirm_embed.set_footer(text="🚑 EMS System")
     await interaction.followup.send(embed=confirm_embed)
 
