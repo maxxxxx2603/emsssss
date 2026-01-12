@@ -45,6 +45,7 @@ ROLE_LSPD_ID = 1070687458825601115
 ROLE_BCSO_ID = 1070374792450027560
 ROLE_MARSHALL_ID = 1365068483074855045
 ROLE_NO_TEST_ID = 1163524216688230591
+ROLE_TAXI_REQUEST_ID = 1311784189984505876
 
 # --- FONCTIONS UTILITAIRES JSON ---
 def atomic_write_json(path: str, data: dict, make_backup: bool = True):
@@ -1215,8 +1216,8 @@ class RoleRequestButton(discord.ui.View):
         
         # Question 1 : Organisation
         q1 = discord.Embed(
-            title="❓ QUESTION 1/4",
-            description="**Quelle organisation rejoignez-vous ?**\n\nRépondez par :\n• `LSPD`\n• `BCSO`\n• `MARSHALL`",
+            title="❓ QUESTION 1",
+            description="**Quelle organisation rejoignez-vous ?**\n\nRépondez par :\n• `LSPD`\n• `BCSO`\n• `MARSHALL`\n• `TAXI`",
             color=discord.Color.blue()
         )
         q1.set_footer(text="🎯 Système de demande de rôle")
@@ -1229,6 +1230,7 @@ class RoleRequestButton(discord.ui.View):
         organization = None
         role_id = None
         prefix = None
+        is_taxi = False
         
         try:
             msg = await bot.wait_for('message', check=check, timeout=300)
@@ -1246,6 +1248,10 @@ class RoleRequestButton(discord.ui.View):
                 organization = "MARSHALL"
                 role_id = ROLE_MARSHALL_ID
                 prefix = "M"
+            elif org_choice == "TAXI":
+                organization = "TAXI"
+                role_id = ROLE_TAXI_REQUEST_ID
+                is_taxi = True
             else:
                 error_msg = discord.Embed(
                     title="❌ ERREUR",
@@ -1283,8 +1289,9 @@ class RoleRequestButton(discord.ui.View):
             return
         
         # Question 2 : Prénom + Nom
+        question_num = 2
         q2 = discord.Embed(
-            title="❓ QUESTION 2/4",
+            title=f"❓ QUESTION {question_num}",
             description="**Quel est votre prénom et nom ?**\n\nFormat : `Prénom Nom`\nExemple : `Paul Fera`",
             color=discord.Color.blue()
         )
@@ -1305,32 +1312,36 @@ class RoleRequestButton(discord.ui.View):
             await channel.delete()
             return
         
-        # Question 3 : Matricule
-        q3 = discord.Embed(
-            title="❓ QUESTION 3/4",
-            description="**Quel est votre matricule ?**\n\nFormat : `02`, `15`, etc.",
-            color=discord.Color.blue()
-        )
-        q3.set_footer(text="🎯 Système de demande de rôle")
-        await channel.send(embed=q3)
-        
-        try:
-            msg = await bot.wait_for('message', check=check, timeout=300)
-            matricule = msg.content.strip()
-        except asyncio.TimeoutError:
-            timeout_msg = discord.Embed(
-                title="⏱️ TEMPS ÉCOULÉ",
-                description="Vous n'avez pas répondu à temps. Le ticket va être fermé.",
-                color=discord.Color.red()
+        # Question 3 : Matricule (sauf pour Taxi)
+        matricule = None
+        if not is_taxi:
+            question_num = 3
+            q3 = discord.Embed(
+                title=f"❓ QUESTION {question_num}",
+                description="**Quel est votre matricule ?**\n\nFormat : `02`, `15`, etc.",
+                color=discord.Color.blue()
             )
-            await channel.send(embed=timeout_msg)
-            await asyncio.sleep(3)
-            await channel.delete()
-            return
+            q3.set_footer(text="🎯 Système de demande de rôle")
+            await channel.send(embed=q3)
+            
+            try:
+                msg = await bot.wait_for('message', check=check, timeout=300)
+                matricule = msg.content.strip()
+            except asyncio.TimeoutError:
+                timeout_msg = discord.Embed(
+                    title="⏱️ TEMPS ÉCOULÉ",
+                    description="Vous n'avez pas répondu à temps. Le ticket va être fermé.",
+                    color=discord.Color.red()
+                )
+                await channel.send(embed=timeout_msg)
+                await asyncio.sleep(3)
+                await channel.delete()
+                return
         
         # Question 4 : Test d'aptitude
+        question_num = 3 if is_taxi else 4
         q4 = discord.Embed(
-            title="❓ QUESTION 4/4",
+            title=f"❓ QUESTION {question_num}",
             description="**Avez-vous le test d'aptitude ?**\n\nRépondez par :\n• `oui`\n• `non`",
             color=discord.Color.blue()
         )
@@ -1369,7 +1380,11 @@ class RoleRequestButton(discord.ui.View):
         
         # Appliquer les changements
         # 1. Changer le pseudo
-        new_nickname = f"{prefix}.{matricule} {full_name}"
+        if is_taxi:
+            new_nickname = full_name
+        else:
+            new_nickname = f"{prefix}.{matricule} {full_name}"
+        
         try:
             await interaction.user.edit(nick=new_nickname)
         except Exception as e:
@@ -1385,17 +1400,30 @@ class RoleRequestButton(discord.ui.View):
                     print(f"Erreur ajout rôle sans test: {e}")
         
         # Message de confirmation finale
-        final_msg = discord.Embed(
-            title="✅ DEMANDE COMPLÉTÉE",
-            description=(
-                f"**Votre profil a été configuré avec succès !**\n\n"
-                f"**Organisation :** {organization}\n"
-                f"**Pseudo :** `{new_nickname}`\n"
-                f"**Test d'aptitude :** {'✅ Oui' if has_test else '❌ Non'}\n\n"
-                f"Bienvenue dans l'équipe ! 🎉"
-            ),
-            color=discord.Color.green()
-        )
+        if is_taxi:
+            final_msg = discord.Embed(
+                title="✅ DEMANDE COMPLÉTÉE",
+                description=(
+                    f"**Votre profil a été configuré avec succès !**\n\n"
+                    f"**Organisation :** {organization}\n"
+                    f"**Pseudo :** `{new_nickname}`\n"
+                    f"**Test d'aptitude :** {'✅ Oui' if has_test else '❌ Non'}\n\n"
+                    f"Bienvenue dans l'équipe Taxi ! 🚕"
+                ),
+                color=discord.Color.green()
+            )
+        else:
+            final_msg = discord.Embed(
+                title="✅ DEMANDE COMPLÉTÉE",
+                description=(
+                    f"**Votre profil a été configuré avec succès !**\n\n"
+                    f"**Organisation :** {organization}\n"
+                    f"**Pseudo :** `{new_nickname}`\n"
+                    f"**Test d'aptitude :** {'✅ Oui' if has_test else '❌ Non'}\n\n"
+                    f"Bienvenue dans l'équipe ! 🎉"
+                ),
+                color=discord.Color.green()
+            )
         final_msg.set_footer(text="🎯 Système de demande de rôle")
         await channel.send(embed=final_msg)
         
@@ -1415,9 +1443,9 @@ async def setup_role_request(interaction: discord.Interaction):
             "**Obtenez votre rôle d'organisation !**\n\n"
             "Cliquez sur le bouton ci-dessous pour faire votre demande.\n\n"
             "**📋 Informations requises :**\n"
-            "• Organisation (LSPD/BCSO/MARSHALL)\n"
+            "• Organisation (LSPD/BCSO/MARSHALL/TAXI)\n"
             "• Prénom et nom\n"
-            "• Matricule\n"
+            "• Matricule (sauf Taxi)\n"
             "• Test d'aptitude (oui/non)\n\n"
             "**Le système configurera automatiquement votre profil !**"
         ),
