@@ -1805,11 +1805,12 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
     if role_to_remove:
         await membre.remove_roles(role_to_remove)
 
-    # 3. Création du Channel dans la catégorie EMT
-    category_emt = guild.get_channel(CATEGORY_EMT_ID) if CATEGORY_EMT_ID else None
+    # 3. Création du Channel dans la catégorie spécifique
+    CATEGORY_CHANNEL_ID = 1460041009453858826
+    category = guild.get_channel(CATEGORY_CHANNEL_ID)
     channel_name = f"🔴emt-{clean_name.lower().replace(' ', '-')}"
     
-    if category_emt:
+    if category:
         # Permissions pour que le membre ait accès à son channel
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -1817,17 +1818,17 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
             guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
         }
         
-        # Créer le channel avec les permissions dans la catégorie EMT
-        new_channel = await guild.create_text_channel(name=channel_name, category=category_emt, overwrites=overwrites)
+        # Créer le channel avec les permissions dans la catégorie
+        new_channel = await guild.create_text_channel(name=channel_name, category=category, overwrites=overwrites)
 
         # Sauvegarde du mapping
         mapping = load_channel_map()
         mapping[str(membre.id)] = new_channel.id
         save_channel_map(mapping)
         
-        await interaction.followup.send(f"✅ **{membre.mention}** a été employé avec succès !\n📛 Renommé en `{new_nickname}`\n📂 Dossier créé : {new_channel.mention} dans la catégorie EMT")
+        await interaction.followup.send(f"✅ **{membre.mention}** a été employé avec succès !\n📛 Renommé en `{new_nickname}`\n📂 Dossier créé : {new_channel.mention}")
     else:
-        await interaction.followup.send(f"⚠️ Catégorie EMT introuvable (ID: {CATEGORY_EMT_ID}), rôles et pseudo mis à jour mais pas le channel.")
+        await interaction.followup.send(f"⚠️ Catégorie introuvable (ID: {CATEGORY_CHANNEL_ID}), rôles et pseudo mis à jour mais pas le channel.")
 
 @bot.tree.command(name="reset_names", description="Applique les tags de grade selon les rôles Discord")
 @app_commands.describe(membre="Le membre dont mettre à jour le tag (optionnel, sinon tous)")
