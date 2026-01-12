@@ -2116,8 +2116,6 @@ async def payes_test(interaction: discord.Interaction):
     # Envoyer tous les embeds
     for embed in embeds_to_send:
         await interaction.followup.send(embed=embed, ephemeral=True)
-    confirm_embed.set_footer(text="🚑 EMS System")
-    await interaction.followup.send(embed=confirm_embed)
 
 @bot.tree.command(name="help", description="Affiche toutes les commandes et fonctionnalités du bot")
 async def help_command(interaction: discord.Interaction):
