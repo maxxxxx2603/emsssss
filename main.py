@@ -1307,8 +1307,12 @@ async def setup_appointment(interaction: discord.Interaction):
 @bot.event
 async def on_ready():
     print(f'✅ Bot: {bot.user}')
+    
+    # Synchroniser les stats depuis les logs au démarrage
+    await sync_stats_from_logs()
+    
     stats = load_stats()
-    print(f'📊 Stats: {stats if stats else "Aucune"}')
+    print(f'📊 Stats chargées: {len(stats)} employés, {sum(stats.values())} réas totales')
     # Synchronisation des couleurs au démarrage supprimée
 
 # --- TÂCHE AUTOMATISÉE HEBDOMADAIRE TAXI ---
@@ -1406,6 +1410,56 @@ def get_clean_name(member):
         except IndexError:
             return display_name
     return display_name
+
+# --- RÉCUPÉRATION DES STATS DEPUIS LES LOGS ---
+async def sync_stats_from_logs():
+    """Récupère les stats depuis le channel de logs pour éviter la perte de données au redémarrage"""
+    try:
+        LOGS_SYNC_CHANNEL_ID = 1458464678542970983
+        log_channel = bot.get_channel(LOGS_SYNC_CHANNEL_ID)
+        
+        if not log_channel:
+            print(f"❌ Channel de logs introuvable (ID: {LOGS_SYNC_CHANNEL_ID})")
+            return
+        
+        print("🔄 Synchronisation des stats depuis les logs...")
+        
+        # Dictionnaire pour stocker les stats récupérées
+        recovered_stats = {}
+        
+        # Lire les 1000 derniers messages du channel (limite Discord)
+        async for message in log_channel.history(limit=1000):
+            # Format attendu: "✅ **employee_key** | X réas"
+            if message.content.startswith("✅ **") and " réas" in message.content:
+                try:
+                    # Extraire l'employé et le nombre de réas
+                    parts = message.content.split("**")
+                    if len(parts) >= 3:
+                        employee_key = parts[1].strip()
+                        
+                        # Extraire le nombre de réas
+                        rea_part = message.content.split("|")[1].strip()
+                        rea_count = int(rea_part.split()[0])
+                        
+                        # Garder la valeur la plus récente (plus haute)
+                        if employee_key not in recovered_stats or rea_count > recovered_stats[employee_key]:
+                            recovered_stats[employee_key] = rea_count
+                except Exception as e:
+                    continue
+        
+        if recovered_stats:
+            # Sauvegarder les stats récupérées
+            save_stats(recovered_stats)
+            print(f"✅ Stats synchronisées depuis les logs: {len(recovered_stats)} employés")
+            
+            # Afficher un résumé
+            total_reas = sum(recovered_stats.values())
+            print(f"📊 Total des réas récupérées: {total_reas}")
+        else:
+            print("⚠️ Aucune stat trouvée dans les logs")
+            
+    except Exception as e:
+        print(f"❌ Erreur lors de la synchronisation des stats: {e}")
 
 # --- COMMANDES DE MANAGEMENT EMS ---
 
@@ -2368,6 +2422,111 @@ async def reorganize(interaction: discord.Interaction):
     
     embed.set_footer(text="🚑 EMS System")
     await interaction.followup.send(embed=embed)
+
+@bot.tree.command(name="synchronise", description="Synchronise les stats depuis les logs (hier 19h19)")
+@app_commands.checks.has_permissions(administrator=True)
+async def synchronise(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    try:
+        LOGS_SYNC_CHANNEL_ID = 1458464678542970983
+        log_channel = bot.get_channel(LOGS_SYNC_CHANNEL_ID)
+        
+        if not log_channel:
+            await interaction.followup.send(f"❌ Channel de logs introuvable (ID: {LOGS_SYNC_CHANNEL_ID})")
+            return
+        
+        # Calculer la date de hier 19h19
+        now = datetime.now()
+        yesterday_19h19 = now.replace(hour=19, minute=19, second=0, microsecond=0) - timedelta(days=1)
+        
+        embed_progress = discord.Embed(
+            title="🔄 SYNCHRONISATION EN COURS",
+            description=f"Lecture des messages depuis **{yesterday_19h19.strftime('%d/%m/%Y à %H:%M')}**...",
+            color=EMS_RED
+        )
+        embed_progress.set_footer(text="🚑 EMS System")
+        await interaction.followup.send(embed=embed_progress)
+        
+        # Charger les stats actuelles
+        stats = load_stats()
+        
+        # Dictionnaire pour compter les +1 par employé
+        increments = {}
+        message_count = 0
+        
+        # Lire les messages depuis hier 19h19
+        async for message in log_channel.history(after=yesterday_19h19, limit=None):
+            # Format attendu: "✅ **employee_key** | X réas"
+            if message.content.startswith("✅ **") and " réas" in message.content:
+                try:
+                    # Extraire l'employé
+                    parts = message.content.split("**")
+                    if len(parts) >= 3:
+                        employee_key = parts[1].strip()
+                        
+                        # Incrémenter le compteur pour cet employé
+                        if employee_key not in increments:
+                            increments[employee_key] = 0
+                        increments[employee_key] += 1
+                        message_count += 1
+                        
+                except Exception as e:
+                    continue
+        
+        # Appliquer les incréments aux stats
+        if increments:
+            for employee_key, count in increments.items():
+                if employee_key not in stats:
+                    stats[employee_key] = 0
+                stats[employee_key] += count
+            
+            # Sauvegarder les stats
+            save_stats(stats)
+            
+            # Créer l'embed de résultat
+            embed_result = discord.Embed(
+                title="✅ SYNCHRONISATION TERMINÉE",
+                description=f"**{message_count} messages traités**\n**{len(increments)} employés mis à jour**",
+                color=EMS_RED
+            )
+            
+            # Afficher les modifications (limité à 25 champs)
+            sorted_increments = sorted(increments.items(), key=lambda x: x[1], reverse=True)
+            for i, (employee_key, count) in enumerate(sorted_increments[:25]):
+                emoji = get_color_emoji(stats[employee_key])
+                embed_result.add_field(
+                    name=f"{emoji} {employee_key}",
+                    value=f"+{count} → {stats[employee_key]}/100",
+                    inline=True
+                )
+            
+            if len(increments) > 25:
+                embed_result.add_field(
+                    name="...",
+                    value=f"Et {len(increments) - 25} autres employés",
+                    inline=False
+                )
+            
+            embed_result.set_footer(text=f"🚑 EMS System | Synchronisé depuis {yesterday_19h19.strftime('%d/%m/%Y à %H:%M')}")
+            await interaction.edit_original_response(embed=embed_result)
+        else:
+            embed_empty = discord.Embed(
+                title="⚠️ AUCUNE DONNÉE",
+                description=f"Aucun message de stats trouvé depuis **{yesterday_19h19.strftime('%d/%m/%Y à %H:%M')}**",
+                color=EMS_RED
+            )
+            embed_empty.set_footer(text="🚑 EMS System")
+            await interaction.edit_original_response(embed=embed_empty)
+            
+    except Exception as e:
+        embed_error = discord.Embed(
+            title="❌ ERREUR",
+            description=f"Une erreur est survenue lors de la synchronisation:\n```{str(e)}```",
+            color=discord.Color.red()
+        )
+        embed_error.set_footer(text="🚑 EMS System")
+        await interaction.followup.send(embed=embed_error)
 
 if __name__ == "__main__":
     if not config['TOKEN']:
