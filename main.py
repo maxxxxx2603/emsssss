@@ -477,19 +477,39 @@ async def semaine(interaction: discord.Interaction):
             except:
                 pass
     
+    # Télécharger la bannière NOUVELLE SEMAINE une seule fois
+    banner_url = "https://media.discordapp.net/attachments/1432501937085087896/1457439823215460487/image.png?ex=695ea51b&is=695d539b&hm=73669ae578193fac7bb528589592facb8ffa94a53f6521f1fad68165e393d32c&=&format=webp&quality=lossless&width=1872&height=571"
+    banner_file = None
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(banner_url) as resp:
+                if resp.status == 200:
+                    banner_data = await resp.read()
+                    banner_file = discord.File(io.BytesIO(banner_data), filename="nouvelle_semaine.png")
+    except Exception as e:
+        print(f"Erreur téléchargement bannière: {e}")
+    
     # Embed d'annonce de semaine
     embed = discord.Embed(
         title="🚑 NOUVELLE SEMAINE !",
         description="**✅ Réinitialisation complète de la semaine**\n\n• Tous les compteurs remis à 0\n• Tous les channels en 🔴\n• C'est repartit de zéro !\n\n**Bonne chance à tous ! 💪**",
         color=EMS_RED
     )
-    embed.set_image(url="https://media.discordapp.net/attachments/1432501937085087896/1457439823215460487/image.png?ex=695ea51b&is=695d539b&hm=73669ae578193fac7bb528589592facb8ffa94a53f6521f1fad68165e393d32c&=&format=webp&quality=lossless&width=1872&height=571")
     embed.set_footer(text="🚑 EMS System | Nouvelle semaine, nouveau challenge !")
+    
+    if banner_file:
+        embed.set_image(url=f"attachment://{banner_file.filename}")
 
     # Envoyer l'annonce dans tous les channels avec emoji préfixe
     for channel in announcement_channels:
         try:
-            await channel.send(embed=embed.copy())
+            if banner_file:
+                # Créer une nouvelle copie du fichier pour chaque envoi
+                new_banner = discord.File(io.BytesIO(banner_data), filename="nouvelle_semaine.png")
+                await channel.send(embed=embed.copy(), file=new_banner)
+            else:
+                await channel.send(embed=embed.copy())
         except:
             pass
     
@@ -497,7 +517,11 @@ async def semaine(interaction: discord.Interaction):
     log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
     if log_channel:
         try:
-            await log_channel.send(embed=embed.copy())
+            if banner_file:
+                new_banner = discord.File(io.BytesIO(banner_data), filename="nouvelle_semaine.png")
+                await log_channel.send(embed=embed.copy(), file=new_banner)
+            else:
+                await log_channel.send(embed=embed.copy())
         except:
             pass
     
@@ -1723,9 +1747,20 @@ async def payes(interaction: discord.Interaction):
     def check_image(m):
         return m.author == interaction.user and m.channel == interaction.channel and len(m.attachments) > 0
     
+    coffre_image_file = None
     try:
         msg_image = await bot.wait_for('message', check=check_image, timeout=120)
         coffre_image_url = msg_image.attachments[0].url
+        
+        # Télécharger l'image pour l'attacher au message (évite l'expiration)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(coffre_image_url) as resp:
+                    if resp.status == 200:
+                        image_data = await resp.read()
+                        coffre_image_file = discord.File(io.BytesIO(image_data), filename="coffre.png")
+        except Exception as e:
+            print(f"Erreur téléchargement image coffre: {e}")
     except asyncio.TimeoutError:
         timeout_embed = discord.Embed(
             title="⏱️ TEMPS ÉCOULÉ",
@@ -1826,8 +1861,9 @@ async def payes(interaction: discord.Interaction):
         color=EMS_RED
     )
     
-    # Ajouter l'image du coffre
-    announcement_embed.set_image(url=coffre_image_url)
+    # Ajouter l'image du coffre (si téléchargée avec succès)
+    if coffre_image_file:
+        announcement_embed.set_image(url=f"attachment://{coffre_image_file.filename}")
     
     # Construire le tableau des salaires
     salary_text = "```\n"
@@ -1879,7 +1915,12 @@ async def payes(interaction: discord.Interaction):
     log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
     if log_channel:
         try:
-            await log_channel.send(embed=announcement_embed)
+            if coffre_image_file:
+                # Attacher l'image téléchargée
+                await log_channel.send(embed=announcement_embed, file=coffre_image_file)
+            else:
+                # Fallback si le téléchargement a échoué
+                await log_channel.send(embed=announcement_embed)
         except Exception as e:
             print(f"Erreur envoi annonce salaires : {e}")
     
@@ -1986,8 +2027,8 @@ async def help_command(interaction: discord.Interaction):
     
     # Embed Statistiques
     stats_embed = discord.Embed(
-        title="📊 STATISTIQUES",
-        description="Commandes pour consulter et gérer les stats",
+        title="📊 STATISTIQUES & PAIES",
+        description="Commandes pour consulter et gérer les stats et salaires",
         color=EMS_RED
     )
     stats_embed.add_field(
@@ -1996,8 +2037,13 @@ async def help_command(interaction: discord.Interaction):
         inline=False
     )
     stats_embed.add_field(
+        name="/payes",
+        value="💰 **Calcul et annonce des salaires**\n• Demande une image du coffre\n• Calcule automatiquement les salaires :\n  - Direction : 9M fixe\n  - Autres : 30k-55k par réa selon grade\n  - Bonus : 150k par tranche de 10 réas au-dessus de 50\n• Affiche le total à retirer\n• Réinitialise la semaine automatiquement",
+        inline=False
+    )
+    stats_embed.add_field(
         name="/semaine",
-        value="🔄 Réinitialise la semaine complète\n• Envoie le bilan hebdomadaire dans les logs\n• Remet tous les compteurs à 0\n• Change tous les channels en 🔴\n• Annonce la nouvelle semaine",
+        value="🔄 Réinitialise la semaine complète\n• Envoie le bilan hebdomadaire dans les logs\n• Remet tous les compteurs à 0\n• Change tous les channels en 🔴\n• Annonce la nouvelle semaine avec bannière",
         inline=False
     )
     stats_embed.add_field(
