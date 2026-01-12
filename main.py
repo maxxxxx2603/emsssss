@@ -1610,6 +1610,120 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
     else:
         await interaction.followup.send(f"⚠️ Catégorie EMT introuvable (ID: {CATEGORY_EMT_ID}), rôles et pseudo mis à jour mais pas le channel.")
 
+@bot.tree.command(name="reset_names", description="Applique les tags de grade selon les rôles Discord")
+@app_commands.describe(membre="Le membre dont mettre à jour le tag (optionnel, sinon tous)")
+@app_commands.checks.has_permissions(administrator=True)
+async def reset_names(interaction: discord.Interaction, membre: discord.Member = None):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    
+    # Mapping des rôles Discord vers les tags de grade (du plus élevé au plus bas)
+    role_hierarchy = [
+        (838102445095256071, "[DIR]"),   # Direction
+        (1088570974603055195, "[CDS]"),  # Chef de Service
+        (840288242547818507, "[MED]"),   # Médecin
+        (894311352225656862, "[INF]"),   # Infirmier
+        (1088116715998687273, "[ADS]"),  # Aide-Soignant
+        (838102445095256069, "[INT]"),   # Intérimaire
+        (895047492784238652, "[EMT]"),   # EMT
+    ]
+    
+    def get_grade_tag(member):
+        """Retourne le tag de grade le plus élevé du membre"""
+        member_role_ids = [role.id for role in member.roles]
+        for role_id, tag in role_hierarchy:
+            if role_id in member_role_ids:
+                return tag
+        return None
+    
+    if membre:
+        # Mettre à jour un seul membre
+        clean_name = get_clean_name(membre)
+        grade_tag = get_grade_tag(membre)
+        
+        if grade_tag:
+            new_nickname = f"{grade_tag} {clean_name}"
+            try:
+                await membre.edit(nick=new_nickname)
+                embed = discord.Embed(
+                    title="✅ Pseudo mis à jour",
+                    description=f"{membre.mention} → `{new_nickname}`",
+                    color=EMS_RED
+                )
+                embed.set_footer(text="🚑 EMS System")
+                await interaction.followup.send(embed=embed)
+            except Exception as e:
+                await interaction.followup.send(f"❌ Erreur : {e}")
+        else:
+            await interaction.followup.send(f"❌ {membre.mention} n'a aucun rôle EMS reconnu.")
+    else:
+        # Mettre à jour tous les membres avec des rôles EMS
+        updated = []
+        errors = []
+        skipped = []
+        
+        for member in guild.members:
+            if member.bot:
+                continue
+            
+            grade_tag = get_grade_tag(member)
+            
+            if grade_tag:
+                clean_name = get_clean_name(member)
+                new_nickname = f"{grade_tag} {clean_name}"
+                
+                # Vérifier si le pseudo est déjà correct
+                if member.display_name == new_nickname:
+                    skipped.append(member.display_name)
+                    continue
+                
+                try:
+                    await member.edit(nick=new_nickname)
+                    updated.append(f"✅ {member.mention} → `{new_nickname}`")
+                except Exception as e:
+                    errors.append(f"❌ {member.display_name}: {str(e)}")
+        
+        # Créer l'embed de résultat
+        embed = discord.Embed(
+            title="🔄 Mise à jour des pseudos selon les rôles",
+            color=EMS_RED
+        )
+        
+        if updated:
+            # Limiter à 10 pour ne pas dépasser la limite d'embed
+            display_updated = updated[:10]
+            if len(updated) > 10:
+                display_updated.append(f"... et {len(updated) - 10} autres")
+            embed.add_field(
+                name=f"✅ Pseudos mis à jour ({len(updated)})",
+                value="\n".join(display_updated),
+                inline=False
+            )
+        
+        if skipped:
+            embed.add_field(
+                name=f"⏭️ Déjà à jour ({len(skipped)})",
+                value=f"{len(skipped)} membres avaient déjà le bon pseudo",
+                inline=False
+            )
+        
+        if not updated and not errors:
+            embed.description = "Aucun membre EMS à mettre à jour."
+        
+        if errors:
+            display_errors = errors[:5]
+            if len(errors) > 5:
+                display_errors.append(f"... et {len(errors) - 5} autres erreurs")
+            embed.add_field(
+                name=f"❌ Erreurs ({len(errors)})",
+                value="\n".join(display_errors),
+                inline=False
+            )
+        
+        embed.set_footer(text="🚑 EMS System")
+        await interaction.followup.send(embed=embed)
+
 @bot.tree.command(name="virer", description="Virer un employé (Retrait rôles, reset pseudo)")
 @app_commands.describe(membre="Le membre à virer")
 async def virer(interaction: discord.Interaction, membre: discord.Member):
