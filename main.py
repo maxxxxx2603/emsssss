@@ -414,6 +414,215 @@ async def reset(interaction: discord.Interaction):
     embed.set_footer(text="🚑 EMS System")
     await interaction.followup.send(embed=embed)
 
+@bot.tree.command(name="help", description="Affiche toutes les commandes disponibles")
+async def help_command(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    # Embed Principal
+    main_embed = discord.Embed(
+        title="🚑 EMS MANAGEMENT SYSTEM - AIDE",
+        description="Liste complète des commandes disponibles",
+        color=EMS_RED
+    )
+    main_embed.set_thumbnail(url="https://media.discordapp.net/attachments/1458228261166518293/1458240230001086524/ambulance-emoji.png")
+    
+    # Embed Stats & Gestion
+    stats_embed = discord.Embed(
+        title="📊 STATISTIQUES & GESTION",
+        description="Commandes pour gérer les statistiques des employés",
+        color=EMS_RED
+    )
+    stats_embed.add_field(
+        name="/total",
+        value="📊 Affiche le classement complet\n• Liste tous les employés\n• Nombre de réas par personne\n• Émojis de couleur (🔴🟠🟢)\n• Résumé du total",
+        inline=False
+    )
+    stats_embed.add_field(
+        name="/reset",
+        value="🔄 Réinitialise les compteurs\n• Remet tous les compteurs à 0\n• Conserve les channels",
+        inline=False
+    )
+    stats_embed.add_field(
+        name="/semaine",
+        value="📅 Nouvelle semaine complète\n• Envoie le bilan hebdomadaire\n• Reset tous les compteurs\n• Change tous les channels en 🔴\n• Annonce dans tous les channels",
+        inline=False
+    )
+    stats_embed.add_field(
+        name="/stats_info",
+        value="💾 Infos sur la sauvegarde\n• État du fichier stats.json\n• Nombre d'employés\n• Total des réas\n• Dernière modification",
+        inline=False
+    )
+    
+    # Embed Employés
+    employee_embed = discord.Embed(
+        title="👥 GESTION DES EMPLOYÉS",
+        description="Commandes pour recruter et gérer les employés",
+        color=EMS_RED
+    )
+    employee_embed.add_field(
+        name="/employer @membre",
+        value="✅ Recruter un employé\n• Ajoute le tag [EMT]\n• Attribue les rôles\n• Crée le channel personnel\n• Retire le rôle attente",
+        inline=False
+    )
+    employee_embed.add_field(
+        name="/virer @membre",
+        value="❌ Virer un employé\n• Retire tous les rôles EMS\n• Reset le pseudo\n• Supprime le channel personnel\n• Ajoute le rôle attente",
+        inline=False
+    )
+    employee_embed.add_field(
+        name="/up @membre",
+        value="⬆️ Promouvoir un employé\n• EMT → INT → ADS → INF → MED → CDS → DIR\n• Change le tag automatiquement\n• Déplace le channel\n• Met à jour les rôles",
+        inline=False
+    )
+    employee_embed.add_field(
+        name="/reset_names [@membre]",
+        value="🏷️ Applique les tags selon les rôles\n• Détecte les rôles Discord\n• Applique le tag approprié\n• Optionnel: un seul membre ou tous",
+        inline=False
+    )
+    
+    # Embed CV & Recrutement
+    cv_embed = discord.Embed(
+        title="📋 CV & RECRUTEMENT",
+        description="Système de candidature automatisé",
+        color=EMS_RED
+    )
+    cv_embed.add_field(
+        name="/setup_cv",
+        value="📝 Affiche le bouton de dépôt CV\n• 13 questions automatiques\n• Demande de documents\n• Validation par la direction\n• DM automatique",
+        inline=False
+    )
+    
+    # Embed Taxi
+    taxi_embed = discord.Embed(
+        title="🚕 GESTION TAXI",
+        description="Commandes pour le système taxi",
+        color=EMS_RED
+    )
+    taxi_embed.add_field(
+        name="/taxi",
+        value="📊 Affiche le compteur taxi\n• Nombre de tests d'aptitude\n• Compteur hebdomadaire",
+        inline=False
+    )
+    taxi_embed.add_field(
+        name="/taxi_announce",
+        value="📢 Envoie l'annonce hebdomadaire\n• Bilan de la semaine\n• Revenus calculés\n• Reset du compteur",
+        inline=False
+    )
+    
+    # Embed Tickets
+    tickets_embed = discord.Embed(
+        title="🎫 SYSTÈME DE TICKETS",
+        description="Gestion des demandes et rendez-vous",
+        color=EMS_RED
+    )
+    tickets_embed.add_field(
+        name="/setup_role_request",
+        value="👮 Bouton demande de rôle LSPD/BCSO\n• Questions automatiques\n• Attribution des rôles\n• Changement de pseudo\n• Fermeture auto",
+        inline=False
+    )
+    tickets_embed.add_field(
+        name="/setup_appointment",
+        value="📅 Bouton prise de rendez-vous\n• Création de channel privé\n• Discussion avec l'équipe\n• Bouton de fermeture",
+        inline=False
+    )
+    
+    # Embed Catégories
+    cat_embed = discord.Embed(
+        title="🏗️ GESTION DES CATÉGORIES",
+        description="Organisation des channels par grade",
+        color=EMS_RED
+    )
+    cat_embed.add_field(
+        name="/setup_categories",
+        value="🔨 Crée les catégories par grade\n• DIR, CDS, MED, INF, ADS, INT, EMT\n• Organisation automatique",
+        inline=False
+    )
+    
+    # Embed Footer
+    footer_embed = discord.Embed(
+        title="ℹ️ INFORMATIONS",
+        description=(
+            "**🔐 Permissions requises :**\n"
+            "La plupart des commandes nécessitent les permissions administrateur.\n\n"
+            "**💾 Sauvegarde automatique :**\n"
+            "Toutes les modifications sont sauvegardées immédiatement.\n"
+            "Les stats sont préservées lors du redémarrage.\n\n"
+            "**📞 Support :**\n"
+            "En cas de problème, contactez la direction.\n\n"
+            "**🔄 Mises à jour :**\n"
+            "Le bot est automatiquement mis à jour via GitHub."
+        ),
+        color=EMS_RED
+    )
+    footer_embed.set_footer(text="🚑 EMS System | Version 2.0")
+    
+    # Envoyer tous les embeds
+    embeds = [main_embed, stats_embed, employee_embed, cv_embed, taxi_embed, tickets_embed, cat_embed, footer_embed]
+    for embed in embeds:
+        await interaction.followup.send(embed=embed)
+
+@bot.tree.command(name="stats_info", description="Affiche les informations sur la sauvegarde des stats")
+@app_commands.checks.has_permissions(administrator=True)
+async def stats_info(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    stats = load_stats()
+    
+    # Obtenir les informations du fichier
+    try:
+        import os
+        from datetime import datetime
+        
+        file_size = os.path.getsize(STATS_FILE)
+        mod_time = os.path.getmtime(STATS_FILE)
+        mod_datetime = datetime.fromtimestamp(mod_time)
+        
+        embed = discord.Embed(
+            title="💾 INFORMATIONS DE SAUVEGARDE",
+            description="État actuel du système de statistiques",
+            color=EMS_RED
+        )
+        
+        embed.add_field(
+            name="📊 Données chargées",
+            value=f"**Employés enregistrés :** {len(stats)}\n**Total des réas :** {sum(stats.values())}",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="📁 Fichier stats.json",
+            value=f"**Taille :** {file_size} octets\n**Dernière modification :** {mod_datetime.strftime('%d/%m/%Y %H:%M:%S')}",
+            inline=False
+        )
+        
+        # Top 5
+        if stats:
+            top_5 = sorted(stats.items(), key=lambda x: x[1], reverse=True)[:5]
+            top_text = "\n".join([f"{get_color_emoji(count)} **{name}** : {count}" for name, count in top_5])
+            embed.add_field(
+                name="🏆 Top 5",
+                value=top_text,
+                inline=False
+            )
+        
+        embed.add_field(
+            name="✅ Statut",
+            value="**Sauvegarde automatique :** Activée ✓\n**Backup au démarrage :** Activé ✓\n**Système :** Opérationnel",
+            inline=False
+        )
+        
+        embed.set_footer(text="🚑 EMS System | Les stats sont sauvegardées à chaque modification")
+        
+        await interaction.followup.send(embed=embed)
+        
+    except Exception as e:
+        error_embed = discord.Embed(
+            title="❌ Erreur",
+            description=f"Impossible de récupérer les informations:\n```{e}```",
+            color=EMS_DARK_RED
+        )
+        await interaction.followup.send(embed=error_embed)
+
 @bot.tree.command(name="semaine", description="Réinitialise la semaine - Remet tout à 0 et met en rouge")
 @app_commands.checks.has_permissions(administrator=True)
 async def semaine(interaction: discord.Interaction):
@@ -1319,12 +1528,22 @@ async def setup_appointment(interaction: discord.Interaction):
 async def on_ready():
     print(f'✅ Bot: {bot.user}')
     
-    # Synchroniser les stats depuis les logs au démarrage
-    # await sync_stats_from_logs()  # Désactivé pour utiliser stats.json directement
-    
+    # Charger les stats existantes
     stats = load_stats()
     print(f'📊 Stats chargées: {len(stats)} employés, {sum(stats.values())} réas totales')
-    # Synchronisation des couleurs au démarrage supprimée
+    
+    # Créer un backup des stats au démarrage
+    if stats:
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = f"stats_backup_{timestamp}.json"
+            with open(backup_path, 'w', encoding='utf-8') as f:
+                json.dump(stats, f, ensure_ascii=False, indent=2)
+            print(f'💾 Backup créé: {backup_path}')
+        except Exception as e:
+            print(f'⚠️ Erreur backup: {e}')
+    
+    print('✅ Bot prêt - Sauvegarde automatique activée')
 
 # --- TÂCHE AUTOMATISÉE HEBDOMADAIRE TAXI ---
 @tasks.loop(hours=1)
