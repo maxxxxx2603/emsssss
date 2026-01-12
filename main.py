@@ -4,6 +4,8 @@ from discord.ext import commands, tasks
 import json
 import os
 import asyncio
+import aiohttp
+import io
 from datetime import datetime, timedelta
 
 # --- CONFIGURATION ---
@@ -1701,6 +1703,232 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
                 chan_msg = f"\n⚠️ Erreur renommage: {e}"
 
     await interaction.followup.send(f"📈 **Promotion effectuée pour {membre.mention}** !\nPassage au grade **{next_step['tag']}**.{chan_msg}")
+
+@bot.tree.command(name="payes", description="Calcul et annonce des salaires de la semaine")
+@app_commands.checks.has_permissions(administrator=True)
+async def payes(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    
+    # 1. Demander l'image du coffre
+    ask_embed = discord.Embed(
+        title="💰 CALCUL DES SALAIRES",
+        description="**📸 Envoyez une capture d'écran du coffre (état avant les paiements)**\n\nVous avez 2 minutes pour envoyer l'image.",
+        color=EMS_RED
+    )
+    ask_embed.set_footer(text="🚑 EMS System | Système de paie")
+    await interaction.followup.send(embed=ask_embed)
+    
+    def check_image(m):
+        return m.author == interaction.user and m.channel == interaction.channel and len(m.attachments) > 0
+    
+    try:
+        msg_image = await bot.wait_for('message', check=check_image, timeout=120)
+        coffre_image_url = msg_image.attachments[0].url
+    except asyncio.TimeoutError:
+        timeout_embed = discord.Embed(
+            title="⏱️ TEMPS ÉCOULÉ",
+            description="Vous n'avez pas envoyé l'image à temps. Commande annulée.",
+            color=EMS_DARK_RED
+        )
+        await interaction.followup.send(embed=timeout_embed)
+        return
+    
+    # 2. Charger les stats
+    stats = load_stats()
+    
+    # 3. Calculer les salaires pour tous les membres
+    salary_data = []
+    total_payroll = 0
+    
+    direction_role = guild.get_role(ROLE_DIRECTION_EMS_ID)
+    
+    for member in guild.members:
+        if member.bot:
+            continue
+        
+        # Vérifier d'abord si le membre a le rôle DIRECTION
+        has_direction_role = direction_role in member.roles if direction_role else False
+        
+        if has_direction_role:
+            # DIRECTION: 9M fixe, pas de calcul avec réas
+            clean_name = get_clean_name(member)
+            salary = 9000000
+            total_payroll += salary
+            
+            salary_data.append({
+                "name": clean_name,
+                "rea": 0,  # Pas affiché pour direction
+                "grade": "DIRECTION",
+                "total": salary
+            })
+            continue
+        
+        # Détecter le grade par tag dans le pseudo pour les autres
+        nick = member.display_name.upper()
+        grade = None
+        rate = 0
+        
+        if "[DIR]" in nick:
+            grade = "DIR"
+            rate = 55000
+        elif "[CDS]" in nick:
+            grade = "CDS"
+            rate = 50000
+        elif "[MED]" in nick:
+            grade = "MED"
+            rate = 45000
+        elif "[INF]" in nick:
+            grade = "INF"
+            rate = 40000
+        elif "[ADS]" in nick:
+            grade = "ADS"
+            rate = 40000
+        elif "[INT]" in nick:
+            grade = "INT"
+            rate = 35000
+        elif "[EMT]" in nick:
+            grade = "EMT"
+            rate = 30000
+        else:
+            continue  # Pas un employé EMS
+        
+        # Récupérer les réas (0 si absent)
+        employee_key = normalize_employee_key(member.display_name)
+        rea_count = stats.get(employee_key, 0)
+        
+        # Calculer le salaire: base + bonus
+        base_salary = rea_count * rate
+        bonus = 0
+        if rea_count > 50:
+            bonus = ((rea_count - 50) // 10) * 150000
+        salary = base_salary + bonus
+        
+        total_payroll += salary
+        
+        # Ajouter à la liste
+        clean_name = get_clean_name(member)
+        salary_data.append({
+            "name": clean_name,
+            "rea": rea_count,
+            "grade": grade,
+            "total": salary
+        })
+    
+    # 4. Trier par salaire décroissant
+    salary_data.sort(key=lambda x: x["total"], reverse=True)
+    
+    # 5. Créer l'annonce des salaires
+    announcement_embed = discord.Embed(
+        title="💰 PAIEMENT DES SALAIRES",
+        description="**📊 Récapitulatif des salaires de la semaine**\n",
+        color=EMS_RED
+    )
+    
+    # Ajouter l'image du coffre
+    announcement_embed.set_image(url=coffre_image_url)
+    
+    # Construire le tableau des salaires
+    salary_text = "```\n"
+    salary_text += f"{'NOM':<20} | {'RÉAS':<5} | {'GRADE':<10} | {'TOTAL':>15}\n"
+    salary_text += "-" * 65 + "\n"
+    
+    for emp in salary_data:
+        name_display = emp['name'][:18]  # Limiter à 18 caractères
+        salary_text += f"{name_display:<20} | {emp['rea']:<5} | {emp['grade']:<10} | {emp['total']:>15,}$\n".replace(",", " ")
+    
+    salary_text += "```"
+    
+    # Ajouter au embed (diviser si trop long)
+    if len(salary_text) <= 1024:
+        announcement_embed.add_field(name="📋 Liste des salaires", value=salary_text, inline=False)
+    else:
+        # Diviser en plusieurs embeds si nécessaire
+        chunks = []
+        current_chunk = "```\n"
+        current_chunk += f"{'NOM':<20} | {'RÉAS':<5} | {'GRADE':<10} | {'TOTAL':>15}\n"
+        current_chunk += "-" * 65 + "\n"
+        
+        for emp in salary_data:
+            line = f"{emp['name'][:18]:<20} | {emp['rea']:<5} | {emp['grade']:<10} | {emp['total']:>15,}$\n".replace(",", " ")
+            if len(current_chunk) + len(line) + 3 > 1020:  # 1024 - "```"
+                current_chunk += "```"
+                chunks.append(current_chunk)
+                current_chunk = "```\n" + line
+            else:
+                current_chunk += line
+        
+        current_chunk += "```"
+        chunks.append(current_chunk)
+        
+        for i, chunk in enumerate(chunks):
+            announcement_embed.add_field(name=f"📋 Liste des salaires ({i+1}/{len(chunks)})", value=chunk, inline=False)
+    
+    # Ajouter le total à retirer
+    announcement_embed.add_field(
+        name="💵 TOTAL À RETIRER DU COFFRE",
+        value=f"```{total_payroll:,}$```".replace(",", " "),
+        inline=False
+    )
+    
+    announcement_embed.set_footer(text="🚑 EMS System | Bonne paie à tous !")
+    announcement_embed.timestamp = datetime.now()
+    
+    # 6. Envoyer dans le channel de logs
+    log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+    if log_channel:
+        try:
+            await log_channel.send(embed=announcement_embed)
+        except Exception as e:
+            print(f"Erreur envoi annonce salaires : {e}")
+    
+    # 7. Réinitialiser la semaine (comme /semaine)
+    # Réinitialiser stats
+    save_stats({})
+    
+    # Mettre tous les channels en 🔴
+    announcement_channels = []
+    for channel in guild.text_channels:
+        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+            new_name = f"🔴{channel.name[1:]}"
+            try:
+                await channel.edit(name=new_name)
+                announcement_channels.append(channel)
+            except:
+                pass
+    
+    # Embed d'annonce de nouvelle semaine
+    week_embed = discord.Embed(
+        title="🚑 NOUVELLE SEMAINE !",
+        description="**✅ Salaires payés et semaine réinitialisée**\n\n• Tous les compteurs remis à 0\n• Tous les channels en 🔴\n• C'est repartit de zéro !\n\n**Bonne chance à tous ! 💪**",
+        color=EMS_RED
+    )
+    week_embed.set_image(url="https://media.discordapp.net/attachments/1432501937085087896/1457439823215460487/image.png?ex=695ea51b&is=695d539b&hm=73669ae578193fac7bb528589592facb8ffa94a53f6521f1fad68165e393d32c&=&format=webp&quality=lossless&width=1872&height=571")
+    week_embed.set_footer(text="🚑 EMS System | Nouvelle semaine, nouveau challenge !")
+    
+    # Envoyer l'annonce dans tous les channels avec emoji
+    for channel in announcement_channels:
+        try:
+            await channel.send(embed=week_embed.copy())
+        except:
+            pass
+    
+    # Envoyer aussi dans le channel de logs
+    if log_channel:
+        try:
+            await log_channel.send(embed=week_embed.copy())
+        except:
+            pass
+    
+    # 8. Confirmer la commande
+    confirm_embed = discord.Embed(
+        title="✅ SALAIRES CALCULÉS ET ENVOYÉS",
+        description=f"💰 **Total à payer :** {total_payroll:,}$\n📊 **Employés payés :** {len(salary_data)}\n✅ Semaine réinitialisée avec succès !".replace(",", " "),
+        color=EMS_RED
+    )
+    confirm_embed.set_footer(text="🚑 EMS System")
+    await interaction.followup.send(embed=confirm_embed)
 
 @bot.tree.command(name="help", description="Affiche toutes les commandes et fonctionnalités du bot")
 async def help_command(interaction: discord.Interaction):
