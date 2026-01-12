@@ -340,7 +340,16 @@ async def total(interaction: discord.Interaction):
         await interaction.followup.send(embed=embed)
         return
     
-    sorted_stats = sorted(stats.items(), key=lambda x: x[1], reverse=True)
+    # Regrouper les stats par nom normalisé (sans préfixes de grade)
+    grouped_stats = {}
+    for name, count in stats.items():
+        # Normaliser le nom pour supprimer les préfixes (dir-, cds-, etc.)
+        normalized = normalize_employee_key(name)
+        if normalized not in grouped_stats:
+            grouped_stats[normalized] = 0
+        grouped_stats[normalized] += count
+    
+    sorted_stats = sorted(grouped_stats.items(), key=lambda x: x[1], reverse=True)
     
     # Créer plusieurs embeds si nécessaire (25 champs max par embed)
     embeds = []
@@ -365,7 +374,9 @@ async def total(interaction: discord.Interaction):
             )
         
         emoji = get_color_emoji(count)
-        current_embed.add_field(name=f"{emoji} {name}", value=f"{count}/100", inline=False)
+        # Afficher le nom joliment formaté
+        display_name = ' '.join([p.capitalize() for p in name.split('-')])
+        current_embed.add_field(name=f"{emoji} {display_name}", value=f"{count}/100", inline=False)
         field_count += 1
     
     # Ajouter le dernier embed avec le footer
@@ -374,7 +385,7 @@ async def total(interaction: discord.Interaction):
         embeds.append(current_embed)
     
     # Calculer le total des réactions
-    total_reactions = sum(stats.values())
+    total_reactions = sum(grouped_stats.values())
     
     # Ajouter un dernier embed avec le résumé
     summary_embed = discord.Embed(
