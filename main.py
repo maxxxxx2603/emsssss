@@ -35,6 +35,15 @@ TAXI_ROLE_ID = 1163206112355561472
 ROLE_DIRECTION_EMS_ID = 838120186585940010
 ROLE_DIRECTION_TAXI_ID = 1311787019546136596
 
+# Configuration Tickets
+ROLE_REQUEST_CHANNEL_ID = 1450938023033176247
+APPOINTMENT_CHANNEL_ID = 1415783172163244132
+TICKET_CATEGORY_ID = 840364236189335553
+ROLE_LSPD_ID = 1070687458825601115
+ROLE_BCSO_ID = 1070374792450027560
+ROLE_MARSHALL_ID = 1365068483074855045
+ROLE_NO_TEST_ID = 1163524216688230591
+
 # --- FONCTIONS UTILITAIRES JSON ---
 def atomic_write_json(path: str, data: dict, make_backup: bool = True):
     tmp_path = f"{path}.tmp"
@@ -126,6 +135,8 @@ class EMSBot(commands.Bot):
     async def setup_hook(self):
         await self.tree.sync()
         self.add_view(CVButton())
+        self.add_view(RoleRequestButton())
+        self.add_view(AppointmentButton())
         # Démarrer la tâche automatisée pour les annonces taxi
         weekly_taxi_announcement.start()
 
@@ -913,6 +924,359 @@ async def setup_cv(interaction: discord.Interaction):
     )
     embed.set_thumbnail(url="https://media.discordapp.net/attachments/1458228261166518293/1458240230001086524/ambulance-emoji.png")
     embed.set_footer(text="🚑 EMS Management System | Votre avenir commence ici")
+
+# --- SYSTÈME DE DEMANDE DE RÔLE ---
+class RoleRequestButton(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Demander un rôle", style=discord.ButtonStyle.primary, emoji="👮", custom_id="request_role")
+    async def request_role(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("📋 Traitement de votre demande...", ephemeral=True)
+        
+        guild = interaction.guild
+        user_id = interaction.user.id
+        
+        # Créer un channel privé pour la demande
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        }
+        
+        try:
+            channel = await guild.create_text_channel(
+                f"role-{user_id}",
+                overwrites=overwrites,
+                category=guild.get_channel(TICKET_CATEGORY_ID),
+                topic=f"Demande de rôle - {interaction.user.name}"
+            )
+        except Exception as e:
+            await interaction.followup.send(f"❌ Erreur lors de la création du ticket : {e}", ephemeral=True)
+            return
+        
+        await interaction.followup.send(f"✅ Ticket créé : {channel.mention}", ephemeral=True)
+        
+        # Message de bienvenue
+        welcome = discord.Embed(
+            title="👮 DEMANDE DE RÔLE",
+            description=f"Bienvenue **{interaction.user.mention}** !\n\nVeuillez répondre aux questions suivantes pour obtenir votre rôle.",
+            color=discord.Color.blue()
+        )
+        welcome.set_footer(text="🎯 Système de demande de rôle")
+        await channel.send(embed=welcome)
+        await asyncio.sleep(1)
+        
+        # Question 1 : Organisation
+        q1 = discord.Embed(
+            title="❓ QUESTION 1/4",
+            description="**Quelle organisation rejoignez-vous ?**\n\nRépondez par :\n• `LSPD`\n• `BCSO`\n• `MARSHALL`",
+            color=discord.Color.blue()
+        )
+        q1.set_footer(text="🎯 Système de demande de rôle")
+        await channel.send(embed=q1)
+        
+        def check(m):
+            return m.author == interaction.user and m.channel == channel
+        
+        # Attendre réponse organisation
+        organization = None
+        role_id = None
+        prefix = None
+        
+        try:
+            msg = await bot.wait_for('message', check=check, timeout=300)
+            org_choice = msg.content.upper().strip()
+            
+            if org_choice == "LSPD":
+                organization = "LSPD"
+                role_id = ROLE_LSPD_ID
+                prefix = "L"
+            elif org_choice == "BCSO":
+                organization = "BCSO"
+                role_id = ROLE_BCSO_ID
+                prefix = "B"
+            elif org_choice == "MARSHALL":
+                organization = "MARSHALL"
+                role_id = ROLE_MARSHALL_ID
+                prefix = "M"
+            else:
+                error_msg = discord.Embed(
+                    title="❌ ERREUR",
+                    description="Organisation invalide. Le ticket va être fermé.",
+                    color=discord.Color.red()
+                )
+                await channel.send(embed=error_msg)
+                await asyncio.sleep(3)
+                await channel.delete()
+                return
+            
+            # Ajouter le rôle de l'organisation
+            role = guild.get_role(role_id)
+            if role:
+                await interaction.user.add_roles(role)
+            
+            # Confirmation
+            confirm_org = discord.Embed(
+                title="✅ ORGANISATION CONFIRMÉE",
+                description=f"Vous avez rejoint : **{organization}**\nRôle ajouté avec succès !",
+                color=discord.Color.green()
+            )
+            await channel.send(embed=confirm_org)
+            await asyncio.sleep(1)
+            
+        except asyncio.TimeoutError:
+            timeout_msg = discord.Embed(
+                title="⏱️ TEMPS ÉCOULÉ",
+                description="Vous n'avez pas répondu à temps. Le ticket va être fermé.",
+                color=discord.Color.red()
+            )
+            await channel.send(embed=timeout_msg)
+            await asyncio.sleep(3)
+            await channel.delete()
+            return
+        
+        # Question 2 : Prénom + Nom
+        q2 = discord.Embed(
+            title="❓ QUESTION 2/4",
+            description="**Quel est votre prénom et nom ?**\n\nFormat : `Prénom Nom`\nExemple : `Paul Fera`",
+            color=discord.Color.blue()
+        )
+        q2.set_footer(text="🎯 Système de demande de rôle")
+        await channel.send(embed=q2)
+        
+        try:
+            msg = await bot.wait_for('message', check=check, timeout=300)
+            full_name = msg.content.strip()
+        except asyncio.TimeoutError:
+            timeout_msg = discord.Embed(
+                title="⏱️ TEMPS ÉCOULÉ",
+                description="Vous n'avez pas répondu à temps. Le ticket va être fermé.",
+                color=discord.Color.red()
+            )
+            await channel.send(embed=timeout_msg)
+            await asyncio.sleep(3)
+            await channel.delete()
+            return
+        
+        # Question 3 : Matricule
+        q3 = discord.Embed(
+            title="❓ QUESTION 3/4",
+            description="**Quel est votre matricule ?**\n\nFormat : `02`, `15`, etc.",
+            color=discord.Color.blue()
+        )
+        q3.set_footer(text="🎯 Système de demande de rôle")
+        await channel.send(embed=q3)
+        
+        try:
+            msg = await bot.wait_for('message', check=check, timeout=300)
+            matricule = msg.content.strip()
+        except asyncio.TimeoutError:
+            timeout_msg = discord.Embed(
+                title="⏱️ TEMPS ÉCOULÉ",
+                description="Vous n'avez pas répondu à temps. Le ticket va être fermé.",
+                color=discord.Color.red()
+            )
+            await channel.send(embed=timeout_msg)
+            await asyncio.sleep(3)
+            await channel.delete()
+            return
+        
+        # Question 4 : Test d'aptitude
+        q4 = discord.Embed(
+            title="❓ QUESTION 4/4",
+            description="**Avez-vous le test d'aptitude ?**\n\nRépondez par :\n• `oui`\n• `non`",
+            color=discord.Color.blue()
+        )
+        q4.set_footer(text="🎯 Système de demande de rôle")
+        await channel.send(embed=q4)
+        
+        has_test = False
+        try:
+            msg = await bot.wait_for('message', check=check, timeout=300)
+            test_response = msg.content.lower().strip()
+            
+            if test_response in ["oui", "yes", "o", "y"]:
+                has_test = True
+            elif test_response in ["non", "no", "n"]:
+                has_test = False
+            else:
+                error_msg = discord.Embed(
+                    title="❌ ERREUR",
+                    description="Réponse invalide. Le ticket va être fermé.",
+                    color=discord.Color.red()
+                )
+                await channel.send(embed=error_msg)
+                await asyncio.sleep(3)
+                await channel.delete()
+                return
+        except asyncio.TimeoutError:
+            timeout_msg = discord.Embed(
+                title="⏱️ TEMPS ÉCOULÉ",
+                description="Vous n'avez pas répondu à temps. Le ticket va être fermé.",
+                color=discord.Color.red()
+            )
+            await channel.send(embed=timeout_msg)
+            await asyncio.sleep(3)
+            await channel.delete()
+            return
+        
+        # Appliquer les changements
+        # 1. Changer le pseudo
+        new_nickname = f"{prefix}.{matricule} {full_name}"
+        try:
+            await interaction.user.edit(nick=new_nickname)
+        except Exception as e:
+            print(f"Erreur changement pseudo: {e}")
+        
+        # 2. Ajouter le rôle si pas de test
+        if not has_test:
+            no_test_role = guild.get_role(ROLE_NO_TEST_ID)
+            if no_test_role:
+                try:
+                    await interaction.user.add_roles(no_test_role)
+                except Exception as e:
+                    print(f"Erreur ajout rôle sans test: {e}")
+        
+        # Message de confirmation finale
+        final_msg = discord.Embed(
+            title="✅ DEMANDE COMPLÉTÉE",
+            description=(
+                f"**Votre profil a été configuré avec succès !**\n\n"
+                f"**Organisation :** {organization}\n"
+                f"**Pseudo :** `{new_nickname}`\n"
+                f"**Test d'aptitude :** {'✅ Oui' if has_test else '❌ Non'}\n\n"
+                f"Bienvenue dans l'équipe ! 🎉"
+            ),
+            color=discord.Color.green()
+        )
+        final_msg.set_footer(text="🎯 Système de demande de rôle")
+        await channel.send(embed=final_msg)
+        
+        # Fermer le ticket après 10 secondes
+        await asyncio.sleep(10)
+        try:
+            await channel.delete()
+        except:
+            pass
+
+@bot.tree.command(name="setup_role_request", description="Affiche le bouton de demande de rôle")
+@app_commands.checks.has_permissions(administrator=True)
+async def setup_role_request(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="👮 DEMANDE DE RÔLE",
+        description=(
+            "**Obtenez votre rôle d'organisation !**\n\n"
+            "Cliquez sur le bouton ci-dessous pour faire votre demande.\n\n"
+            "**📋 Informations requises :**\n"
+            "• Organisation (LSPD/BCSO/MARSHALL)\n"
+            "• Prénom et nom\n"
+            "• Matricule\n"
+            "• Test d'aptitude (oui/non)\n\n"
+            "**Le système configurera automatiquement votre profil !**"
+        ),
+        color=discord.Color.blue()
+    )
+    embed.set_footer(text="🎯 Système de demande de rôle")
+    await interaction.channel.send(embed=embed, view=RoleRequestButton())
+    await interaction.response.send_message("✅ Message de demande de rôle posté !", ephemeral=True)
+
+# --- SYSTÈME DE TICKETS DE RENDEZ-VOUS ---
+class CloseTicketView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+    
+    @discord.ui.button(label="Fermer le ticket", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="close_ticket")
+    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("🔒 Fermeture du ticket...", ephemeral=True)
+        
+        close_msg = discord.Embed(
+            title="🔒 TICKET FERMÉ",
+            description=f"Ce ticket a été fermé par {interaction.user.mention}.\nLe channel sera supprimé dans 5 secondes.",
+            color=discord.Color.red()
+        )
+        await interaction.channel.send(embed=close_msg)
+        
+        await asyncio.sleep(5)
+        try:
+            await interaction.channel.delete()
+        except Exception as e:
+            print(f"Erreur suppression ticket: {e}")
+
+class AppointmentButton(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Prendre rendez-vous", style=discord.ButtonStyle.green, emoji="📅", custom_id="appointment_ticket")
+    async def create_appointment(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("📅 Création de votre ticket...", ephemeral=True)
+        
+        guild = interaction.guild
+        user_id = interaction.user.id
+        
+        # Vérifier si l'utilisateur a déjà un ticket ouvert
+        for channel in guild.text_channels:
+            if channel.name == f"rdv-{user_id}":
+                await interaction.followup.send(f"❌ Vous avez déjà un ticket ouvert : {channel.mention}", ephemeral=True)
+                return
+        
+        # Créer un channel pour le rendez-vous
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        }
+        
+        try:
+            channel = await guild.create_text_channel(
+                f"rdv-{user_id}",
+                overwrites=overwrites,
+                category=guild.get_channel(TICKET_CATEGORY_ID),
+                topic=f"Rendez-vous - {interaction.user.name}"
+            )
+        except Exception as e:
+            await interaction.followup.send(f"❌ Erreur lors de la création du ticket : {e}", ephemeral=True)
+            return
+        
+        await interaction.followup.send(f"✅ Ticket créé : {channel.mention}", ephemeral=True)
+        
+        # Message de bienvenue avec bouton de fermeture
+        welcome = discord.Embed(
+            title="📅 PRISE DE RENDEZ-VOUS",
+            description=(
+                f"Bienvenue **{interaction.user.mention}** !\n\n"
+                f"Merci d'avoir ouvert un ticket de rendez-vous.\n"
+                f"Un membre de l'équipe vous répondra sous peu.\n\n"
+                f"**En attendant, vous pouvez :**\n"
+                f"• Expliquer la raison de votre demande\n"
+                f"• Indiquer vos disponibilités\n"
+                f"• Poser vos questions\n\n"
+                f"Pour fermer ce ticket, cliquez sur le bouton ci-dessous."
+            ),
+            color=discord.Color.green()
+        )
+        welcome.set_footer(text="📅 Système de tickets")
+        await channel.send(embed=welcome, view=CloseTicketView())
+
+@bot.tree.command(name="setup_appointment", description="Affiche le bouton de prise de rendez-vous")
+@app_commands.checks.has_permissions(administrator=True)
+async def setup_appointment(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="📅 PRISE DE RENDEZ-VOUS",
+        description=(
+            "**Besoin d'un rendez-vous ?**\n\n"
+            "Cliquez sur le bouton ci-dessous pour ouvrir un ticket.\n\n"
+            "**📋 Un membre de l'équipe vous répondra rapidement pour :**\n"
+            "• Fixer une date et heure\n"
+            "• Répondre à vos questions\n"
+            "• Organiser votre rendez-vous\n\n"
+            "**N'hésitez pas à nous contacter ! 📞**"
+        ),
+        color=discord.Color.green()
+    )
+    embed.set_footer(text="📅 Système de tickets")
+    await interaction.channel.send(embed=embed, view=AppointmentButton())
+    await interaction.response.send_message("✅ Message de prise de rendez-vous posté !", ephemeral=True)
     await interaction.channel.send(embed=embed, view=CVButton())
     await interaction.response.send_message("✅ Message de recrutement posté !", ephemeral=True)
 
