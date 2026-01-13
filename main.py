@@ -1273,16 +1273,21 @@ class CVButton(discord.ui.View):
                 answers.append(f"**{question}**\n{msg.content}")
             except asyncio.TimeoutError:
                 timeout_msg = discord.Embed(
-                    title="⏱️ TEMPS ÉCOULÉ",
-                    description="Vous n'avez pas répondu à temps. Le dossier va être fermé.",
+                    title="⏱️ TEMPS ÉCOULÉ - FERMETURE AUTOMATIQUE",
+                    description=(
+                        "❌ **Aucune réponse reçue dans les 10 minutes.**\n\n"
+                        "Votre dossier de candidature va être **fermé automatiquement**.\n\n"
+                        "Si vous souhaitez postuler à nouveau, cliquez sur le bouton de candidature.\n\n"
+                        "🚑 **Fermeture dans 5 secondes...**"
+                    ),
                     color=EMS_DARK_RED
                 )
-                timeout_msg.set_footer(text="🚑 EMS System")
+                timeout_msg.set_footer(text="🚑 EMS System | Session expirée")
                 try:
                     await channel.send(embed=timeout_msg)
                 except:
                     pass
-                await asyncio.sleep(3)
+                await asyncio.sleep(5)
                 try:
                     await channel.delete()
                 except:
@@ -1359,6 +1364,7 @@ class CVButton(discord.ui.View):
                 "• La direction examinera votre candidature\n"
                 "• Vous recevrez une réponse dans vos messages privés\n"
                 "• N'hésitez pas à nous contacter en cas de questions\n\n"
+                "⏱️ Ce channel se fermera dans **2 minutes**\n\n"
                 "**Merci pour votre intérêt envers les EMS !** 🚑"
             ),
             color=EMS_RED
@@ -1366,6 +1372,7 @@ class CVButton(discord.ui.View):
         confirm.set_footer(text="🚑 EMS System | Bon courage !")
         await channel.send(embed=confirm)
         
+        # Envoyer le DM au candidat
         try:
             await interaction.user.send(
                 "🚑 **Candidature envoyée** 🚑\n\n"
@@ -1376,7 +1383,7 @@ class CVButton(discord.ui.View):
         except:
             pass
         
-        # Envoyer au channel CV
+        # Envoyer au channel CV (en arrière-plan pendant que le timer commence)
         cv_channel = bot.get_channel(config.get("CV_CHANNEL_ID"))
         if cv_channel:
             full_text = "\n\n".join(answers)
@@ -1396,15 +1403,18 @@ class CVButton(discord.ui.View):
             ping_content = direction_role.mention if direction_role and config.get("ROLE_DIRECTION_ID") != 0 else None
             
             # Envoyer l'embed avec les fichiers téléchargés
-            if downloaded_files:
-                msg = await cv_channel.send(content=ping_content, embed=cv_embed, files=downloaded_files, view=view)
-            else:
-                if attachments:
-                    cv_embed.add_field(name="📎 Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
-                msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
-            view.message = msg
+            try:
+                if downloaded_files:
+                    msg = await cv_channel.send(content=ping_content, embed=cv_embed, files=downloaded_files, view=view)
+                else:
+                    if attachments:
+                        cv_embed.add_field(name="📎 Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
+                    msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
+                view.message = msg
+            except:
+                pass
         
-        # Nettoyer
+        # Fermer le channel après 2 minutes
         await asyncio.sleep(120)
         try:
             await channel.delete()
@@ -1640,12 +1650,18 @@ class FormulaireCVButton(discord.ui.View):
                 answers.append(f"**{question}**\n{msg.content}")
             except asyncio.TimeoutError:
                 timeout_embed = discord.Embed(
-                    title="⏱️ TEMPS ÉCOULÉ",
-                    description="Dossier fermé (pas de réponse à temps)",
+                    title="⏱️ TEMPS ÉCOULÉ - FERMETURE AUTOMATIQUE",
+                    description=(
+                        "❌ **Aucune réponse reçue dans les 10 minutes.**\n\n"
+                        "Votre dossier de candidature va être **fermé automatiquement**.\n\n"
+                        "Si vous souhaitez postuler à nouveau, cliquez sur le bouton de candidature.\n\n"
+                        "🚑 **Fermeture dans 5 secondes...**"
+                    ),
                     color=EMS_DARK_RED
                 )
+                timeout_embed.set_footer(text="🚑 EMS System | Session expirée")
                 await channel.send(embed=timeout_embed)
-                await asyncio.sleep(3)
+                await asyncio.sleep(5)
                 try:
                     await channel.delete()
                 except:
@@ -1686,6 +1702,7 @@ class FormulaireCVButton(discord.ui.View):
                     f"**Documents :** {len(attachments)}\n\n"
                     "La direction va examiner votre dossier.\n"
                     "Vous recevrez une réponse en DM.\n\n"
+                    "⏱️ Ce channel se fermera dans **2 minutes**\n\n"
                     "Merci ! 🚑"
                 ),
                 color=EMS_RED
@@ -1703,40 +1720,48 @@ class FormulaireCVButton(discord.ui.View):
                 )
             except:
                 pass
+            
+            # Envoyer au channel CV (pendant que le timer démarre)
+            cv_channel = bot.get_channel(1458464247548743691)
+            if cv_channel:
+                full_text = "\n\n".join(answers)
+                cv_embed = discord.Embed(
+                    title=f"📋 CANDIDATURE - {user_fullname if user_fullname else interaction.user.name}",
+                    description=full_text[:2000],
+                    color=EMS_RED
+                )
+                
+                if attachments:
+                    cv_embed.add_field(name="📎 Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
+                
+                cv_embed.set_thumbnail(url=interaction.user.avatar.url if interaction.user.avatar else None)
+                cv_embed.set_footer(text=f"🚑 EMS System | ID: {user_id}")
+                
+                view = FormulaireCVValidation(interaction.user)
+                
+                # Ping direction
+                direction_role = guild.get_role(config.get("ROLE_DIRECTION_ID"))
+                ping_content = direction_role.mention if direction_role else None
+                
+                try:
+                    msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
+                    view.message = msg
+                except:
+                    pass
+            
+            # Fermer le channel après 2 minutes
+            await asyncio.sleep(120)
+            try:
+                await channel.delete()
+            except:
+                pass
         except:
-            pass
-        
-        # Envoyer au channel CV
-        cv_channel = bot.get_channel(1458464247548743691)
-        if cv_channel:
-            full_text = "\n\n".join(answers)
-            cv_embed = discord.Embed(
-                title=f"📋 CANDIDATURE - {user_fullname if user_fullname else interaction.user.name}",
-                description=full_text[:2000],
-                color=EMS_RED
-            )
-            
-            if attachments:
-                cv_embed.add_field(name="📎 Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
-            
-            cv_embed.set_thumbnail(url=interaction.user.avatar.url if interaction.user.avatar else None)
-            cv_embed.set_footer(text=f"🚑 EMS System | ID: {user_id}")
-            
-            view = FormulaireCVValidation(interaction.user)
-            
-            # Ping direction
-            direction_role = guild.get_role(config.get("ROLE_DIRECTION_ID"))
-            ping_content = direction_role.mention if direction_role else None
-            
-            msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
-            view.message = msg
-        
-        # Nettoyer après 2 minutes
-        await asyncio.sleep(120)
-        try:
-            await channel.delete()
-        except:
-            pass
+            # En cas d'erreur, fermer quand même après 2 min
+            await asyncio.sleep(120)
+            try:
+                await channel.delete()
+            except:
+                pass
 
 @bot.tree.command(name="formulairecv", description="Affiche le nouveau formulaire de candidature")
 @app_commands.checks.has_permissions(administrator=True)
