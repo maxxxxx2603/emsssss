@@ -164,7 +164,7 @@ def save_stats(stats):
 def normalize_employee_key(name: str) -> str:
     """Normalise un identifiant d'employé pour correspondre aux clés de stats.json.
     - met en minuscules
-    - supprime les préfixes de rôle (emt-, int-, cds-, rh-, drh-, med-, ads-)
+    - supprime les préfixes de rôle (dir-, cds-, med-, int-, emt-, ads-, inf-, rh-, drh-)
     - remplace les espaces par des tirets
     - retire les crochets/espaces parasites
     """
@@ -172,21 +172,39 @@ def normalize_employee_key(name: str) -> str:
         return ""
     s = name.strip().lower()
     # Retirer crochets type [emt] ou [rh]
-    for br in ["[emt]", "[int]", "[cds]", "[rh]", "[drh]", "[med]", "[ads]"]:
+    for br in ["[emt]", "[int]", "[cds]", "[rh]", "[drh]", "[med]", "[ads]", "[inf]", "[dir]"]:
         s = s.replace(br, "")
     s = s.replace("[", "").replace("]", "").replace("(", "").replace(")", "")
     s = s.replace("_", "-")
-    # Supprimer les préfixes connus suivis d'un espace ou d'un tiret
-    prefixes = ["emt-", "emt ", "int-", "int ", "cds-", "cds ", "rh-", "rh ", "drh-", "drh ", "med-", "med ", "ads-", "ads "]
-    for p in prefixes:
-        if s.startswith(p):
-            s = s[len(p):]
-            break
+    # Supprimer TOUS les préfixes de grade connus (avec tiret OU espace)
+    # Ordre important: dir- avant drh- pour éviter confusion
+    prefixes = [
+        "dir-", "dir ", 
+        "cds-", "cds ", 
+        "med-", "med ", 
+        "inf-", "inf ", 
+        "ads-", "ads ", 
+        "int-", "int ", 
+        "emt-", "emt ", 
+        "drh-", "drh ", 
+        "rh-", "rh "
+    ]
+    # Boucler jusqu'à ce qu'aucun préfixe ne soit détecté (au cas où il y en aurait plusieurs)
+    changed = True
+    while changed:
+        changed = False
+        for p in prefixes:
+            if s.startswith(p):
+                s = s[len(p):]
+                changed = True
+                break
     # Normaliser espaces -> tirets
     s = "-".join(filter(None, s.replace("/", " ").replace("|", " ").split()))
     # Nettoyer tirets multiples
     while "--" in s:
         s = s.replace("--", "-")
+    # Supprimer tirets au début/fin
+    s = s.strip("-")
     return s
 
 def load_channel_map():
@@ -198,18 +216,23 @@ def save_channel_map(mapping: dict):
 def get_channel_employee_key(channel: discord.abc.GuildChannel) -> str:
     """Retourne la clé employé pour un channel donné en s'appuyant sur un mapping persistant.
     Si absente, la déduit du nom du channel et persiste le mapping.
+    Force toujours la normalisation pour garantir la cohérence.
     """
     mapping = load_channel_map()
-    key = mapping.get(str(channel.id))
-    if key:
-        return key
-    # Déduire via le nom du channel
+    
+    # Extraire le nom du channel (enlever l'emoji couleur)
     raw = channel.name[1:].strip() if channel.name and len(channel.name) > 1 else channel.name
+    # TOUJOURS normaliser le nom pour garantir la cohérence
     key = normalize_employee_key(raw or "")
     
-    # Sauvegarder le mapping pour éviter les variations futures
-    mapping[str(channel.id)] = key
-    save_channel_map(mapping)
+    # Vérifier si un mapping existe déjà pour ce channel
+    existing_key = mapping.get(str(channel.id))
+    
+    # Si le mapping existe MAIS la clé est différente, mettre à jour avec la clé normalisée
+    if existing_key != key:
+        mapping[str(channel.id)] = key
+        save_channel_map(mapping)
+    
     return key
 
 def extract_employee_name(channel_name):
@@ -1920,6 +1943,68 @@ async def sync_stats_from_logs():
 
 # --- COMMANDES DE MANAGEMENT EMS ---
 
+@bot.tree.command(name="clean_channels", description="Supprime les préfixes de grade (emt-, int-, dir-, etc.) de tous les channels")
+@app_commands.checks.has_permissions(administrator=True)
+async def clean_channels(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    renamed_count = 0
+    errors = []
+    renamed_list = []
+    
+    # Parcourir tous les channels avec emoji
+    for channel in guild.text_channels:
+        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+            try:
+                # Extraire le nom actuel sans l'emoji
+                current_name_without_emoji = channel.name[1:].strip() if len(channel.name) > 1 else channel.name
+                
+                # Normaliser pour obtenir le nom propre (sans préfixe)
+                clean_employee_name = normalize_employee_key(current_name_without_emoji)
+                
+                # Nouveau nom: emoji + nom propre
+                current_emoji = channel.name[0]
+                new_name = f"{current_emoji}{clean_employee_name}"
+                
+                # Renommer seulement si différent
+                if channel.name != new_name:
+                    old_name = channel.name
+                    await channel.edit(name=new_name)
+                    renamed_count += 1
+                    renamed_list.append(f"• `{old_name}` → `{new_name}`")
+                    
+            except Exception as e:
+                errors.append(f"❌ {channel.name}: {str(e)[:50]}")
+    
+    # Message de confirmation
+    embed = discord.Embed(
+        title="🧹 NETTOYAGE DES CHANNELS",
+        description=f"**{renamed_count} channel(s) renommé(s)**\n\nTous les préfixes de grade (emt-, int-, dir-, cds-, etc.) ont été supprimés.",
+        color=EMS_RED
+    )
+    
+    if renamed_list:
+        # Afficher les 15 premiers
+        display_list = renamed_list[:15]
+        if len(renamed_list) > 15:
+            display_list.append(f"... et {len(renamed_list) - 15} autres")
+        embed.add_field(
+            name="📝 Channels renommés",
+            value="\n".join(display_list),
+            inline=False
+        )
+    
+    if errors:
+        embed.add_field(
+            name="⚠️ Erreurs",
+            value="\n".join(errors[:10]),
+            inline=False
+        )
+    
+    embed.set_footer(text="🚑 EMS System")
+    await interaction.followup.send(embed=embed)
+
 @bot.tree.command(name="setup_categories", description="Crée automatiquement toutes les catégories pour les grades EMS")
 @app_commands.checks.has_permissions(administrator=True)
 async def setup_categories(interaction: discord.Interaction):
@@ -2032,10 +2117,9 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
     if role_to_remove:
         await membre.remove_roles(role_to_remove)
 
-    # 3. Création du Channel dans la catégorie spécifique
-    CATEGORY_CHANNEL_ID = 1460041009453858826
-    category = guild.get_channel(CATEGORY_CHANNEL_ID)
-    channel_name = f"🔴emt-{clean_name.lower().replace(' ', '-')}"
+    # 3. Création du Channel dans la catégorie EMT (sans préfixe de grade, juste emoji + nom)
+    category = guild.get_channel(CATEGORY_EMT_ID) if CATEGORY_EMT_ID else None
+    channel_name = f"🔴{clean_name.lower().replace(' ', '-')}"
     
     if category:
         # Permissions pour que le membre ait accès à son channel
@@ -2047,15 +2131,10 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
         
         # Créer le channel avec les permissions dans la catégorie
         new_channel = await guild.create_text_channel(name=channel_name, category=category, overwrites=overwrites)
-
-        # Sauvegarde du mapping
-        mapping = load_channel_map()
-        mapping[str(membre.id)] = new_channel.id
-        save_channel_map(mapping)
         
         await interaction.followup.send(f"✅ **{membre.mention}** a été employé avec succès !\n📛 Renommé en `{new_nickname}`\n📂 Dossier créé : {new_channel.mention}")
     else:
-        await interaction.followup.send(f"⚠️ Catégorie introuvable (ID: {CATEGORY_CHANNEL_ID}), rôles et pseudo mis à jour mais pas le channel.")
+        await interaction.followup.send(f"⚠️ Catégorie EMT introuvable, rôles et pseudo mis à jour mais pas le channel.")
 
 @bot.tree.command(name="reset_names", description="Applique les tags de grade selon les rôles Discord")
 @app_commands.describe(membre="Le membre dont mettre à jour le tag (optionnel, sinon tous)")
@@ -2283,42 +2362,42 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
         # EMT -> INT
         next_step = {
             "remove": R_EMT, "add": R_INT, 
-            "tag": "INT", "chan_prefix": "🔴int",
+            "tag": "INT",
             "category_id": CATEGORY_INT_ID
         }
     elif R_INT in member_roles_ids:
         # INT -> ADS
         next_step = {
             "remove": R_INT, "add": R_ADS,
-            "tag": "ADS", "chan_prefix": "🔴ads",
+            "tag": "ADS",
             "category_id": CATEGORY_ADS_ID
         }
     elif R_ADS in member_roles_ids:
         # ADS -> INF
         next_step = {
             "remove": R_ADS, "add": R_INF,
-            "tag": "INF", "chan_prefix": "🔴inf",
+            "tag": "INF",
             "category_id": CATEGORY_INF_ID
         }
     elif R_INF in member_roles_ids:
         # INF -> MED
         next_step = {
             "remove": R_INF, "add": R_MED,
-            "tag": "MED", "chan_prefix": "🔴med",
+            "tag": "MED",
             "category_id": CATEGORY_MED_ID
         }
     elif R_MED in member_roles_ids:
         # MED -> CDS
         next_step = {
             "remove": R_MED, "add": R_CDS,
-            "tag": "CDS", "chan_prefix": "🔴cds",
+            "tag": "CDS",
             "category_id": CATEGORY_CDS_ID
         }
     elif R_CDS in member_roles_ids:
         # CDS -> DIR
         next_step = {
             "remove": R_CDS, "add": R_DIR,
-            "tag": "DIR", "chan_prefix": "🔴dir",
+            "tag": "DIR",
             "category_id": CATEGORY_DIR_ID
         }
     else:
@@ -2338,15 +2417,25 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
     except:
         pass # Admin check
         
-    # 3. Channel
-    mapping = load_channel_map()
-    chan_id = mapping.get(str(membre.id))
-    channel = guild.get_channel(chan_id) if chan_id else None
+    # 3. Channel - Trouver le channel de l'employé et le déplacer (sans changer le nom, juste retirer le préfixe)
+    channel = None
+    
+    # Chercher le channel de l'employé
+    clean_name_normalized = clean_name.lower().replace(' ', '-')
+    for ch in guild.text_channels:
+        if ch.name and len(ch.name) > 1 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+            # Enlever l'emoji et normaliser
+            ch_employee_key = get_channel_employee_key(ch)
+            member_key = normalize_employee_key(clean_name)
+            if ch_employee_key == member_key:
+                channel = ch
+                break
     
     chan_msg = ""
     if channel:
-        # Rename
-        new_chan_name = f"{next_step['chan_prefix']}-{clean_name.lower().replace(' ', '-')}"
+        # Nouveau nom sans préfixe de grade, juste l'emoji + nom
+        current_emoji = channel.name[0] if channel.name and len(channel.name) > 0 else "🔴"
+        new_chan_name = f"{current_emoji}{clean_name_normalized}"
         
         # Déplacer dans la nouvelle catégorie
         new_category_id = next_step.get("category_id")
@@ -2355,7 +2444,7 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
         if new_category:
             try:
                 await channel.edit(name=new_chan_name, category=new_category)
-                chan_msg = f"\n📂 Dossier déplacé dans la catégorie {next_step['tag']} et renommé : {channel.mention}"
+                chan_msg = f"\n📂 Dossier déplacé dans la catégorie {next_step['tag']} : {channel.mention}"
             except Exception as e:
                 chan_msg = f"\n⚠️ Erreur déplacement dossier: {e}"
         else:
