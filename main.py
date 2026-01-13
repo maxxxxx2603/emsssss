@@ -206,6 +206,8 @@ def get_channel_employee_key(channel: discord.abc.GuildChannel) -> str:
     # Déduire via le nom du channel
     raw = channel.name[1:].strip() if channel.name and len(channel.name) > 1 else channel.name
     key = normalize_employee_key(raw or "")
+    
+    # Sauvegarder le mapping pour éviter les variations futures
     mapping[str(channel.id)] = key
     save_channel_map(mapping)
     return key
@@ -757,6 +759,65 @@ async def sync_rea(interaction: discord.Interaction):
         )
         embed.set_footer(text="🚑 EMS System")
     
+    await interaction.followup.send(embed=embed)
+
+@bot.tree.command(name="update_colors", description="Met à jour les couleurs de tous les channels selon les quotas")
+@app_commands.checks.has_permissions(administrator=True)
+async def update_colors(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    stats = load_stats()
+    
+    updated_count = 0
+    errors = []
+    
+    # Parcourir tous les channels avec emoji
+    for channel in guild.text_channels:
+        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+            try:
+                # Récupérer la clé employé
+                employee_key = get_channel_employee_key(channel)
+                if not employee_key:
+                    continue
+                
+                # Récupérer le compteur
+                current_count = stats.get(employee_key, 0)
+                
+                # Calculer la nouvelle couleur
+                new_emoji = get_color_emoji(current_count)
+                current_emoji = channel.name[0]
+                
+                # Mettre à jour si différent
+                if current_emoji != new_emoji:
+                    new_channel_name = f"{new_emoji}{channel.name[1:]}"
+                    await channel.edit(name=new_channel_name)
+                    updated_count += 1
+                    
+            except Exception as e:
+                errors.append(f"❌ {channel.name}: {str(e)[:50]}")
+    
+    # Message de confirmation
+    embed = discord.Embed(
+        title="🎨 MISE À JOUR DES COULEURS",
+        description=f"**{updated_count} channel(s) mis à jour**",
+        color=EMS_RED
+    )
+    
+    if errors:
+        embed.add_field(
+            name="⚠️ Erreurs",
+            value="\n".join(errors[:10]),
+            inline=False
+        )
+    
+    embed.add_field(
+        name="📊 Légende",
+        value="🔴 Moins de 50 réas\n🟠 Entre 50 et 99 réas\n🟢 100 réas ou plus",
+        inline=False
+    )
+    
+    embed.set_footer(text="🚑 EMS System")
     await interaction.followup.send(embed=embed)
 
 @bot.tree.command(name="semaine", description="Réinitialise la semaine - Remet tout à 0 et met en rouge")
