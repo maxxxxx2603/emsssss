@@ -1864,6 +1864,22 @@ async def weekly_taxi_announcement():
 async def before_weekly_announcement():
     await bot.wait_until_ready()
 
+# --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
+@tasks.loop(minutes=5)
+async def auto_backup_stats():
+    """Sauvegarde automatique des stats toutes les 5 minutes pour éviter toute perte de données"""
+    try:
+        stats = load_stats()
+        # Force une sauvegarde avec backup
+        atomic_write_json(STATS_FILE, stats, make_backup=True)
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Sauvegarde automatique des stats effectuée ({len(stats)} employés, {sum(stats.values())} réas)")
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde automatique: {e}")
+
+@auto_backup_stats.before_loop
+async def before_auto_backup():
+    await bot.wait_until_ready()
+
 async def send_weekly_taxi_announcement():
     """Envoie l'annonce hebdomadaire et réinitialise les compteurs"""
     guild = bot.get_guild(config.get("GUILD_ID"))
