@@ -1391,54 +1391,6 @@ class CVButton(discord.ui.View):
         except:
             pass
 
-@bot.tree.command(name="setup_cv", description="Affiche le bouton de dépôt de CV")
-@app_commands.checks.has_permissions(administrator=True)
-async def setup_cv(interaction: discord.Interaction):
-    """Commande pour afficher le message de recrutement avec le bouton de dépôt de CV"""
-    
-    # Créer l'embed de recrutement
-    embed = discord.Embed(
-        title="🚑 RECRUTEMENT EMS",
-        description=(
-            "**Rejoignez notre équipe d'urgentistes !**\n\n"
-            "Vous souhaitez intégrer une équipe dynamique et professionnelle ? "
-            "Cliquez sur le bouton ci-dessous pour déposer votre candidature !\n\n"
-            "**📋 Le processus :**\n"
-            "1️⃣ Cliquez sur \"Dépose ton CV\"\n"
-            "2️⃣ Répondez à 13 questions détaillées\n"
-            "3️⃣ Envoyez vos documents\n"
-            "4️⃣ Attendez la validation de la direction\n\n"
-            "**✨ Nous cherchons :** Des candidats motivés, professionnels et passionnés par le secteur médical !\n\n"
-            "**Bonne chance ! 🚑💪**"
-        ),
-        color=EMS_RED
-    )
-    embed.set_thumbnail(url="https://media.discordapp.net/attachments/1458228261166518293/1458240230001086524/ambulance-emoji.png")
-    embed.set_footer(text="🚑 EMS Management System | Votre avenir commence ici")
-    
-    # Créer la vue avec le bouton
-    view = CVButton()
-    
-    try:
-        # Envoyer le message dans le channel actuel
-        await interaction.channel.send(embed=embed, view=view)
-        
-        # Confirmer à l'utilisateur (message éphémère)
-        await interaction.response.send_message(
-            "✅ Message de recrutement posté avec succès !",
-            ephemeral=True
-        )
-    except discord.errors.Forbidden:
-        await interaction.response.send_message(
-            "❌ Erreur : Je n'ai pas les permissions pour envoyer des messages dans ce channel.",
-            ephemeral=True
-        )
-    except Exception as e:
-        await interaction.response.send_message(
-            f"❌ Erreur inattendue : {str(e)}",
-            ephemeral=True
-        )
-
 # --- NOUVEAU SYSTÈME CV (FORMULAIRECV) ---
 class FormulaireCVValidation(discord.ui.View):
     def __init__(self, target_user: discord.User):
