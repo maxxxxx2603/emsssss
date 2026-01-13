@@ -140,8 +140,9 @@ class EMSBot(commands.Bot):
         self.add_view(CVButton())
         self.add_view(RoleRequestButton())
         self.add_view(AppointmentButton())
-        # Démarrer la tâche automatisée pour les annonces taxi
+        # Démarrer les tâches automatisées
         weekly_taxi_announcement.start()
+        auto_backup_stats.start()  # Sauvegarde automatique toutes les 5 minutes
 
 bot = EMSBot()
 
@@ -1138,6 +1139,9 @@ class ReviewView(discord.ui.View):
         
         await interaction.response.defer(ephemeral=True)
         
+        # Répondre immédiatement pour éviter timeout
+        await interaction.followup.send(f"✅ {self.target_user.mention} refusé. Traitement en cours...", ephemeral=True)
+        
         # DM au candidat
         try:
             await self.target_user.send(
@@ -1146,8 +1150,8 @@ class ReviewView(discord.ui.View):
                 f"Nous vous encourageons à postuler à nouveau dans le futur.\n\n"
                 f"Cordialement,\n**La Direction des EMS** 🚑"
             )
-        except:
-            pass
+        except Exception as e:
+            print(f"Erreur DM refus: {e}")
         
         # Log
         log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
@@ -1160,8 +1164,8 @@ class ReviewView(discord.ui.View):
             embed.set_footer(text="🚑 EMS System")
             try:
                 await log_channel.send(embed=embed)
-            except:
-                pass
+            except Exception as e:
+                print(f"Erreur log refus: {e}")
         
         # Désactiver et supprimer le message
         self.disable_all_items()
@@ -1170,8 +1174,6 @@ class ReviewView(discord.ui.View):
                 await self.message.delete()
             except Exception as e:
                 print(f"Erreur suppression message CV refusé: {e}")
-        
-        await interaction.followup.send(f"✅ {self.target_user.mention} refusé et message supprimé", ephemeral=True)
     
     def disable_all_items(self):
         for item in self.children:
@@ -1390,6 +1392,9 @@ async def setup_cv(interaction: discord.Interaction):
     )
     embed.set_thumbnail(url="https://media.discordapp.net/attachments/1458228261166518293/1458240230001086524/ambulance-emoji.png")
     embed.set_footer(text="🚑 EMS Management System | Votre avenir commence ici")
+    
+    await interaction.channel.send(embed=embed, view=CVButton())
+    await interaction.response.send_message("✅ Message de recrutement posté !", ephemeral=True)
 
 # --- SYSTÈME DE DEMANDE DE RÔLE ---
 class RoleRequestButton(discord.ui.View):
@@ -1770,6 +1775,14 @@ async def setup_appointment(interaction: discord.Interaction):
     embed.set_footer(text="📅 Système de tickets")
     await interaction.channel.send(embed=embed, view=AppointmentButton())
     await interaction.response.send_message("✅ Message de prise de rendez-vous posté !", ephemeral=True)
+
+@bot.event
+async def on_error(event, *args, **kwargs):
+    """Gestionnaire d'erreurs global pour éviter les crashs complets"""
+    import sys
+    import traceback
+    print(f"❌ Erreur dans {event}:", file=sys.stderr)
+    traceback.print_exc()
 
 @bot.event
 async def on_ready():
@@ -2295,37 +2308,23 @@ async def virer(interaction: discord.Interaction, membre: discord.Member):
         print(f"Erreur envoi DM licenciement: {e}")
 
     # 4. Supprimer le channel personnel de l'employé
-    mapping = load_channel_map()
-    chan_id = mapping.get(str(membre.id))
     channel_deleted = False
+    clean_name_normalized = normalize_employee_key(clean_name)
     
-    if chan_id:
-        channel = guild.get_channel(int(chan_id))
-        if channel:
-            try:
-                await channel.delete()
-                # Retirer l'entrée du mapping
-                del mapping[str(membre.id)]
-                save_channel_map(mapping)
-                channel_deleted = True
-            except Exception as e:
-                print(f"Erreur suppression channel: {e}")
-    else:
-        # Si pas dans le mapping, chercher manuellement par nom
-        clean_name_normalized = clean_name.lower().replace(' ', '-')
-        for channel in guild.text_channels:
-            # Chercher un channel qui correspond au nom de l'employé (format: 🔴emt-nom ou 🔴int-nom, etc.)
-            if channel.name and len(channel.name) > 1:
-                # Retirer l'emoji au début
-                channel_name_clean = channel.name[1:].lower() if channel.name[0] in ["🔴", "🟠", "🟢"] else channel.name.lower()
-                # Vérifier si le nom correspond (emt-nom, int-nom, ads-nom, etc.)
-                if channel_name_clean.endswith(f"-{clean_name_normalized}") or channel_name_clean == f"emt-{clean_name_normalized}" or channel_name_clean == f"int-{clean_name_normalized}" or channel_name_clean == f"ads-{clean_name_normalized}" or channel_name_clean == f"inf-{clean_name_normalized}" or channel_name_clean == f"med-{clean_name_normalized}" or channel_name_clean == f"cds-{clean_name_normalized}" or channel_name_clean == f"dir-{clean_name_normalized}":
-                    try:
-                        await channel.delete()
-                        channel_deleted = True
-                        break
-                    except Exception as e:
-                        print(f"Erreur suppression channel manuel: {e}")
+    # Chercher le channel par nom normalisé (nouveau format: emoji + nom sans préfixe)
+    for channel in guild.text_channels:
+        if channel.name and len(channel.name) > 1 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+            # Obtenir la clé employé du channel
+            channel_employee_key = get_channel_employee_key(channel)
+            
+            # Comparer avec la clé employé normalisée
+            if channel_employee_key == clean_name_normalized:
+                try:
+                    await channel.delete()
+                    channel_deleted = True
+                    break
+                except Exception as e:
+                    print(f"Erreur suppression channel: {e}")
     
     if channel_deleted:
         await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés, pseudo réinitialisé et channel supprimé.")
@@ -3048,10 +3047,50 @@ if __name__ == "__main__":
     if not config['TOKEN']:
         print("Erreur: TOKEN manquant. Vérifiez votre fichier config.json ou vos variables d'environnement.")
     else:
-        try:
-            bot.run(config['TOKEN'])
-        except KeyboardInterrupt:
-            print("Arrêt...")
-        except Exception as e:
-            print(f"Erreur: {e}")
+        import time
+        max_retries = 5
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                # 💾 SAUVEGARDE DE SÉCURITÉ AVANT DÉMARRAGE/REDÉMARRAGE
+                try:
+                    stats = load_stats()
+                    atomic_write_json(STATS_FILE, stats, make_backup=True)
+                    print(f"💾 Sauvegarde de sécurité effectuée ({len(stats)} employés, {sum(stats.values())} réas)")
+                except Exception as e:
+                    print(f"⚠️ Erreur lors de la sauvegarde de sécurité: {e}")
+                
+                print(f"🚀 Démarrage du bot EMS... (Tentative {retry_count + 1}/{max_retries})")
+                bot.run(config['TOKEN'])
+                break  # Si le bot s'arrête proprement, sortir de la boucle
+            except KeyboardInterrupt:
+                # 💾 SAUVEGARDE FINALE AVANT ARRÊT MANUEL
+                try:
+                    stats = load_stats()
+                    atomic_write_json(STATS_FILE, stats, make_backup=True)
+                    print(f"💾 Sauvegarde finale effectuée avant arrêt")
+                except:
+                    pass
+                print("⏹️ Arrêt manuel du bot...")
+                break
+            except Exception as e:
+                # 💾 SAUVEGARDE D'URGENCE EN CAS D'ERREUR
+                try:
+                    stats = load_stats()
+                    atomic_write_json(STATS_FILE, stats, make_backup=True)
+                    print(f"💾 Sauvegarde d'urgence effectuée")
+                except:
+                    pass
+                
+                retry_count += 1
+                print(f"❌ Erreur critique: {e}")
+                
+                if retry_count < max_retries:
+                    wait_time = min(30 * retry_count, 300)  # Max 5 minutes
+                    print(f"🔄 Redémarrage automatique dans {wait_time} secondes...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"❌ Nombre maximum de tentatives atteint ({max_retries}). Arrêt définitif.")
+                    break
 
