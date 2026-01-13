@@ -1097,6 +1097,21 @@ class ReviewView(discord.ui.View):
             cv_log_channel = bot.get_channel(1458956197796515979)
             if cv_log_channel:
                 await cv_log_channel.send(embed=embed)
+            
+            # Poster l'image du membre dans le channel 1460752929429520427
+            image_channel = bot.get_channel(1460752929429520427)
+            if image_channel and member.avatar:
+                try:
+                    avatar_embed = discord.Embed(
+                        title=f"✅ {member.display_name}",
+                        description=f"Accepté par {interaction.user.mention}",
+                        color=EMS_RED
+                    )
+                    avatar_embed.set_image(url=member.avatar.url)
+                    avatar_embed.set_footer(text="🚑 EMS System")
+                    await image_channel.send(embed=avatar_embed)
+                except:
+                    pass
         except:
             pass
         
@@ -1280,17 +1295,19 @@ class CVButton(discord.ui.View):
             description=(
                 "Merci d'avoir complété le formulaire ! 🎉\n\n"
                 "**Il ne manque plus que :**\n"
-                "🆔 Votre carte d'identité\n"
-                "🚗 Votre permis de conduire\n\n"
+                "🆔 Votre carte d'identité (IMAGE)\n"
+                "🚗 Votre permis de conduire (IMAGE)\n\n"
+                "⚠️ **IMPORTANT : Envoyez des IMAGES uniquement**\n\n"
                 "Envoyez-les ci-dessous et nous nous en chargerons ! 🚑\n\n"
                 "⏱️ Vous avez un temps illimité pour envoyer les documents."
             ),
             color=EMS_RED
         )
-        docs.set_footer(text="🚑 EMS System | Envoyez les fichiers ci-dessous")
+        docs.set_footer(text="🚑 EMS System | Envoyez les IMAGES ci-dessous")
         await channel.send(embed=docs)
         
         attachments = []
+        downloaded_files = []
         
         def check_doc(m):
             return m.author == interaction.user and m.channel == channel
@@ -1300,7 +1317,16 @@ class CVButton(discord.ui.View):
             
             if msg.attachments:
                 for att in msg.attachments:
-                    attachments.append(att.url)
+                    # Télécharger l'image
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(att.url) as resp:
+                                if resp.status == 200:
+                                    data = await resp.read()
+                                    downloaded_files.append(discord.File(io.BytesIO(data), filename=att.filename))
+                                    attachments.append(att.url)
+                    except:
+                        attachments.append(att.url)
             
             confirm = discord.Embed(
                 title="✅ CANDIDATURE COMPLÈTE",
@@ -1340,9 +1366,6 @@ class CVButton(discord.ui.View):
                 color=EMS_RED
             )
             
-            if attachments:
-                cv_embed.add_field(name="📎", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
-            
             cv_embed.set_thumbnail(url=interaction.user.avatar.url if interaction.user.avatar else None)
             cv_embed.set_footer(text=f"🚑 EMS System | ID: {user_id}")
             
@@ -1352,7 +1375,13 @@ class CVButton(discord.ui.View):
             direction_role = guild.get_role(config.get("ROLE_DIRECTION_ID"))
             ping_content = direction_role.mention if direction_role and config.get("ROLE_DIRECTION_ID") != 0 else None
             
-            msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
+            # Envoyer l'embed avec les fichiers téléchargés
+            if downloaded_files:
+                msg = await cv_channel.send(content=ping_content, embed=cv_embed, files=downloaded_files, view=view)
+            else:
+                if attachments:
+                    cv_embed.add_field(name="📎 Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
+                msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
             view.message = msg
         
         # Nettoyer
@@ -1478,6 +1507,21 @@ class FormulaireCVValidation(discord.ui.View):
             cv_log_channel = bot.get_channel(1458956197796515979)
             if cv_log_channel:
                 await cv_log_channel.send(embed=embed)
+            
+            # Poster l'image du membre dans le channel 1460752929429520427
+            image_channel = bot.get_channel(1460752929429520427)
+            if image_channel and member.avatar:
+                try:
+                    avatar_embed = discord.Embed(
+                        title=f"✅ {member.display_name}",
+                        description=f"Accepté par {interaction.user.mention}",
+                        color=EMS_RED
+                    )
+                    avatar_embed.set_image(url=member.avatar.url)
+                    avatar_embed.set_footer(text="🚑 EMS System")
+                    await image_channel.send(embed=avatar_embed)
+                except:
+                    pass
         except:
             pass
         
