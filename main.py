@@ -260,7 +260,7 @@ async def on_message(message):
             taxi_stats["count"] += 1
             save_taxi_stats(taxi_stats)
 
-    if not message.attachments or not message.channel.name:
+    if not message.attachments or not getattr(message.channel, "name", None):
         return
     
     # Éviter les traitements multiples
@@ -1581,7 +1581,10 @@ async def weekly_taxi_announcement():
     
     # Vérifier si c'est samedi (weekday() == 5) et qu'il est 19h
     if now.weekday() == 5 and now.hour == 19:
-        await send_weekly_taxi_announcement()
+        try:
+            await send_weekly_taxi_announcement()
+        except Exception as e:
+            print(f"Erreur annonce taxi hebdo: {e}")
 
 @weekly_taxi_announcement.before_loop
 async def before_weekly_announcement():
