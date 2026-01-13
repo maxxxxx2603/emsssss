@@ -47,6 +47,10 @@ ROLE_MARSHALL_ID = 1365068483074855045
 ROLE_NO_TEST_ID = 1163524216688230591
 ROLE_TAXI_REQUEST_ID = 1311784189984505876
 
+# Configuration Reset
+ROLE_BASE_ID = 838102445095256066  # Rôle de base à conserver
+RESET_CHANNEL_ID = 1450938023033176247
+
 # --- FONCTIONS UTILITAIRES JSON ---
 def atomic_write_json(path: str, data: dict, make_backup: bool = True):
     tmp_path = f"{path}.tmp"
@@ -141,6 +145,7 @@ class EMSBot(commands.Bot):
         self.add_view(FormulaireCVButton())
         self.add_view(RoleRequestButton())
         self.add_view(AppointmentButton())
+        self.add_view(ResetMemberButton())
         # Démarrer les tâches automatisées
         weekly_taxi_announcement.start()
         auto_backup_stats.start()  # Sauvegarde automatique toutes les 5 minutes
@@ -1793,6 +1798,93 @@ async def formulairecv(interaction: discord.Interaction):
         await interaction.followup.send("✅ Formulaire posté !", ephemeral=True)
     except Exception as e:
         await interaction.followup.send(f"❌ Erreur: {e}", ephemeral=True)
+
+# --- SYSTÈME DE RESET MEMBRE ---
+class ResetMemberButton(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="🔄 Réinitialiser mon compte", style=discord.ButtonStyle.danger, custom_id="reset_member")
+    async def reset_member(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        
+        guild = interaction.guild
+        member = interaction.user
+        
+        try:
+            # Reset le pseudo
+            try:
+                await member.edit(nick=None)
+            except:
+                pass
+            
+            # Récupérer tous les rôles sauf @everyone et le rôle de base
+            roles_to_remove = [role for role in member.roles if role.id != guild.default_role.id and role.id != ROLE_BASE_ID]
+            
+            # Retirer tous les rôles sauf le rôle de base
+            if roles_to_remove:
+                await member.remove_roles(*roles_to_remove, reason="Réinitialisation du compte")
+            
+            # Confirmation
+            embed = discord.Embed(
+                title="✅ COMPTE RÉINITIALISÉ",
+                description=(
+                    "Votre compte a été réinitialisé avec succès !\n\n"
+                    "**Actions effectuées :**\n"
+                    "✅ Pseudo réinitialisé\n"
+                    f"✅ {len(roles_to_remove)} rôle(s) retiré(s)\n\n"
+                    "Vous pouvez maintenant repartir de zéro ! 🚀"
+                ),
+                color=EMS_RED
+            )
+            embed.set_footer(text="🚑 EMS System")
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+            # Log
+            log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+            if log_channel:
+                log_embed = discord.Embed(
+                    title="🔄 RÉINITIALISATION MEMBRE",
+                    description=f"**Membre :** {member.mention}\n**Rôles retirés :** {len(roles_to_remove)}",
+                    color=EMS_RED
+                )
+                log_embed.set_footer(text="🚑 EMS System")
+                await log_channel.send(embed=log_embed)
+                
+        except Exception as e:
+            error_embed = discord.Embed(
+                title="❌ ERREUR",
+                description=f"Impossible de réinitialiser le compte :\n```{e}```",
+                color=EMS_DARK_RED
+            )
+            await interaction.followup.send(embed=error_embed, ephemeral=True)
+
+@bot.tree.command(name="setup_reset", description="Affiche le bouton de réinitialisation")
+@app_commands.checks.has_permissions(administrator=True)
+async def setup_reset(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    
+    embed = discord.Embed(
+        title="🔄 RÉINITIALISATION DU COMPTE",
+        description=(
+            "**Attention : Action irréversible !**\n\n"
+            "En cliquant sur le bouton ci-dessous, vous allez :\n\n"
+            "🔸 **Réinitialiser votre pseudo**\n"
+            "🔸 **Perdre tous vos rôles** (sauf le rôle de base)\n\n"
+            "⚠️ **Cette action est définitive !**\n\n"
+            "Utilisez cette option uniquement si vous souhaitez repartir de zéro."
+        ),
+        color=EMS_DARK_RED
+    )
+    embed.set_footer(text="🚑 EMS System | Réfléchissez bien avant de cliquer")
+    
+    view = ResetMemberButton()
+    
+    try:
+        await interaction.channel.send(embed=embed, view=view)
+        await interaction.followup.send("✅ Bouton de réinitialisation posté !", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur : {e}", ephemeral=True)
 
 # --- SYSTÈME DE DEMANDE DE RÔLE ---
 class RoleRequestButton(discord.ui.View):
