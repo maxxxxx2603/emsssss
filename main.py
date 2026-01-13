@@ -1035,12 +1035,10 @@ class ReviewView(discord.ui.View):
 
     @discord.ui.button(label="✅ Accepter", style=discord.ButtonStyle.green, custom_id="accept_cv")
     async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Vérifier les permissions
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("❌ Permission refusée", ephemeral=True)
             return
-        
-        # Désactiver immédiatement les boutons pour éviter les doubles clics
-        self.disable_all_items()
         
         guild = interaction.guild
         member = guild.get_member(self.target_user.id)
@@ -1049,53 +1047,44 @@ class ReviewView(discord.ui.View):
             await interaction.response.send_message("❌ Le candidat n'est plus sur le serveur.", ephemeral=True)
             return
         
+        # ÉTAPE 1 : Répondre IMMÉDIATEMENT (le plus important)
         try:
-            # Répondre IMMÉDIATEMENT pour éviter timeout
             await interaction.response.send_message(
                 f"✅ **{member.display_name}** accepté ! Traitement en cours...",
                 ephemeral=True
             )
-        except discord.errors.NotFound:
-            # L'interaction a déjà expiré
-            if self.message:
-                try:
-                    await self.message.edit(view=self)
-                    await asyncio.sleep(2)
-                    await self.message.delete()
-                except:
-                    pass
-            return
-        except Exception as e:
-            print(f"Erreur réponse interaction acceptation: {e}")
+        except:
+            # Si la réponse échoue, on abandonne tout
             return
         
-        role = guild.get_role(config.get("ROLE_ATTENTE_ID"))
+        # ÉTAPE 2 : Désactiver les boutons (après la réponse)
+        self.disable_all_items()
         
-        # Ajouter rôle
-        if role:
-            try:
+        # ÉTAPE 3 : Ajouter le rôle
+        try:
+            role = guild.get_role(config.get("ROLE_ATTENTE_ID"))
+            if role:
                 await member.add_roles(role)
-            except Exception as e:
-                print(f"Erreur ajout rôle: {e}")
+        except:
+            pass  # Ignorer si l'ajout du rôle échoue
         
-        # DM
+        # ÉTAPE 4 : Envoyer le DM
         try:
             await member.send(
-                f"🎉 **FÉLICITATIONS !**\n\n"
-                f"✅ Votre candidature a été **ACCEPTÉE** !\n\n"
-                f"Bienvenue dans la famille des **EMS** ! 🚑\n\n"
-                f"📝 **Prochaine étape :**\n"
-                f"Merci de mettre vos disponibilités ici :\n"
-                f"https://discord.com/channels/838102445083197470/1451553241065193555\n\n"
-                f"et nous nous chargeons du reste !\n\n"
-                f"Cordialement,\n**La Direction des EMS** 🚑"
+                "🎉 **FÉLICITATIONS !**\n\n"
+                "✅ Votre candidature a été **ACCEPTÉE** !\n\n"
+                "Bienvenue dans la famille des **EMS** ! 🚑\n\n"
+                "📝 **Prochaine étape :**\n"
+                "Merci de mettre vos disponibilités ici :\n"
+                "https://discord.com/channels/838102445083197470/1451553241065193555\n\n"
+                "et nous nous chargeons du reste !\n\n"
+                "Cordialement,\n**La Direction des EMS** 🚑"
             )
-        except Exception as e:
-            print(f"Erreur DM acceptation: {e}")
+        except:
+            pass  # Ignorer si le DM échoue
         
-        # Log dans le channel de logs
-        log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
-        if log_channel:
+        # ÉTAPE 5 : Envoyer les logs
+        try:
             embed = discord.Embed(
                 title="✅ CV ACCEPTÉ",
                 description=f"**Candidat :** {member.mention}\n**Validateur :** {interaction.user.mention}",
@@ -1104,118 +1093,92 @@ class ReviewView(discord.ui.View):
             embed.add_field(name="✅ Statut", value="Candidature approuvée ✓", inline=False)
             embed.add_field(name="👤 Rôle attribué", value="Attente d'onboarding", inline=False)
             embed.set_footer(text="🚑 EMS System")
-            try:
+            
+            # Log principal
+            log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+            if log_channel:
                 await log_channel.send(embed=embed)
-            except Exception as e:
-                print(f"Erreur log acceptation: {e}")
-        
-        # Envoyer aussi dans le channel CV
-        cv_channel = bot.get_channel(config.get("CV_CHANNEL_ID"))
-        if cv_channel:
-            embed = discord.Embed(
-                title="✅ CV ACCEPTÉ",
-                description=f"**Candidat :** {member.mention}\n**Validateur :** {interaction.user.mention}",
-                color=EMS_RED
-            )
-            embed.add_field(name="✅ Statut", value="Candidature approuvée ✓", inline=False)
-            embed.add_field(name="👤 Rôle attribué", value="Attente d'onboarding", inline=False)
-            embed.set_footer(text="🚑 EMS System")
-            try:
+            
+            # Channel CV
+            cv_channel = bot.get_channel(config.get("CV_CHANNEL_ID"))
+            if cv_channel:
                 await cv_channel.send(embed=embed)
-            except Exception as e:
-                print(f"Erreur CV channel acceptation: {e}")
-        
-        # Envoyer dans le channel de logs CV acceptés
-        cv_accepted_log = bot.get_channel(config.get("CV_ACCEPTED_LOG_CHANNEL_ID"))
-        if cv_accepted_log:
-            embed = discord.Embed(
-                title="✅ CV ACCEPTÉ",
-                description=f"**Candidat :** {member.mention}\n**Validateur :** {interaction.user.mention}",
-                color=EMS_RED
-            )
-            embed.add_field(name="✅ Statut", value="Candidature approuvée ✓", inline=False)
-            embed.add_field(name="👤 Rôle attribué", value="Attente d'onboarding", inline=False)
-            embed.set_footer(text="🚑 EMS System")
-            try:
+            
+            # Logs CV acceptés
+            cv_accepted_log = bot.get_channel(config.get("CV_ACCEPTED_LOG_CHANNEL_ID"))
+            if cv_accepted_log:
                 await cv_accepted_log.send(embed=embed)
-            except Exception as e:
-                print(f"Erreur logs CV acceptés: {e}")
+        except:
+            pass  # Ignorer si les logs échouent
         
-        # Attendre un peu avant de supprimer le message pour éviter conflit
-        if self.message:
-            try:
-                await self.message.edit(view=self)  # Mettre à jour avec boutons désactivés
-                await asyncio.sleep(2)  # Attendre 2 secondes
+        # ÉTAPE 6 : Supprimer le message (dernière action)
+        try:
+            if self.message:
+                # Mettre à jour avec boutons désactivés d'abord
+                await self.message.edit(view=self)
+                # Attendre 3 secondes
+                await asyncio.sleep(3)
+                # Supprimer
                 await self.message.delete()
-            except discord.errors.NotFound:
-                pass  # Message déjà supprimé
-            except Exception as e:
-                print(f"Erreur suppression message CV accepté: {e}")
+        except:
+            pass  # Ignorer si la suppression échoue
 
     @discord.ui.button(label="❌ Refuser", style=discord.ButtonStyle.red, custom_id="refuse_cv")
     async def refuse(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Vérifier les permissions
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("❌ Permission refusée", ephemeral=True)
             return
         
-        # Désactiver immédiatement les boutons pour éviter les doubles clics
-        self.disable_all_items()
-        
+        # ÉTAPE 1 : Répondre IMMÉDIATEMENT (le plus important)
         try:
-            # Répondre IMMÉDIATEMENT pour éviter timeout
             await interaction.response.send_message(
-                f"✅ {self.target_user.mention} refusé. Traitement en cours...",
+                "✅ CV refusé, notification en cours d'envoi...",
                 ephemeral=True
             )
-        except discord.errors.NotFound:
-            # L'interaction a déjà expiré, essayer de supprimer le message quand même
-            if self.message:
-                try:
-                    await self.message.edit(view=self)
-                    await asyncio.sleep(2)
-                    await self.message.delete()
-                except:
-                    pass
-            return
-        except Exception as e:
-            print(f"Erreur réponse interaction refus: {e}")
+        except:
+            # Si la réponse échoue, on abandonne tout
             return
         
-        # DM au candidat
+        # ÉTAPE 2 : Désactiver les boutons (après la réponse)
+        self.disable_all_items()
+        
+        # ÉTAPE 3 : Envoyer le DM au candidat
         try:
             await self.target_user.send(
-                f"❌ **Candidature Refusée**\n\n"
-                f"Nous regrettons de vous informer que votre candidature n'a pas été retenue.\n\n"
-                f"Nous vous encourageons à postuler à nouveau dans le futur.\n\n"
-                f"Cordialement,\n**La Direction des EMS** 🚑"
+                "❌ **Candidature Refusée**\n\n"
+                "Nous regrettons de vous informer que votre candidature n'a pas été retenue.\n\n"
+                "Nous vous encourageons à postuler à nouveau dans le futur.\n\n"
+                "Cordialement,\n**La Direction des EMS** 🚑"
             )
-        except Exception as e:
-            print(f"Erreur DM refus: {e}")
+        except:
+            pass  # Ignorer si le DM échoue
         
-        # Log
-        log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
-        if log_channel:
-            embed = discord.Embed(
-                title="❌ CV REFUSÉ",
-                description=f"**Candidat :** {self.target_user.mention}\n**Validateur :** {interaction.user.mention}",
-                color=EMS_DARK_RED
-            )
-            embed.set_footer(text="🚑 EMS System")
-            try:
+        # ÉTAPE 4 : Envoyer le log
+        try:
+            log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+            if log_channel:
+                embed = discord.Embed(
+                    title="❌ CV REFUSÉ",
+                    description=f"**Candidat :** {self.target_user.mention}\n**Validateur :** {interaction.user.mention}",
+                    color=EMS_DARK_RED
+                )
+                embed.set_footer(text="🚑 EMS System")
                 await log_channel.send(embed=embed)
-            except Exception as e:
-                print(f"Erreur log refus: {e}")
+        except:
+            pass  # Ignorer si le log échoue
         
-        # Attendre un peu avant de supprimer le message pour éviter conflit
-        if self.message:
-            try:
-                await self.message.edit(view=self)  # Mettre à jour avec boutons désactivés
-                await asyncio.sleep(2)  # Attendre 2 secondes
+        # ÉTAPE 5 : Supprimer le message (dernière action)
+        try:
+            if self.message:
+                # Mettre à jour avec boutons désactivés d'abord
+                await self.message.edit(view=self)
+                # Attendre 3 secondes
+                await asyncio.sleep(3)
+                # Supprimer
                 await self.message.delete()
-            except discord.errors.NotFound:
-                pass  # Message déjà supprimé
-            except Exception as e:
-                print(f"Erreur suppression message CV refusé: {e}")
+        except:
+            pass  # Ignorer si la suppression échoue
     
     def disable_all_items(self):
         for item in self.children:
