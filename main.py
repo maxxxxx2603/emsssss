@@ -1039,17 +1039,35 @@ class ReviewView(discord.ui.View):
             await interaction.response.send_message("❌ Permission refusée", ephemeral=True)
             return
         
-        await interaction.response.defer(ephemeral=True)
+        # Désactiver immédiatement les boutons pour éviter les doubles clics
+        self.disable_all_items()
         
         guild = interaction.guild
         member = guild.get_member(self.target_user.id)
         
         if not member:
-            await interaction.followup.send("❌ Le candidat n'est plus sur le serveur.", ephemeral=True)
+            await interaction.response.send_message("❌ Le candidat n'est plus sur le serveur.", ephemeral=True)
             return
         
-        # Répondre immédiatement pour éviter timeout
-        await interaction.followup.send(f"✅ **{member.display_name}** accepté ! Traitement en cours...", ephemeral=True)
+        try:
+            # Répondre IMMÉDIATEMENT pour éviter timeout
+            await interaction.response.send_message(
+                f"✅ **{member.display_name}** accepté ! Traitement en cours...",
+                ephemeral=True
+            )
+        except discord.errors.NotFound:
+            # L'interaction a déjà expiré
+            if self.message:
+                try:
+                    await self.message.edit(view=self)
+                    await asyncio.sleep(2)
+                    await self.message.delete()
+                except:
+                    pass
+            return
+        except Exception as e:
+            print(f"Erreur réponse interaction acceptation: {e}")
+            return
         
         role = guild.get_role(config.get("ROLE_ATTENTE_ID"))
         
@@ -1123,11 +1141,14 @@ class ReviewView(discord.ui.View):
             except Exception as e:
                 print(f"Erreur logs CV acceptés: {e}")
         
-        # Désactiver et supprimer le message
-        self.disable_all_items()
+        # Attendre un peu avant de supprimer le message pour éviter conflit
         if self.message:
             try:
+                await self.message.edit(view=self)  # Mettre à jour avec boutons désactivés
+                await asyncio.sleep(2)  # Attendre 2 secondes
                 await self.message.delete()
+            except discord.errors.NotFound:
+                pass  # Message déjà supprimé
             except Exception as e:
                 print(f"Erreur suppression message CV accepté: {e}")
 
@@ -1137,10 +1158,28 @@ class ReviewView(discord.ui.View):
             await interaction.response.send_message("❌ Permission refusée", ephemeral=True)
             return
         
-        await interaction.response.defer(ephemeral=True)
+        # Désactiver immédiatement les boutons pour éviter les doubles clics
+        self.disable_all_items()
         
-        # Répondre immédiatement pour éviter timeout
-        await interaction.followup.send(f"✅ {self.target_user.mention} refusé. Traitement en cours...", ephemeral=True)
+        try:
+            # Répondre IMMÉDIATEMENT pour éviter timeout
+            await interaction.response.send_message(
+                f"✅ {self.target_user.mention} refusé. Traitement en cours...",
+                ephemeral=True
+            )
+        except discord.errors.NotFound:
+            # L'interaction a déjà expiré, essayer de supprimer le message quand même
+            if self.message:
+                try:
+                    await self.message.edit(view=self)
+                    await asyncio.sleep(2)
+                    await self.message.delete()
+                except:
+                    pass
+            return
+        except Exception as e:
+            print(f"Erreur réponse interaction refus: {e}")
+            return
         
         # DM au candidat
         try:
@@ -1167,11 +1206,14 @@ class ReviewView(discord.ui.View):
             except Exception as e:
                 print(f"Erreur log refus: {e}")
         
-        # Désactiver et supprimer le message
-        self.disable_all_items()
+        # Attendre un peu avant de supprimer le message pour éviter conflit
         if self.message:
             try:
+                await self.message.edit(view=self)  # Mettre à jour avec boutons désactivés
+                await asyncio.sleep(2)  # Attendre 2 secondes
                 await self.message.delete()
+            except discord.errors.NotFound:
+                pass  # Message déjà supprimé
             except Exception as e:
                 print(f"Erreur suppression message CV refusé: {e}")
     
