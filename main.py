@@ -51,6 +51,10 @@ ROLE_TAXI_REQUEST_ID = 1311784189984505876
 ROLE_BASE_ID = 838102445095256066  # Rôle de base à conserver
 RESET_CHANNEL_ID = 1450938023033176247
 
+# Configuration Giveaway
+GIVEAWAY_PING_ROLE_ID = 838102445095256068  # Rôle à ping pour les giveaways
+GIVEAWAY_FILE = 'giveaways.json'
+
 # --- FONCTIONS UTILITAIRES JSON ---
 def atomic_write_json(path: str, data: dict, make_backup: bool = True):
     tmp_path = f"{path}.tmp"
@@ -149,6 +153,7 @@ class EMSBot(commands.Bot):
         # Démarrer les tâches automatisées
         weekly_taxi_announcement.start()
         auto_backup_stats.start()  # Sauvegarde automatique toutes les 5 minutes
+        check_giveaways.start()  # Vérifier les giveaways actifs
 
 bot = EMSBot()
 
@@ -270,6 +275,13 @@ def reset_taxi_week():
     stats = {"count": 0, "week_start": datetime.now().isoformat()}
     save_taxi_stats(stats)
     return stats
+
+# --- GESTION DES GIVEAWAYS ---
+def load_giveaways():
+    return robust_load_json(GIVEAWAY_FILE, {})
+
+def save_giveaways(giveaways):
+    atomic_write_json(GIVEAWAY_FILE, giveaways)
 
 # --- SYSTEME DE RÉACTIONS ET COMPTAGE TAXI ---
 @bot.event
@@ -1881,6 +1893,194 @@ async def setup_reset(interaction: discord.Interaction):
     view = ResetMemberButton()
     
     try:
+        await interaction.channel.send(embed=embed, view=view)
+        await interaction.followup.send("✅ Bouton de réinitialisation posté !", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur : {e}", ephemeral=True)
+
+# --- SYSTÈME DE GIVEAWAY ---
+@bot.tree.command(name="giveaway", description="Créer un giveaway")
+@app_commands.describe(
+    montant="Montant de la récompense en $",
+    gagnants="Nombre de gagnants",
+    date="Date de fin (format: JJ/MM/AAAA)",
+    heure="Heure de fin (format: HH:MM)"
+)
+@app_commands.checks.has_permissions(administrator=True)
+async def giveaway(
+    interaction: discord.Interaction,
+    montant: int,
+    gagnants: int,
+    date: str,
+    heure: str
+):
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        # Parser la date et l'heure
+        date_parts = date.split('/')
+        heure_parts = heure.split(':')
+        
+        if len(date_parts) != 3 or len(heure_parts) != 2:
+            await interaction.followup.send("❌ Format invalide. Utilisez JJ/MM/AAAA pour la date et HH:MM pour l'heure", ephemeral=True)
+            return
+        
+        day, month, year = int(date_parts[0]), int(date_parts[1]), int(date_parts[2])
+        hour, minute = int(heure_parts[0]), int(heure_parts[1])
+        
+        end_time = datetime(year, month, day, hour, minute)
+        
+        # Vérifier que la date est dans le futur
+        if end_time <= datetime.now():
+            await interaction.followup.send("❌ La date de fin doit être dans le futur", ephemeral=True)
+            return
+        
+        # Créer l'embed du giveaway
+        timestamp = int(end_time.timestamp())
+        
+        embed = discord.Embed(
+            title="🎉 GIVEAWAY 🎉",
+            description=(
+                f"**💰 Récompense : {montant:,}$**\n\n"
+                f"**🏆 Nombre de gagnants : {gagnants}**\n\n"
+                f"**📅 Fin du giveaway : <t:{timestamp}:F>**\n"
+                f"**⏰ Dans : <t:{timestamp}:R>**\n\n"
+                f"**Comment participer ?**\n"
+                f"Réagissez avec 🎉 pour participer !\n\n"
+                f"Bonne chance à tous ! 🍀"
+            ),
+            color=discord.Color.gold()
+        )
+        embed.set_footer(text="🎉 Giveaway System")
+        
+        # Ping le rôle
+        role = interaction.guild.get_role(GIVEAWAY_PING_ROLE_ID)
+        ping_content = role.mention if role else None
+        
+        # Envoyer le message
+        msg = await interaction.channel.send(content=ping_content, embed=embed)
+        
+        # Ajouter la réaction
+        await msg.add_reaction("🎉")
+        
+        # Sauvegarder le giveaway
+        giveaways = load_giveaways()
+        giveaways[str(msg.id)] = {
+            "channel_id": interaction.channel.id,
+            "message_id": msg.id,
+            "montant": montant,
+            "gagnants": gagnants,
+            "end_time": end_time.isoformat(),
+            "host_id": interaction.user.id,
+            "ended": False
+        }
+        save_giveaways(giveaways)
+        
+        await interaction.followup.send("✅ Giveaway créé avec succès !", ephemeral=True)
+        
+    except ValueError as e:
+        await interaction.followup.send(f"❌ Erreur de format : {e}", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur : {e}", ephemeral=True)
+
+# Tâche pour vérifier les giveaways actifs
+@tasks.loop(seconds=30)
+async def check_giveaways():
+    """Vérifie les giveaways actifs et termine ceux qui sont expirés"""
+    try:
+        giveaways = load_giveaways()
+        now = datetime.now()
+        
+        for msg_id, data in list(giveaways.items()):
+            if data.get("ended", False):
+                continue
+            
+            end_time = datetime.fromisoformat(data["end_time"])
+            
+            if now >= end_time:
+                # Le giveaway est terminé
+                channel = bot.get_channel(data["channel_id"])
+                if not channel:
+                    continue
+                
+                try:
+                    message = await channel.fetch_message(data["message_id"])
+                except:
+                    continue
+                
+                # Récupérer les participants (ceux qui ont réagi avec 🎉)
+                participants = []
+                for reaction in message.reactions:
+                    if str(reaction.emoji) == "🎉":
+                        async for user in reaction.users():
+                            if not user.bot:
+                                participants.append(user)
+                        break
+                
+                if len(participants) == 0:
+                    # Aucun participant
+                    embed = discord.Embed(
+                        title="🎉 GIVEAWAY TERMINÉ",
+                        description=(
+                            f"**💰 Récompense : {data['montant']:,}$**\n\n"
+                            f"❌ **Aucun participant !**\n\n"
+                            f"Le giveaway n'a pas pu être complété."
+                        ),
+                        color=EMS_DARK_RED
+                    )
+                    await message.edit(embed=embed)
+                else:
+                    # Sélectionner les gagnants
+                    import random
+                    nb_gagnants = min(data["gagnants"], len(participants))
+                    winners = random.sample(participants, nb_gagnants)
+                    
+                    # Créer l'embed des résultats
+                    winners_mentions = "\n".join([f"🏆 {winner.mention}" for winner in winners])
+                    
+                    embed = discord.Embed(
+                        title="🎉 GIVEAWAY TERMINÉ !",
+                        description=(
+                            f"**💰 Récompense : {data['montant']:,}$**\n\n"
+                            f"**🏆 Gagnant(s) :**\n{winners_mentions}\n\n"
+                            f"**Félicitations ! 🎊**"
+                        ),
+                        color=discord.Color.green()
+                    )
+                    embed.set_footer(text="🎉 Giveaway System")
+                    await message.edit(embed=embed)
+                    
+                    # Annoncer les gagnants dans le channel
+                    winners_pings = " ".join([winner.mention for winner in winners])
+                    await channel.send(f"🎉 **Félicitations aux gagnants du giveaway !** 🎉\n\n{winners_pings}\n\n💰 Vous avez gagné **{data['montant']:,}$** !")
+                    
+                    # Envoyer un MP à l'hôte
+                    host = bot.get_user(data["host_id"])
+                    if host:
+                        winners_list = "\n".join([f"• {winner.name} ({winner.id})" for winner in winners])
+                        try:
+                            await host.send(
+                                f"🎉 **Giveaway terminé !**\n\n"
+                                f"**Montant :** {data['montant']:,}$\n"
+                                f"**Channel :** {channel.mention}\n\n"
+                                f"**Gagnants ({nb_gagnants}) :**\n{winners_list}\n\n"
+                                f"Les gagnants ont été annoncés dans le channel !"
+                            )
+                        except:
+                            pass
+                
+                # Marquer comme terminé
+                giveaways[msg_id]["ended"] = True
+                save_giveaways(giveaways)
+        
+    except Exception as e:
+        print(f"Erreur check_giveaways: {e}")
+
+@check_giveaways.before_loop
+async def before_check_giveaways():
+    await bot.wait_until_ready()
+
+# --- SYSTÈME DE DEMANDE DE RÔLE ---
         await interaction.channel.send(embed=embed, view=view)
         await interaction.followup.send("✅ Bouton de réinitialisation posté !", ephemeral=True)
     except Exception as e:
