@@ -1093,17 +1093,10 @@ class ReviewView(discord.ui.View):
             embed.add_field(name="👤 Rôle attribué", value="Attente d'onboarding", inline=False)
             embed.set_footer(text="🚑 EMS System")
             
-            log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
-            if log_channel:
-                await log_channel.send(embed=embed)
-            
-            cv_channel = bot.get_channel(config.get("CV_CHANNEL_ID"))
-            if cv_channel:
-                await cv_channel.send(embed=embed)
-            
-            cv_accepted_log = bot.get_channel(config.get("CV_ACCEPTED_LOG_CHANNEL_ID"))
-            if cv_accepted_log:
-                await cv_accepted_log.send(embed=embed)
+            # Envoyer dans le channel de logs CV (1458956197796515979)
+            cv_log_channel = bot.get_channel(1458956197796515979)
+            if cv_log_channel:
+                await cv_log_channel.send(embed=embed)
         except:
             pass
         
@@ -1149,15 +1142,16 @@ class ReviewView(discord.ui.View):
         
         # Envoyer le log
         try:
-            log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
-            if log_channel:
+            # Envoyer dans le channel de logs CV (1458956197796515979)
+            cv_log_channel = bot.get_channel(1458956197796515979)
+            if cv_log_channel:
                 embed = discord.Embed(
                     title="❌ CV REFUSÉ",
                     description=f"**Candidat :** {self.target_user.mention}\n**Validateur :** {interaction.user.mention}",
                     color=EMS_DARK_RED
                 )
                 embed.set_footer(text="🚑 EMS System")
-                await log_channel.send(embed=embed)
+                await cv_log_channel.send(embed=embed)
         except:
             pass
         
@@ -1480,13 +1474,10 @@ class FormulaireCVValidation(discord.ui.View):
             )
             embed.set_footer(text="🚑 EMS System")
             
-            log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
-            if log_channel:
-                await log_channel.send(embed=embed)
-            
-            cv_accepted_log = bot.get_channel(config.get("CV_ACCEPTED_LOG_CHANNEL_ID"))
-            if cv_accepted_log:
-                await cv_accepted_log.send(embed=embed)
+            # Envoyer dans le channel de logs CV (1458956197796515979)
+            cv_log_channel = bot.get_channel(1458956197796515979)
+            if cv_log_channel:
+                await cv_log_channel.send(embed=embed)
         except:
             pass
         
@@ -1531,15 +1522,16 @@ class FormulaireCVValidation(discord.ui.View):
         
         # Log
         try:
-            log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
-            if log_channel:
+            # Envoyer dans le channel de logs CV (1458956197796515979)
+            cv_log_channel = bot.get_channel(1458956197796515979)
+            if cv_log_channel:
                 embed = discord.Embed(
                     title="❌ CANDIDATURE REFUSÉE",
                     description=f"**Candidat :** {self.target_user.mention}\n**Validateur :** {interaction.user.mention}",
                     color=EMS_DARK_RED
                 )
                 embed.set_footer(text="🚑 EMS System")
-                await log_channel.send(embed=embed)
+                await cv_log_channel.send(embed=embed)
         except:
             pass
         
@@ -1733,6 +1725,9 @@ class FormulaireCVButton(discord.ui.View):
 @bot.tree.command(name="formulairecv", description="Affiche le nouveau formulaire de candidature")
 @app_commands.checks.has_permissions(administrator=True)
 async def formulairecv(interaction: discord.Interaction):
+    # Defer immédiatement pour éviter le timeout
+    await interaction.response.defer(ephemeral=True)
+    
     embed = discord.Embed(
         title="🚑 RECRUTEMENT EMS",
         description=(
@@ -1754,9 +1749,9 @@ async def formulairecv(interaction: discord.Interaction):
     
     try:
         await interaction.channel.send(embed=embed, view=view)
-        await interaction.response.send_message("✅ Formulaire posté !", ephemeral=True)
-    except:
-        await interaction.response.send_message("❌ Erreur", ephemeral=True)
+        await interaction.followup.send("✅ Formulaire posté !", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur: {e}", ephemeral=True)
 
 # --- SYSTÈME DE DEMANDE DE RÔLE ---
 class RoleRequestButton(discord.ui.View):
