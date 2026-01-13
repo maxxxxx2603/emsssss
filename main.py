@@ -2081,12 +2081,6 @@ async def before_check_giveaways():
     await bot.wait_until_ready()
 
 # --- SYSTÈME DE DEMANDE DE RÔLE ---
-        await interaction.channel.send(embed=embed, view=view)
-        await interaction.followup.send("✅ Bouton de réinitialisation posté !", ephemeral=True)
-    except Exception as e:
-        await interaction.followup.send(f"❌ Erreur : {e}", ephemeral=True)
-
-# --- SYSTÈME DE DEMANDE DE RÔLE ---
 class RoleRequestButton(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
