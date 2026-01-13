@@ -138,6 +138,7 @@ class EMSBot(commands.Bot):
     async def setup_hook(self):
         await self.tree.sync()
         self.add_view(CVButton())
+        self.add_view(FormulaireCVButton())
         self.add_view(RoleRequestButton())
         self.add_view(AppointmentButton())
         # Démarrer les tâches automatisées
@@ -1035,40 +1036,38 @@ class ReviewView(discord.ui.View):
 
     @discord.ui.button(label="✅ Accepter", style=discord.ButtonStyle.green, custom_id="accept_cv")
     async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # DEFER IMMÉDIATEMENT - AVANT TOUT (garantit pas d'erreur d'interaction)
+        await interaction.response.defer(ephemeral=True)
+        
         # Vérifier les permissions
         if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("❌ Permission refusée", ephemeral=True)
+            await interaction.followup.send("❌ Permission refusée", ephemeral=True)
             return
         
         guild = interaction.guild
         member = guild.get_member(self.target_user.id)
         
         if not member:
-            await interaction.response.send_message("❌ Le candidat n'est plus sur le serveur.", ephemeral=True)
+            await interaction.followup.send("❌ Le candidat n'est plus sur le serveur.", ephemeral=True)
             return
         
-        # ÉTAPE 1 : Répondre IMMÉDIATEMENT (le plus important)
-        try:
-            await interaction.response.send_message(
-                f"✅ **{member.display_name}** accepté ! Traitement en cours...",
-                ephemeral=True
-            )
-        except:
-            # Si la réponse échoue, on abandonne tout
-            return
-        
-        # ÉTAPE 2 : Désactiver les boutons (après la réponse)
+        # Désactiver les boutons
         self.disable_all_items()
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except:
+                pass
         
-        # ÉTAPE 3 : Ajouter le rôle
+        # Ajouter le rôle
         try:
             role = guild.get_role(config.get("ROLE_ATTENTE_ID"))
             if role:
                 await member.add_roles(role)
         except:
-            pass  # Ignorer si l'ajout du rôle échoue
+            pass
         
-        # ÉTAPE 4 : Envoyer le DM
+        # Envoyer le DM
         try:
             await member.send(
                 "🎉 **FÉLICITATIONS !**\n\n"
@@ -1081,9 +1080,9 @@ class ReviewView(discord.ui.View):
                 "Cordialement,\n**La Direction des EMS** 🚑"
             )
         except:
-            pass  # Ignorer si le DM échoue
+            pass
         
-        # ÉTAPE 5 : Envoyer les logs
+        # Envoyer les logs
         try:
             embed = discord.Embed(
                 title="✅ CV ACCEPTÉ",
@@ -1094,56 +1093,50 @@ class ReviewView(discord.ui.View):
             embed.add_field(name="👤 Rôle attribué", value="Attente d'onboarding", inline=False)
             embed.set_footer(text="🚑 EMS System")
             
-            # Log principal
             log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
             if log_channel:
                 await log_channel.send(embed=embed)
             
-            # Channel CV
             cv_channel = bot.get_channel(config.get("CV_CHANNEL_ID"))
             if cv_channel:
                 await cv_channel.send(embed=embed)
             
-            # Logs CV acceptés
             cv_accepted_log = bot.get_channel(config.get("CV_ACCEPTED_LOG_CHANNEL_ID"))
             if cv_accepted_log:
                 await cv_accepted_log.send(embed=embed)
         except:
-            pass  # Ignorer si les logs échouent
+            pass
         
-        # ÉTAPE 6 : Supprimer le message (dernière action)
+        # Confirmation à l'admin
+        await interaction.followup.send(f"✅ **{member.display_name}** accepté avec succès", ephemeral=True)
+        
+        # Supprimer le message après 3 secondes
         try:
             if self.message:
-                # Mettre à jour avec boutons désactivés d'abord
-                await self.message.edit(view=self)
-                # Attendre 3 secondes
                 await asyncio.sleep(3)
-                # Supprimer
                 await self.message.delete()
         except:
-            pass  # Ignorer si la suppression échoue
+            pass
 
     @discord.ui.button(label="❌ Refuser", style=discord.ButtonStyle.red, custom_id="refuse_cv")
     async def refuse(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # DEFER IMMÉDIATEMENT - AVANT TOUT (garantit pas d'erreur d'interaction)
+        await interaction.response.defer(ephemeral=True)
+        
         # Vérifier les permissions
         if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("❌ Permission refusée", ephemeral=True)
+            await interaction.followup.send("❌ Permission refusée", ephemeral=True)
             return
         
-        # ÉTAPE 1 : Répondre IMMÉDIATEMENT (le plus important)
-        try:
-            await interaction.response.send_message(
-                "✅ CV refusé, notification en cours d'envoi...",
-                ephemeral=True
-            )
-        except:
-            # Si la réponse échoue, on abandonne tout
-            return
-        
-        # ÉTAPE 2 : Désactiver les boutons (après la réponse)
+        # Désactiver les boutons
         self.disable_all_items()
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except:
+                pass
         
-        # ÉTAPE 3 : Envoyer le DM au candidat
+        # Envoyer le DM au candidat
         try:
             await self.target_user.send(
                 "❌ **Candidature Refusée**\n\n"
@@ -1152,9 +1145,9 @@ class ReviewView(discord.ui.View):
                 "Cordialement,\n**La Direction des EMS** 🚑"
             )
         except:
-            pass  # Ignorer si le DM échoue
+            pass
         
-        # ÉTAPE 4 : Envoyer le log
+        # Envoyer le log
         try:
             log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
             if log_channel:
@@ -1166,19 +1159,18 @@ class ReviewView(discord.ui.View):
                 embed.set_footer(text="🚑 EMS System")
                 await log_channel.send(embed=embed)
         except:
-            pass  # Ignorer si le log échoue
+            pass
         
-        # ÉTAPE 5 : Supprimer le message (dernière action)
+        # Confirmation à l'admin
+        await interaction.followup.send("✅ CV refusé avec succès", ephemeral=True)
+        
+        # Supprimer le message après 3 secondes
         try:
             if self.message:
-                # Mettre à jour avec boutons désactivés d'abord
-                await self.message.edit(view=self)
-                # Attendre 3 secondes
                 await asyncio.sleep(3)
-                # Supprimer
                 await self.message.delete()
         except:
-            pass  # Ignorer si la suppression échoue
+            pass
     
     def disable_all_items(self):
         for item in self.children:
@@ -1423,6 +1415,348 @@ async def setup_cv(interaction: discord.Interaction):
             f"❌ Erreur inattendue : {str(e)}",
             ephemeral=True
         )
+
+# --- NOUVEAU SYSTÈME CV (FORMULAIRECV) ---
+class FormulaireCVValidation(discord.ui.View):
+    def __init__(self, target_user: discord.User):
+        super().__init__(timeout=None)
+        self.target_user = target_user
+        self.message = None
+
+    @discord.ui.button(label="✅ Accepter", style=discord.ButtonStyle.green, custom_id="accept_formulaire_cv")
+    async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.followup.send("❌ Permission refusée", ephemeral=True)
+            return
+        
+        guild = interaction.guild
+        member = guild.get_member(self.target_user.id)
+        
+        if not member:
+            await interaction.followup.send("❌ Le candidat n'est plus sur le serveur.", ephemeral=True)
+            return
+        
+        # Désactiver les boutons
+        for item in self.children:
+            item.disabled = True
+        
+        try:
+            if self.message:
+                await self.message.edit(view=self)
+        except:
+            pass
+        
+        # Ajouter le rôle 896103247096471613
+        try:
+            role = guild.get_role(896103247096471613)
+            if role:
+                await member.add_roles(role)
+        except:
+            pass
+        
+        # Envoyer le DM
+        try:
+            await member.send(
+                "🎉 **FÉLICITATIONS !**\n\n"
+                "✅ Votre candidature a été **ACCEPTÉE** !\n\n"
+                "Bienvenue dans la famille des **EMS** ! 🚑\n\n"
+                "📝 **Prochaine étape :**\n"
+                "Merci de mettre vos disponibilités ici :\n"
+                "https://discord.com/channels/838102445083197470/1451553241065193555\n\n"
+                "et nous nous chargeons du reste !\n\n"
+                "Cordialement,\n**La Direction des EMS** 🚑"
+            )
+        except:
+            pass
+        
+        # Logs
+        try:
+            embed = discord.Embed(
+                title="✅ CANDIDATURE ACCEPTÉE",
+                description=f"**Candidat :** {member.mention}\n**Validateur :** {interaction.user.mention}",
+                color=EMS_RED
+            )
+            embed.set_footer(text="🚑 EMS System")
+            
+            log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+            if log_channel:
+                await log_channel.send(embed=embed)
+            
+            cv_accepted_log = bot.get_channel(config.get("CV_ACCEPTED_LOG_CHANNEL_ID"))
+            if cv_accepted_log:
+                await cv_accepted_log.send(embed=embed)
+        except:
+            pass
+        
+        await interaction.followup.send(f"✅ **{member.display_name}** accepté !", ephemeral=True)
+        
+        # Supprimer le message
+        try:
+            await asyncio.sleep(3)
+            if self.message:
+                await self.message.delete()
+        except:
+            pass
+
+    @discord.ui.button(label="❌ Refuser", style=discord.ButtonStyle.red, custom_id="refuse_formulaire_cv")
+    async def refuse(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True)
+        
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.followup.send("❌ Permission refusée", ephemeral=True)
+            return
+        
+        # Désactiver les boutons
+        for item in self.children:
+            item.disabled = True
+        
+        try:
+            if self.message:
+                await self.message.edit(view=self)
+        except:
+            pass
+        
+        # DM candidat
+        try:
+            await self.target_user.send(
+                "❌ **Candidature Refusée**\n\n"
+                "Nous regrettons de vous informer que votre candidature n'a pas été retenue.\n\n"
+                "Nous vous encourageons à postuler à nouveau dans le futur.\n\n"
+                "Cordialement,\n**La Direction des EMS** 🚑"
+            )
+        except:
+            pass
+        
+        # Log
+        try:
+            log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+            if log_channel:
+                embed = discord.Embed(
+                    title="❌ CANDIDATURE REFUSÉE",
+                    description=f"**Candidat :** {self.target_user.mention}\n**Validateur :** {interaction.user.mention}",
+                    color=EMS_DARK_RED
+                )
+                embed.set_footer(text="🚑 EMS System")
+                await log_channel.send(embed=embed)
+        except:
+            pass
+        
+        await interaction.followup.send("✅ CV refusé", ephemeral=True)
+        
+        # Supprimer le message
+        try:
+            await asyncio.sleep(3)
+            if self.message:
+                await self.message.delete()
+        except:
+            pass
+
+class FormulaireCVButton(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="📝 Déposer ma candidature", style=discord.ButtonStyle.primary, custom_id="start_formulaire_cv")
+    async def start_formulaire(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("📋 Création de votre dossier...", ephemeral=True)
+        
+        guild = interaction.guild
+        user_id = interaction.user.id
+        
+        # Vérifier si existe
+        for ch in guild.text_channels:
+            if ch.name == f"candidature-{user_id}":
+                await interaction.followup.send(f"❌ Vous avez déjà un dossier : {ch.mention}", ephemeral=True)
+                return
+        
+        # Créer channel
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+        }
+        
+        try:
+            channel = await guild.create_text_channel(
+                f"candidature-{user_id}",
+                overwrites=overwrites,
+                category=interaction.channel.category
+            )
+        except:
+            await interaction.followup.send("❌ Erreur lors de la création du channel", ephemeral=True)
+            return
+        
+        await interaction.followup.send(f"✅ Votre dossier : {channel.mention}", ephemeral=True)
+        
+        # Message de bienvenue
+        welcome = discord.Embed(
+            title="🚑 FORMULAIRE DE CANDIDATURE EMS",
+            description=(
+                f"Bienvenue **{interaction.user.mention}** ! 👋\n\n"
+                f"**📋 Informations :**\n"
+                f"• {len(QUESTIONS)} questions\n"
+                f"• 10 minutes par question\n"
+                f"• Documents requis à la fin\n\n"
+                f"**Bonne chance ! 💪**"
+            ),
+            color=EMS_RED
+        )
+        welcome.set_footer(text="🚑 EMS System")
+        await channel.send(embed=welcome)
+        await asyncio.sleep(2)
+        
+        # Questions
+        answers = []
+        user_fullname = None
+        
+        for i, question in enumerate(QUESTIONS, 1):
+            q_embed = discord.Embed(
+                title=f"❓ QUESTION {i}/{len(QUESTIONS)}",
+                description=question,
+                color=EMS_RED
+            )
+            q_embed.add_field(name="⏱️ Temps", value="10 minutes", inline=False)
+            q_embed.set_footer(text="🚑 EMS System")
+            await channel.send(embed=q_embed)
+            
+            def check(m):
+                return m.author == interaction.user and m.channel == channel
+            
+            try:
+                msg = await bot.wait_for('message', check=check, timeout=600)
+                
+                if i == 1:
+                    user_fullname = msg.content
+                
+                answers.append(f"**{question}**\n{msg.content}")
+            except asyncio.TimeoutError:
+                timeout_embed = discord.Embed(
+                    title="⏱️ TEMPS ÉCOULÉ",
+                    description="Dossier fermé (pas de réponse à temps)",
+                    color=EMS_DARK_RED
+                )
+                await channel.send(embed=timeout_embed)
+                await asyncio.sleep(3)
+                try:
+                    await channel.delete()
+                except:
+                    pass
+                return
+        
+        # Documents
+        docs_embed = discord.Embed(
+            title="📎 DOCUMENTS REQUIS",
+            description=(
+                "Merci pour vos réponses ! 🎉\n\n"
+                "**Il manque :**\n"
+                "🆔 Carte d'identité\n"
+                "🚗 Permis de conduire\n\n"
+                "Envoyez-les maintenant !"
+            ),
+            color=EMS_RED
+        )
+        docs_embed.set_footer(text="🚑 EMS System")
+        await channel.send(embed=docs_embed)
+        
+        attachments = []
+        
+        def check_doc(m):
+            return m.author == interaction.user and m.channel == channel
+        
+        try:
+            msg = await bot.wait_for('message', check=check_doc, timeout=None)
+            
+            if msg.attachments:
+                for att in msg.attachments:
+                    attachments.append(att.url)
+            
+            confirm_embed = discord.Embed(
+                title="✅ CANDIDATURE COMPLÈTE",
+                description=(
+                    "🎉 Candidature reçue !\n\n"
+                    f"**Documents :** {len(attachments)}\n\n"
+                    "La direction va examiner votre dossier.\n"
+                    "Vous recevrez une réponse en DM.\n\n"
+                    "Merci ! 🚑"
+                ),
+                color=EMS_RED
+            )
+            confirm_embed.set_footer(text="🚑 EMS System")
+            await channel.send(embed=confirm_embed)
+            
+            # DM candidat
+            try:
+                await interaction.user.send(
+                    "🚑 **Candidature envoyée** 🚑\n\n"
+                    "Nous avons bien reçu votre candidature.\n\n"
+                    "Réponse prochainement.\n\n"
+                    "Merci ! 👨‍⚕️"
+                )
+            except:
+                pass
+        except:
+            pass
+        
+        # Envoyer au channel CV
+        cv_channel = bot.get_channel(1458464247548743691)
+        if cv_channel:
+            full_text = "\n\n".join(answers)
+            cv_embed = discord.Embed(
+                title=f"📋 CANDIDATURE - {user_fullname if user_fullname else interaction.user.name}",
+                description=full_text[:2000],
+                color=EMS_RED
+            )
+            
+            if attachments:
+                cv_embed.add_field(name="📎 Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
+            
+            cv_embed.set_thumbnail(url=interaction.user.avatar.url if interaction.user.avatar else None)
+            cv_embed.set_footer(text=f"🚑 EMS System | ID: {user_id}")
+            
+            view = FormulaireCVValidation(interaction.user)
+            
+            # Ping direction
+            direction_role = guild.get_role(config.get("ROLE_DIRECTION_ID"))
+            ping_content = direction_role.mention if direction_role else None
+            
+            msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
+            view.message = msg
+        
+        # Nettoyer après 2 minutes
+        await asyncio.sleep(120)
+        try:
+            await channel.delete()
+        except:
+            pass
+
+@bot.tree.command(name="formulairecv", description="Affiche le nouveau formulaire de candidature")
+@app_commands.checks.has_permissions(administrator=True)
+async def formulairecv(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🚑 RECRUTEMENT EMS",
+        description=(
+            "**Rejoignez notre équipe !**\n\n"
+            "Cliquez sur le bouton pour déposer votre candidature.\n\n"
+            "**📋 Processus :**\n"
+            "1️⃣ Cliquez sur le bouton\n"
+            "2️⃣ Répondez aux 13 questions\n"
+            "3️⃣ Envoyez vos documents\n"
+            "4️⃣ Attendez la validation\n\n"
+            "**Bonne chance ! 🚑💪**"
+        ),
+        color=EMS_RED
+    )
+    embed.set_thumbnail(url="https://media.discordapp.net/attachments/1458228261166518293/1458240230001086524/ambulance-emoji.png")
+    embed.set_footer(text="🚑 EMS System")
+    
+    view = FormulaireCVButton()
+    
+    try:
+        await interaction.channel.send(embed=embed, view=view)
+        await interaction.response.send_message("✅ Formulaire posté !", ephemeral=True)
+    except:
+        await interaction.response.send_message("❌ Erreur", ephemeral=True)
 
 # --- SYSTÈME DE DEMANDE DE RÔLE ---
 class RoleRequestButton(discord.ui.View):
