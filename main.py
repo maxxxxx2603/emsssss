@@ -624,6 +624,141 @@ async def stats_info(interaction: discord.Interaction):
         )
         await interaction.followup.send(embed=error_embed)
 
+@bot.tree.command(name="sync_rea", description="Synchronise les réanimations non traitées pendant l'offline")
+@app_commands.checks.has_permissions(administrator=True)
+async def sync_rea(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    stats = load_stats()
+    
+    synced_count = 0
+    channels_synced = []
+    
+    # Parcourir tous les channels de réanimation
+    for channel in guild.text_channels:
+        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+            channel_synced = 0
+            
+            # Récupérer l'employé associé au channel
+            employee_key = get_channel_employee_key(channel)
+            if not employee_key:
+                continue
+            
+            # Chercher le dernier message de /semaine (NOUVELLE SEMAINE) pour ne traiter que les messages après
+            last_semaine_date = None
+            try:
+                async for msg in channel.history(limit=200):
+                    if msg.author.id == bot.user.id and msg.embeds:
+                        for embed in msg.embeds:
+                            if embed.title and "NOUVELLE SEMAINE" in embed.title:
+                                last_semaine_date = msg.created_at
+                                break
+                        if last_semaine_date:
+                            break
+            except:
+                pass
+            
+            # Récupérer les messages (limité aux 100 derniers pour éviter les timeouts)
+            try:
+                async for message in channel.history(limit=100):
+                    # Si on a trouvé un message de /semaine, ignorer les messages avant cette date
+                    if last_semaine_date and message.created_at < last_semaine_date:
+                        continue
+                    
+                    # Vérifier si le message a des pièces jointes
+                    if not message.attachments or message.author.bot:
+                        continue
+                    
+                    # Vérifier si le bot a déjà réagi avec ✅
+                    bot_reacted = False
+                    for reaction in message.reactions:
+                        if str(reaction.emoji) == "✅":
+                            # Vérifier si c'est le bot qui a réagi
+                            async for user in reaction.users():
+                                if user.id == bot.user.id:
+                                    bot_reacted = True
+                                    break
+                            if bot_reacted:
+                                break
+                    
+                    # Si le bot n'a pas encore réagi, traiter le message
+                    if not bot_reacted:
+                        # Incrémenter le compteur
+                        if employee_key not in stats:
+                            stats[employee_key] = 0
+                        
+                        stats[employee_key] += 1
+                        channel_synced += 1
+                        synced_count += 1
+                        
+                        # Ajouter la réaction
+                        try:
+                            await message.add_reaction("✅")
+                        except:
+                            pass
+                        
+                        # Envoyer log
+                        log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+                        if log_channel:
+                            current_count = stats[employee_key]
+                            emoji = get_color_emoji(current_count)
+                            message_text = f"🔄 **{employee_key}** | {current_count} réas (sync)"
+                            
+                            try:
+                                await log_channel.send(message_text)
+                            except:
+                                pass
+            
+            except Exception as e:
+                print(f"Erreur sync channel {channel.name}: {e}")
+                continue
+            
+            # Mettre à jour la couleur du channel si des messages ont été synchronisés
+            if channel_synced > 0:
+                channels_synced.append(f"{channel.mention} (+{channel_synced})")
+                current_count = stats.get(employee_key, 0)
+                new_emoji = get_color_emoji(current_count)
+                current_emoji = channel.name[0]
+                
+                if current_emoji != new_emoji:
+                    new_channel_name = f"{new_emoji}{channel.name[1:]}"
+                    try:
+                        await channel.edit(name=new_channel_name)
+                    except:
+                        pass
+    
+    # Sauvegarder les stats
+    save_stats(stats)
+    
+    # Message de confirmation
+    if synced_count > 0:
+        embed = discord.Embed(
+            title="🔄 SYNCHRONISATION COMPLÉTÉE",
+            description=f"**{synced_count} réanimation(s) récupérée(s) et ajoutée(s) aux quotas**",
+            color=EMS_RED
+        )
+        
+        if channels_synced:
+            channels_text = "\n".join(channels_synced[:25])  # Limiter à 25 pour éviter les embeds trop longs
+            embed.add_field(name="📊 Channels synchronisés", value=channels_text, inline=False)
+        
+        embed.add_field(
+            name="✅ Actions effectuées",
+            value="• Messages cochés avec ✅\n• Compteurs mis à jour\n• Couleurs des channels actualisées\n• Logs envoyés\n• ⏱️ Uniquement les réas après /semaine",
+            inline=False
+        )
+        embed.set_footer(text="🚑 EMS System | Synchronisation automatique")
+    else:
+        embed = discord.Embed(
+            title="✅ SYNCHRONISATION COMPLÉTÉE",
+            description="Aucune réanimation à rattraper. Tous les messages ont déjà été traités !",
+            color=EMS_RED
+        )
+        embed.set_footer(text="🚑 EMS System")
+    
+    await interaction.followup.send(embed=embed)
+
 @bot.tree.command(name="semaine", description="Réinitialise la semaine - Remet tout à 0 et met en rouge")
 @app_commands.checks.has_permissions(administrator=True)
 async def semaine(interaction: discord.Interaction):
