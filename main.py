@@ -1312,47 +1312,67 @@ class CVButton(discord.ui.View):
         def check_doc(m):
             return m.author == interaction.user and m.channel == channel
         
-        try:
-            msg = await bot.wait_for('message', check=check_doc, timeout=None)
-            
-            if msg.attachments:
-                for att in msg.attachments:
-                    # Télécharger l'image
-                    try:
-                        async with aiohttp.ClientSession() as session:
-                            async with session.get(att.url) as resp:
-                                if resp.status == 200:
-                                    data = await resp.read()
-                                    downloaded_files.append(discord.File(io.BytesIO(data), filename=att.filename))
-                                    attachments.append(att.url)
-                    except:
-                        attachments.append(att.url)
-            
-            confirm = discord.Embed(
-                title="✅ CANDIDATURE COMPLÈTE",
-                description=(
-                    "🎉 Excellent ! Nous avons reçu votre candidature complète !\n\n"
-                    f"**Documents reçus :** {len(attachments)}\n\n"
-                    "👀 **Prochaines étapes :**\n"
-                    "• La direction examinera votre candidature\n"
-                    "• Vous recevrez une réponse dans vos messages privés\n"
-                    "• N'hésitez pas à nous contacter en cas de questions\n\n"
-                    "**Merci pour votre intérêt envers les EMS !** 🚑"
-                ),
-                color=EMS_RED
-            )
-            confirm.set_footer(text="🚑 EMS System | Bon courage !")
-            await channel.send(embed=confirm)
-            
+        # Boucle jusqu'à ce qu'au moins un document soit envoyé
+        documents_received = False
+        while not documents_received:
             try:
-                await interaction.user.send(
-                    "🚑 **Candidature envoyée** 🚑\n\n"
-                    "Nous avons bien reçu votre candidature.\n\n"
-                    "Nous vous recontacterons bientôt.\n\n"
-                    "Merci pour votre intérêt ! 👨‍⚕️"
-                )
+                msg = await bot.wait_for('message', check=check_doc, timeout=None)
+                
+                if msg.attachments:
+                    # Documents trouvés, on peut continuer
+                    for att in msg.attachments:
+                        # Télécharger l'image
+                        try:
+                            async with aiohttp.ClientSession() as session:
+                                async with session.get(att.url) as resp:
+                                    if resp.status == 200:
+                                        data = await resp.read()
+                                        downloaded_files.append(discord.File(io.BytesIO(data), filename=att.filename))
+                                        attachments.append(att.url)
+                        except:
+                            attachments.append(att.url)
+                    documents_received = True
+                else:
+                    # Pas de document, redemander
+                    error_embed = discord.Embed(
+                        title="❌ DOCUMENTS REQUIS",
+                        description=(
+                            "⚠️ **Aucun document détecté !**\n\n"
+                            "Vous devez **obligatoirement** envoyer vos documents :\n"
+                            "🆔 Carte d'identité (IMAGE)\n"
+                            "🚗 Permis de conduire (IMAGE)\n\n"
+                            "**Veuillez réessayer en envoyant vos images.**"
+                        ),
+                        color=EMS_DARK_RED
+                    )
+                    error_embed.set_footer(text="🚑 EMS System | Documents obligatoires")
+                    await channel.send(embed=error_embed)
             except:
                 pass
+        
+        confirm = discord.Embed(
+            title="✅ CANDIDATURE COMPLÈTE",
+            description=(
+                "🎉 Excellent ! Nous avons reçu votre candidature complète !\n\n"
+                f"**Documents reçus :** {len(attachments)}\n\n"
+                "👀 **Prochaines étapes :**\n"
+                "• La direction examinera votre candidature\n"
+                "• Vous recevrez une réponse dans vos messages privés\n"
+                "• N'hésitez pas à nous contacter en cas de questions\n\n"
+                "**Merci pour votre intérêt envers les EMS !** 🚑"
+            ),
+            color=EMS_RED
+        )
+        confirm.set_footer(text="🚑 EMS System | Bon courage !")
+        await channel.send(embed=confirm)
+        
+        try:
+            await interaction.user.send(
+                "🚑 **Candidature envoyée** 🚑\n\n"
+                "Nous avons bien reçu votre candidature.\n\n"
+                "Nous vous recontacterons bientôt.\n\n"
+                "Merci pour votre intérêt ! 👨‍⚕️"
+            )
         except:
             pass
         
