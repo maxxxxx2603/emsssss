@@ -122,6 +122,7 @@ def save_categories(cats):
 categories = load_categories()
 # Correction manuelle de la catégorie EMT
 CATEGORY_EMT_ID = 1460041009453858826
+# --- AJOUT DE LA COMMANDE DOWN À LA FIN DU FICHIER ---
 @bot.tree.command(name="down", description="Rétrograder un employé au grade inférieur")
 @app_commands.describe(membre="Le membre à rétrograder")
 async def down(interaction: discord.Interaction, membre: discord.Member):
