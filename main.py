@@ -1789,6 +1789,36 @@ class FormulaireCVButton(discord.ui.View):
             except:
                 pass
 
+@bot.tree.command(name="setup_cv", description="Affiche le bouton de dépôt de CV")
+@app_commands.checks.has_permissions(administrator=True)
+async def setup_cv(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    
+    embed = discord.Embed(
+        title="🚑 RECRUTEMENT EMS",
+        description=(
+            "**Rejoignez notre équipe !**\n\n"
+            "Cliquez sur le bouton ci-dessous pour déposer votre candidature.\n\n"
+            "**📋 Processus de recrutement :**\n"
+            "1️⃣ Cliquez sur le bouton\n"
+            "2️⃣ Répondez aux 13 questions\n"
+            "3️⃣ Envoyez vos documents (ID, permis)\n"
+            "4️⃣ Attendez la validation de la direction\n\n"
+            "**Bonne chance ! 🚑💪**"
+        ),
+        color=EMS_RED
+    )
+    embed.set_thumbnail(url="https://media.discordapp.net/attachments/1458228261166518293/1458240230001086524/ambulance-emoji.png")
+    embed.set_footer(text="🚑 EMS Management System")
+    
+    view = CVButton()
+    
+    try:
+        await interaction.channel.send(embed=embed, view=view)
+        await interaction.followup.send("✅ Bouton de CV posté !", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur: {e}", ephemeral=True)
+
 @bot.tree.command(name="formulairecv", description="Affiche le nouveau formulaire de candidature")
 @app_commands.checks.has_permissions(administrator=True)
 async def formulairecv(interaction: discord.Interaction):
