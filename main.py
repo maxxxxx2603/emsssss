@@ -146,7 +146,7 @@ class EMSBot(commands.Bot):
     async def setup_hook(self):
         await self.tree.sync()
         self.add_view(CVButton())
-        self.add_view(FormulaireCVButton())
+        # self.add_view(FormulaireCVButton())  # Désactivé - on utilise l'ancien système
         self.add_view(RoleRequestButton())
         self.add_view(AppointmentButton())
         self.add_view(ResetMemberButton())
@@ -1745,7 +1745,7 @@ class FormulaireCVButton(discord.ui.View):
                 pass
             
             # Envoyer au channel CV (pendant que le timer démarre)
-            cv_channel = bot.get_channel(1458464247548743691)
+            cv_channel = bot.get_channel(1460755743228825641)
             if cv_channel:
                 full_text = "\n\n".join(answers)
                 cv_embed = discord.Embed(
@@ -1769,8 +1769,11 @@ class FormulaireCVButton(discord.ui.View):
                 try:
                     msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
                     view.message = msg
-                except:
-                    pass
+                    print(f"✅ FormulaireCVButton: CV envoyé dans {cv_channel.name} pour {interaction.user.name}")
+                except Exception as e:
+                    print(f"❌ FormulaireCVButton: Erreur envoi CV: {e}")
+            else:
+                print(f"❌ FormulaireCVButton: Channel CV non trouvé (ID: 1460755743228825641)")
             
             # Fermer le channel après 2 minutes
             await asyncio.sleep(120)
