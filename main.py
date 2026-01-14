@@ -1284,8 +1284,11 @@ class CVButton(discord.ui.View):
                         member = guild.get_member(user_id)
                         if member:
                             await member.edit(nick=user_fullname)
-                    except:
-                        pass
+                            print(f"✅ Membre renommé: {interaction.user.name} -> {user_fullname}")
+                        else:
+                            print(f"❌ Membre non trouvé pour renommer: {user_id}")
+                    except Exception as e:
+                        print(f"❌ Erreur renommage membre: {e}")
                 
                 answers.append(f"**{question}**\n{msg.content}")
             except asyncio.TimeoutError:
