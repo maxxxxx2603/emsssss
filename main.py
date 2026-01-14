@@ -1,20 +1,3 @@
-    # Nouveau grade
-    new_tag, new_role_id = grades[idx + 1]
-    new_role = guild.get_role(new_role_id)
-    old_role = guild.get_role(current_grade[1])
-    # Changer le pseudo
-    clean_name = get_clean_name(membre)
-    new_nickname = f"{new_tag} {clean_name}"
-    try:
-        await membre.edit(nick=new_nickname)
-    except Exception as e:
-        print(f"Erreur changement pseudo {membre}: {e}")
-    # Changer les rôles
-    if old_role:
-        await membre.remove_roles(old_role)
-    if new_role:
-        await membre.add_roles(new_role)
-    await interaction.followup.send(f"🔻 {membre.mention} a été rétrogradé au grade {new_tag}")
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -137,8 +120,7 @@ def save_categories(cats):
 
 # Charger les catégories au démarrage
 categories = load_categories()
-# Correction manuelle de la catégorie EMT
-CATEGORY_EMT_ID = 1460041009453858826
+CATEGORY_EMT_ID = categories.get("CATEGORY_EMT_ID", 0)
 CATEGORY_INT_ID = categories.get("CATEGORY_INT_ID", 0)
 CATEGORY_ADS_ID = categories.get("CATEGORY_ADS_ID", 0)
 CATEGORY_INF_ID = categories.get("CATEGORY_INF_ID", 0)
