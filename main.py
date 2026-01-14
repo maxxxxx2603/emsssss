@@ -1,3 +1,50 @@
+# --- AJOUT DE LA COMMANDE DOWN À LA FIN DU FICHIER ---
+@bot.tree.command(name="down", description="Rétrograder un employé au grade inférieur")
+@app_commands.describe(membre="Le membre à rétrograder")
+async def down(interaction: discord.Interaction, membre: discord.Member):
+    await interaction.response.defer()
+    guild = interaction.guild
+    # Liste des grades dans l'ordre décroissant
+    grades = [
+        ("[DIR]", 838102445095256075),
+    ("[CDS]", 838102445095256074),
+    ("[MED]", 838102445095256073),
+    ("[INF]", 838102445095256072),
+    ("[ADS]", 838102445095256071),
+    ("[INT]", 838102445095256069),
+    ("[EMT]", 838102445095256070)
+    ]
+    # Trouver le grade actuel
+    current_grade = None
+    for tag, role_id in grades:
+        role = guild.get_role(role_id)
+        if role and role in membre.roles:
+        current_grade = (tag, role_id)
+        break
+    if not current_grade:
+        await interaction.followup.send(f"❌ Impossible de trouver le grade actuel de {membre.mention}")
+        return
+    idx = grades.index(current_grade)
+    if idx == len(grades) - 1:
+        await interaction.followup.send(f"⚠️ {membre.mention} est déjà au grade le plus bas !")
+        return
+    # Nouveau grade
+    new_tag, new_role_id = grades[idx + 1]
+    new_role = guild.get_role(new_role_id)
+    old_role = guild.get_role(current_grade[1])
+    # Changer le pseudo
+    clean_name = get_clean_name(membre)
+    new_nickname = f"{new_tag} {clean_name}"
+    try:
+        await membre.edit(nick=new_nickname)
+    except Exception as e:
+        print(f"Erreur changement pseudo {membre}: {e}")
+    # Changer les rôles
+    if old_role:
+        await membre.remove_roles(old_role)
+    if new_role:
+        await membre.add_roles(new_role)
+    await interaction.followup.send(f"🔻 {membre.mention} a été rétrogradé au grade {new_tag}")
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
