@@ -1428,8 +1428,11 @@ class CVButton(discord.ui.View):
                         cv_embed.add_field(name="📎 Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
                     msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
                 view.message = msg
-            except:
-                pass
+                print(f"✅ CV envoyé dans le channel {cv_channel.name} pour {interaction.user.name}")
+            except Exception as e:
+                print(f"❌ Erreur envoi CV: {e}")
+        else:
+            print(f"❌ Channel CV non trouvé (ID: 1460755743228825641)")
         
         # Fermer le channel après 2 minutes
         await asyncio.sleep(120)
