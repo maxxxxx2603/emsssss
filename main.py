@@ -2870,9 +2870,10 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
         await membre.remove_roles(role_to_remove)
 
     # 3. Création du Channel dans la catégorie EMT (sans préfixe de grade, juste emoji + nom)
-    category = guild.get_channel(CATEGORY_EMT_ID) if CATEGORY_EMT_ID else None
+    # Forcer la catégorie à 1460041009453858826
+    category = guild.get_channel(1460041009453858826)
     channel_name = f"🔴{clean_name.lower().replace(' ', '-')}"
-    
+
     if category:
         # Permissions pour que le membre ait accès à son channel
         overwrites = {
@@ -2880,13 +2881,13 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
             membre: discord.PermissionOverwrite(read_messages=True, send_messages=True),
             guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True)
         }
-        
+
         # Créer le channel avec les permissions dans la catégorie
         new_channel = await guild.create_text_channel(name=channel_name, category=category, overwrites=overwrites)
-        
+
         await interaction.followup.send(f"✅ **{membre.mention}** a été employé avec succès !\n📛 Renommé en `{new_nickname}`\n📂 Dossier créé : {new_channel.mention}")
     else:
-        await interaction.followup.send(f"⚠️ Catégorie EMT introuvable, rôles et pseudo mis à jour mais pas le channel.")
+        await interaction.followup.send(f"⚠️ Catégorie EMT (1460041009453858826) introuvable, rôles et pseudo mis à jour mais pas le channel.")
 
 @bot.tree.command(name="reset_names", description="Applique les tags de grade selon les rôles Discord")
 @app_commands.describe(membre="Le membre dont mettre à jour le tag (optionnel, sinon tous)")
