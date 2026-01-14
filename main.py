@@ -1401,7 +1401,7 @@ class CVButton(discord.ui.View):
             pass
         
         # Envoyer au channel CV (en arrière-plan pendant que le timer commence)
-        cv_channel = bot.get_channel(config.get("CV_CHANNEL_ID"))
+        cv_channel = bot.get_channel(1460755743228825641)
         if cv_channel:
             full_text = "\n\n".join(answers)
             cv_embed = discord.Embed(
