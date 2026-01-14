@@ -3050,25 +3050,24 @@ async def virer(interaction: discord.Interaction, membre: discord.Member):
     # 4. Supprimer le channel personnel de l'employé
     channel_deleted = False
     clean_name_normalized = normalize_employee_key(clean_name)
-    
+
     # Chercher le channel par nom normalisé (nouveau format: emoji + nom sans préfixe)
     for channel in guild.text_channels:
         if channel.name and len(channel.name) > 1 and channel.name[0] in ["🔴", "🟠", "🟢"]:
             # Obtenir la clé employé du channel
             channel_employee_key = get_channel_employee_key(channel)
-            
+
             # Comparer avec la clé employé normalisée
             if channel_employee_key == clean_name_normalized:
+                # Envoyer le message AVANT de supprimer le channel
+                await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés, pseudo réinitialisé et channel supprimé.")
                 try:
                     await channel.delete()
                     channel_deleted = True
                     break
                 except Exception as e:
                     print(f"Erreur suppression channel: {e}")
-    
-    if channel_deleted:
-        await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés, pseudo réinitialisé et channel supprimé.")
-    else:
+    if not channel_deleted:
         await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés et pseudo réinitialisé.\n⚠️ Aucun channel personnel trouvé.")
 
 @bot.tree.command(name="up", description="Promouvoir un employé au rang suivant")
