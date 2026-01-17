@@ -37,6 +37,11 @@ TAXI_ROLE_ID = 1163206112355561472
 ROLE_DIRECTION_EMS_ID = 838120186585940010
 ROLE_DIRECTION_TAXI_ID = 1311787019546136596
 
+# Configuration BurgerShot
+BURGERSHOT_CHANNEL_ID = 1462099226166165588
+BURGERSHOT_ROLE_ID = 1462097148995965041
+BURGERSHOT_STATS_FILE = 'burgershot_stats.json'
+
 # Configuration Tickets
 ROLE_REQUEST_CHANNEL_ID = 1450938023033176247
 APPOINTMENT_CHANNEL_ID = 1415783172163244132
@@ -276,6 +281,19 @@ def reset_taxi_week():
     save_taxi_stats(stats)
     return stats
 
+# --- GESTION DES STATS BURGERSHOT ---
+def load_burgershot_stats():
+    return robust_load_json(BURGERSHOT_STATS_FILE, {"count": 0, "week_start": datetime.now().isoformat()})
+
+def save_burgershot_stats(stats):
+    atomic_write_json(BURGERSHOT_STATS_FILE, stats)
+
+def reset_burgershot_week():
+    """Réinitialise les stats BurgerShot pour la nouvelle semaine"""
+    stats = {"count": 0, "week_start": datetime.now().isoformat()}
+    save_burgershot_stats(stats)
+    return stats
+
 # --- GESTION DES GIVEAWAYS ---
 def load_giveaways():
     return robust_load_json(GIVEAWAY_FILE, {})
@@ -303,6 +321,21 @@ async def on_message(message):
             taxi_stats = load_taxi_stats()
             taxi_stats["count"] += 1
             save_taxi_stats(taxi_stats)
+    
+    # Comptage automatique pour les tests d'aptitude BurgerShot (réaction + comptage)
+    if message.channel.id == BURGERSHOT_CHANNEL_ID:
+        # Vérifier si l'auteur a le rôle BurgerShot
+        if any(role.id == BURGERSHOT_ROLE_ID for role in getattr(message.author, "roles", [])):
+            # Ajouter une réaction
+            try:
+                await message.add_reaction("✅")
+            except:
+                pass
+            
+            # Incrémenter le compteur
+            burgershot_stats = load_burgershot_stats()
+            burgershot_stats["count"] += 1
+            save_burgershot_stats(burgershot_stats)
 
     if not message.attachments or not getattr(message.channel, "name", None):
         return
@@ -1026,6 +1059,25 @@ async def taxi_announce(interaction: discord.Interaction):
         await interaction.followup.send("✅ Annonce hebdomadaire envoyée et compteurs réinitialisés !", ephemeral=True)
     except Exception as e:
         await interaction.followup.send(f"❌ Erreur : {e}", ephemeral=True)
+
+# --- COMMANDE BURGERSHOT ---
+@bot.tree.command(name="burgershot", description="Affiche le compteur des tests d'aptitude BurgerShot")
+@app_commands.checks.has_permissions(administrator=True)
+async def burgershot(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    burgershot_stats = load_burgershot_stats()
+    count = burgershot_stats.get("count", 0)
+    revenus = count * 300000
+    
+    embed = discord.Embed(
+        title="🍔 Tests d'Aptitude BurgerShot",
+        description=f"**Nombre de tests complétés :** {count}\n**Revenus générés :** ${revenus:,}",
+        color=discord.Color.from_rgb(255, 165, 0)  # Orange
+    )
+    embed.add_field(name="💰 Tarif", value="300 000$ par test", inline=False)
+    embed.set_footer(text="🍔 BurgerShot System")
+    await interaction.followup.send(embed=embed)
 
 # --- QUESTIONS DU CV ---
 QUESTIONS = [
@@ -2164,7 +2216,7 @@ class RoleRequestButton(discord.ui.View):
         # Question 1 : Organisation
         q1 = discord.Embed(
             title="❓ QUESTION 1",
-            description="**Quelle organisation rejoignez-vous ?**\n\nRépondez par :\n• `LSPD`\n• `BCSO`\n• `MARSHALL`\n• `TAXI`",
+            description="**Quelle organisation rejoignez-vous ?**\n\nRépondez par :\n• `LSPD`\n• `BCSO`\n• `MARSHALL`\n• `TAXI`\n• `BURGERSHOT`",
             color=discord.Color.blue()
         )
         q1.set_footer(text="🎯 Système de demande de rôle")
@@ -2178,6 +2230,7 @@ class RoleRequestButton(discord.ui.View):
         role_id = None
         prefix = None
         is_taxi = False
+        is_burgershot = False
         
         try:
             msg = await bot.wait_for('message', check=check, timeout=300)
@@ -2199,6 +2252,10 @@ class RoleRequestButton(discord.ui.View):
                 organization = "TAXI"
                 role_id = ROLE_TAXI_REQUEST_ID
                 is_taxi = True
+            elif org_choice == "BURGERSHOT":
+                organization = "BURGERSHOT"
+                role_id = BURGERSHOT_ROLE_ID
+                is_burgershot = True
             else:
                 error_msg = discord.Embed(
                     title="❌ ERREUR",
@@ -2259,9 +2316,9 @@ class RoleRequestButton(discord.ui.View):
             await channel.delete()
             return
         
-        # Question 3 : Matricule (sauf pour Taxi)
+        # Question 3 : Matricule (sauf pour Taxi et BurgerShot)
         matricule = None
-        if not is_taxi:
+        if not is_taxi and not is_burgershot:
             question_num = 3
             q3 = discord.Embed(
                 title=f"❓ QUESTION {question_num}",
@@ -2286,7 +2343,7 @@ class RoleRequestButton(discord.ui.View):
                 return
         
         # Question 4 : Test d'aptitude
-        question_num = 3 if is_taxi else 4
+        question_num = 3 if (is_taxi or is_burgershot) else 4
         q4 = discord.Embed(
             title=f"❓ QUESTION {question_num}",
             description="**Avez-vous le test d'aptitude ?**\n\nRépondez par :\n• `oui`\n• `non`",
@@ -2327,7 +2384,7 @@ class RoleRequestButton(discord.ui.View):
         
         # Appliquer les changements
         # 1. Changer le pseudo
-        if is_taxi:
+        if is_taxi or is_burgershot:
             new_nickname = full_name
         else:
             new_nickname = f"{prefix}.{matricule} {full_name}"
@@ -2356,6 +2413,18 @@ class RoleRequestButton(discord.ui.View):
                     f"**Pseudo :** `{new_nickname}`\n"
                     f"**Test d'aptitude :** {'✅ Oui' if has_test else '❌ Non'}\n\n"
                     f"Bienvenue dans l'équipe Taxi ! 🚕"
+                ),
+                color=discord.Color.green()
+            )
+        elif is_burgershot:
+            final_msg = discord.Embed(
+                title="✅ DEMANDE COMPLÉTÉE",
+                description=(
+                    f"**Votre profil a été configuré avec succès !**\n\n"
+                    f"**Organisation :** {organization}\n"
+                    f"**Pseudo :** `{new_nickname}`\n"
+                    f"**Test d'aptitude :** {'✅ Oui' if has_test else '❌ Non'}\n\n"
+                    f"Bienvenue chez BurgerShot ! 🍔"
                 ),
                 color=discord.Color.green()
             )
@@ -2390,9 +2459,9 @@ async def setup_role_request(interaction: discord.Interaction):
             "**Obtenez votre rôle d'organisation !**\n\n"
             "Cliquez sur le bouton ci-dessous pour faire votre demande.\n\n"
             "**📋 Informations requises :**\n"
-            "• Organisation (LSPD/BCSO/MARSHALL/TAXI)\n"
+            "• Organisation (LSPD/BCSO/MARSHALL/TAXI/BURGERSHOT)\n"
             "• Prénom et nom\n"
-            "• Matricule (sauf Taxi)\n"
+            "• Matricule (sauf Taxi/BurgerShot)\n"
             "• Test d'aptitude (oui/non)\n\n"
             "**Le système configurera automatiquement votre profil !**"
         ),
