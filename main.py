@@ -323,9 +323,10 @@ async def on_message(message):
             save_taxi_stats(taxi_stats)
     
     # Comptage automatique pour les tests d'aptitude BurgerShot (réaction + comptage)
+    # Pour BurgerShot : on compte TOUS les messages avec image, pas besoin de vérifier le rôle
     if message.channel.id == BURGERSHOT_CHANNEL_ID:
-        # Vérifier si l'auteur a le rôle BurgerShot
-        if any(role.id == BURGERSHOT_ROLE_ID for role in getattr(message.author, "roles", [])):
+        # Vérifier si le message contient une image
+        if message.attachments:
             # Ajouter une réaction
             try:
                 await message.add_reaction("✅")
