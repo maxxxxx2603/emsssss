@@ -261,9 +261,9 @@ def extract_employee_name(channel_name):
 
 def get_color_emoji(count):
     """Retourne l'emoji couleur en fonction du nombre de réactions"""
-    if count >= 100:
+    if count >= 150:
         return "🟢"
-    elif count >= 50:
+    elif count >= 100:
         return "🟠"
     else:
         return "🔴"
@@ -455,7 +455,7 @@ async def total(interaction: discord.Interaction):
         emoji = get_color_emoji(count)
         # Afficher le nom joliment formaté
         display_name = ' '.join([p.capitalize() for p in name.split('-')])
-        current_embed.add_field(name=f"{emoji} {display_name}", value=f"{count}/100", inline=False)
+        current_embed.add_field(name=f"{emoji} {display_name}", value=f"{count}/150", inline=False)
         field_count += 1
     
     # Ajouter le dernier embed avec le footer
@@ -494,6 +494,7 @@ async def reset(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 @bot.tree.command(name="help", description="Affiche toutes les commandes disponibles")
+@app_commands.checks.has_permissions(administrator=True)
 async def help_command(interaction: discord.Interaction):
     await interaction.response.defer()
     
@@ -639,6 +640,116 @@ async def help_command(interaction: discord.Interaction):
     embeds = [main_embed, stats_embed, employee_embed, cv_embed, taxi_embed, tickets_embed, cat_embed, footer_embed]
     for embed in embeds:
         await interaction.followup.send(embed=embed)
+
+@bot.tree.command(name="info", description="Envoie les informations EMS dans le channel dédié")
+@app_commands.checks.has_permissions(administrator=True)
+async def info(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    
+    # Channel et rôle cibles
+    target_channel_id = 1306021673912238142
+    ping_role_id = 838102445095256068
+    
+    target_channel = bot.get_channel(target_channel_id)
+    if not target_channel:
+        await interaction.followup.send("❌ Channel cible introuvable!", ephemeral=True)
+        return
+    
+    role = interaction.guild.get_role(ping_role_id)
+    role_mention = f"<@&{ping_role_id}>" if role else "@everyone"
+    
+    # Créer l'embed principal
+    embed = discord.Embed(
+        title="🚑 :EMS: Fréquence EMS : 9",
+        description="# Toutes les infos utiles à savoir",
+        color=EMS_RED
+    )
+    
+    # Section conformité
+    embed.add_field(
+        name="📋 Conformité",
+        value=(
+            "Avant de débuter votre formation, assurez-vous d'être en conformité avec le règlement intérieur, "
+            "ne pas vous soumettre aux règles de cette dernière peut vous valoir un licenciement sans frais.\n\n"
+            "Vous vous devez de représenter l'institution publique médicale des EMS avec sérieux et fierté."
+        ),
+        inline=False
+    )
+    
+    # Section système de paie
+    embed.add_field(
+        name="💰 Système de Paies",
+        value=(
+            "Système de payes par prime par réanimation (votre paye dépendra donc du nombre de réanimation que vous ferez sur la semaine) "
+            "et hiérarchie à retrouver dans 『:books:』informations.\n\n"
+            "**Primes de 150 000$ toutes les 10 réanimations à partir du quota (150).**\n"
+            "Si vous faites moins de 30, vous ne serez pas payé.\n\n"
+            "Soit à 160 réanimations vous aurez votre salaire + 1 prime, à 170 votre salaire + 2 primes etc.\n\n"
+            "⚠️ Ne pas mentir, ni trafiquer le nombre de réanimation sous peine de sanctions après vérifications des fichiers médicaux."
+        ),
+        inline=False
+    )
+    
+    # Section quota
+    embed.add_field(
+        name="📊 Quota Hebdomadaire",
+        value=(
+            "**Chaque semaine vous devez faire un minimum de 150 réanimations.**\n"
+            "Autrement vous serez sanctionné par un avertissement.\n\n"
+            "**Système de couleurs (Émojis) :**\n"
+            "🔴 **Rouge** : Moins de 100 réanimations\n"
+            "🟠 **Orange** : Entre 100 et 149 réanimations\n"
+            "🟢 **Verte** : 150 réanimations et plus (quota atteint!)"
+        ),
+        inline=False
+    )
+    
+    # Section prix des soins
+    embed.add_field(
+        name="💵 Prix des Soins",
+        value=(
+            "**Réanimation :** Prélever automatiquement\n"
+            "**Bandage :** 5 000 $"
+        ),
+        inline=False
+    )
+    
+    # Section règles importantes
+    embed.add_field(
+        name="⚠️ Règles Importantes",
+        value=(
+            "• Il est fortement recommandé d'être dans une radio discord lorsque vous êtes en service (Radio Chill)\n"
+            "• Toutes erreurs ou quotas non respectés seront sanctionnés\n"
+            "• Pas de vente de médikits ou bandages à utilisation personnelle, uniquement professionnelle!\n"
+            "• **📸 IMPORTANT : Envoyez la preuve (screenshot) de chaque réanimation dès que vous réanimez!**"
+        ),
+        inline=False
+    )
+    
+    # Section images
+    embed.add_field(
+        name="📷 Exemples de Screenshots",
+        value="Voici les exemples de captures d'écran à fournir pour vos contrats et réanimations :",
+        inline=False
+    )
+    
+    embed.set_footer(text="🚑 EMS System | Respectez ces règles pour garantir votre carrière au sein des EMS")
+    
+    # Ajouter l'image code radio en thumbnail
+    embed.set_image(url="https://media.discordapp.net/attachments/1306021673912238142/1454172566489923776/image.png")
+    
+    # Envoyer le ping + embed
+    await target_channel.send(
+        content=f"{role_mention} **Nouvelles informations EMS !**",
+        embed=embed
+    )
+    
+    # Envoyer les images de grades séparément
+    await target_channel.send("https://media.discordapp.net/attachments/1306021673912238142/1454172153422418091/Grade_1.png")
+    await target_channel.send("https://media.discordapp.net/attachments/1306021673912238142/1454172154315804846/Grade_4.png")
+    
+    # Confirmation
+    await interaction.followup.send(f"✅ Informations EMS envoyées dans {target_channel.mention}!", ephemeral=True)
 
 @bot.tree.command(name="stats_info", description="Affiche les informations sur la sauvegarde des stats")
 @app_commands.checks.has_permissions(administrator=True)
@@ -2913,6 +3024,7 @@ async def setup_categories(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 @bot.tree.command(name="employer", description="Recruter un EMS (Création channel, rôles, rename)")
+@app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(membre="Le membre à employer")
 async def employer(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer()
@@ -3074,6 +3186,7 @@ async def reset_names(interaction: discord.Interaction, membre: discord.Member =
         await interaction.followup.send(embed=embed)
 
 @bot.tree.command(name="virer", description="Virer un employé (Retrait rôles, reset pseudo)")
+@app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(membre="Le membre à virer")
 async def virer(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer()
@@ -3141,6 +3254,7 @@ async def virer(interaction: discord.Interaction, membre: discord.Member):
         await interaction.followup.send(f"🚫 **{clean_name}** a été viré.\nRôles retirés et pseudo réinitialisé.\n⚠️ Aucun channel personnel trouvé.")
 
 @bot.tree.command(name="up", description="Promouvoir un employé au rang suivant")
+@app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(membre="Le membre à promouvoir")
 async def up(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer()
@@ -3821,7 +3935,7 @@ async def synchronise(interaction: discord.Interaction):
                 emoji = get_color_emoji(stats[employee_key])
                 embed_result.add_field(
                     name=f"{emoji} {employee_key}",
-                    value=f"+{count} → {stats[employee_key]}/100",
+                    value=f"+{count} → {stats[employee_key]}/150",
                     inline=True
                 )
             
