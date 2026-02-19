@@ -641,12 +641,12 @@ async def help_command(interaction: discord.Interaction):
     for embed in embeds:
         await interaction.followup.send(embed=embed)
 
-@bot.tree.command(name="info", description="Envoie les informations EMS dans le channel dédié")
+@bot.tree.command(name="info", description="Envoie les informations EMS dans le channel dï¿½diï¿½")
 @app_commands.checks.has_permissions(administrator=True)
 async def info(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
-    # Channel et rôle cibles
+    # Channel et rï¿½le cibles
     target_channel_id = 1306021673912238142
     ping_role_id = 838102445095256068
 
@@ -658,30 +658,30 @@ async def info(interaction: discord.Interaction):
     role = interaction.guild.get_role(ping_role_id)
     role_mention = f"<@&{ping_role_id}>" if role else "@everyone"
 
-    # Créer l'embed principal
+    # Crï¿½er l'embed principal
     embed = discord.Embed(
-        title=" :EMS: Fréquence EMS : 9",
-        description="Toutes les infos utiles à savoir",
+        title=" :EMS: Frï¿½quence EMS : 9",
+        description="Toutes les infos utiles ï¿½ savoir",
         color=EMS_RED
     )
 
-    # Section conformité
+    # Section conformitï¿½
     embed.add_field(
-        name=" Conformité",
+        name=" Conformitï¿½",
         value=(
-            "Avant de débuter votre formation, assurez-vous d'être en conformité avec le règlement intérieur. "
-            "Ne pas respecter les règles peut entraîner un licenciement sans frais.\n\n"
-            "Vous devez représenter l'institution publique médicale des EMS avec sérieux et fierté."
+            "Avant de dï¿½buter votre formation, assurez-vous d'ï¿½tre en conformitï¿½ avec le rï¿½glement intï¿½rieur. "
+            "Ne pas respecter les rï¿½gles peut entraï¿½ner un licenciement sans frais.\n\n"
+            "Vous devez reprï¿½senter l'institution publique mï¿½dicale des EMS avec sï¿½rieux et fiertï¿½."
         ),
         inline=False
     )
 
-    # Section système de paie
+    # Section systï¿½me de paie
     embed.add_field(
-        name=" Système de Paie",
+        name=" Systï¿½me de Paie",
         value=(
-            "La paye dépend du nombre de réanimations effectuées.\n"
-            " **Paye maximale :** jusqu'à 10 000 000$ selon le nombre de réanimations."
+            "La paye dï¿½pend du nombre de rï¿½animations effectuï¿½es.\n"
+            " **Paye maximale :** jusqu'ï¿½ 10 000 000$ selon le nombre de rï¿½animations."
         ),
         inline=False
     )
@@ -690,11 +690,11 @@ async def info(interaction: discord.Interaction):
     embed.add_field(
         name=" Quota Hebdomadaire",
         value=(
-            "**Chaque semaine, vous devez effectuer un minimum de 100 réanimations.**\n\n"
-            "** Système de couleurs (Émojis) :**\n"
-            " **Rouge** : Moins de 100 réanimations\n"
-            " **Orange** : 100 réanimations (quota atteint)\n"
-            " **Vert** : 150 réanimations et plus (augmentation de grade)"
+            "**Chaque semaine, vous devez effectuer un minimum de 100 rï¿½animations.**\n\n"
+            "** Systï¿½me de couleurs (ï¿½mojis) :**\n"
+            " **Rouge** : Moins de 100 rï¿½animations\n"
+            " **Orange** : 100 rï¿½animations (quota atteint)\n"
+            " **Vert** : 150 rï¿½animations et plus (augmentation de grade)"
         ),
         inline=False
     )
@@ -710,32 +710,32 @@ async def info(interaction: discord.Interaction):
     embed.add_field(
         name=" Prix des Soins",
         value=(
-            "**Réanimation :** Prélevé automatiquement\n"
+            "**Rï¿½animation :** Prï¿½levï¿½ automatiquement\n"
             "**Bandage :** 5 000 $"
         ),
         inline=False
     )
 
-    # Section règles importantes
+    # Section rï¿½gles importantes
     embed.add_field(
-        name=" Règles Importantes",
+        name=" Rï¿½gles Importantes",
         value=(
-            " Il est fortement recommandé d'être dans une radio Discord en service (Radio Chill)\n"
-            " Toute erreur ou quota non respecté sera sanctionné\n"
-            " Pas de vente de medikits ou bandages à usage personnel, uniquement professionnel\n"
-            "  **IMPORTANT : Envoyez la preuve (screenshot) de chaque réanimation dès que vous réanimez !**"
+            " Il est fortement recommandï¿½ d'ï¿½tre dans une radio Discord en service (Radio Chill)\n"
+            " Toute erreur ou quota non respectï¿½ sera sanctionnï¿½\n"
+            " Pas de vente de medikits ou bandages ï¿½ usage personnel, uniquement professionnel\n"
+            "  **IMPORTANT : Envoyez la preuve (screenshot) de chaque rï¿½animation dï¿½s que vous rï¿½animez !**"
         ),
         inline=False
     )
 
-    # Section captures d'écran
+    # Section captures d'ï¿½cran
     embed.add_field(
-        name=" Captures d'écran obligatoires",
+        name=" Captures d'ï¿½cran obligatoires",
         value="Voir les images ci-dessous",
         inline=False
     )
 
-    embed.set_footer(text=" EMS System | Respectez ces règles pour garantir votre carrière au sein des EMS")
+    embed.set_footer(text=" EMS System | Respectez ces rï¿½gles pour garantir votre carriï¿½re au sein des EMS")
 
     # Envoyer le ping + embed
     await target_channel.send(
@@ -749,7 +749,7 @@ async def info(interaction: discord.Interaction):
     await target_channel.send("https://media.discordapp.net/attachments/1306021673912238142/1454172154315804846/Grade_4.png")
 
     # Confirmation
-    await interaction.followup.send(f" Informations EMS envoyées dans {target_channel.mention}!", ephemeral=True)
+    await interaction.followup.send(f" Informations EMS envoyï¿½es dans {target_channel.mention}!", ephemeral=True)
 @bot.tree.command(name="stats_info", description="Affiche les informations sur la sauvegarde des stats")
 @app_commands.checks.has_permissions(administrator=True)
 async def stats_info(interaction: discord.Interaction):
