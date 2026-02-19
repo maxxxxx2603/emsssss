@@ -1255,7 +1255,7 @@ class ReviewView(discord.ui.View):
                 "Bienvenue dans la famille des **EMS** ! 🚑\n\n"
                 "📝 **Prochaine étape :**\n"
                 "Merci de mettre vos disponibilités ici :\n"
-                "https://discord.com/channels/838102445083197470/1451553241065193555\n\n"
+                "https://discord.com/channels/838102445083197470/1470742714604847124\n\n"
                 "et nous nous chargeons du reste !\n\n"
                 "Cordialement,\n**La Direction des EMS** 🚑"
             )
@@ -1655,7 +1655,7 @@ class FormulaireCVValidation(discord.ui.View):
                 "Bienvenue dans la famille des **EMS** ! 🚑\n\n"
                 "📝 **Prochaine étape :**\n"
                 "Merci de mettre vos disponibilités ici :\n"
-                "https://discord.com/channels/838102445083197470/1451553241065193555\n\n"
+                "https://discord.com/channels/838102445083197470/1470742714604847124\n\n"
                 "et nous nous chargeons du reste !\n\n"
                 "Cordialement,\n**La Direction des EMS** 🚑"
             )
@@ -4015,4 +4015,5 @@ if __name__ == "__main__":
                 else:
                     print(f"❌ Nombre maximum de tentatives atteint ({max_retries}). Arrêt définitif.")
                     break
+
 
