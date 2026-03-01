@@ -304,11 +304,57 @@ def save_giveaways(giveaways):
 # --- SYSTEME DE RÃ‰ACTIONS ET COMPTAGE TAXI ---
 @bot.event
 
+def load_bonuses():
+    """Charge les bonus journaliers"""
+    if os.path.exists("bonuses.json"):
+        try:
+            with open("bonuses.json", "r") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_bonuses(bonuses):
+    """Sauvegarde les bonus journaliers"""
+    with open("bonuses.json", "w") as f:
+        json.dump(bonuses, f, indent=2)
+
 async def update_channel_description(channel: discord.TextChannel, count: int):
-    """Met à jour la description du channel avec le nombre de réanimations"""
+    """Met à jour la description du channel avec réa et prime soir 1M"""
     try:
+        from datetime import datetime
         emoji = get_color_emoji(count)
-        description = f"{emoji} {count}/100"
+        
+        # Vérifier si c'est entre 21h et 23h
+        current_hour = datetime.now().hour
+        bonus_text = ""
+        
+        if 21 <= current_hour < 23:
+            # Charger les bonus
+            bonuses = load_bonuses()
+            channel_id = str(channel.id)
+            today = datetime.now().strftime("%Y-%m-%d")
+            
+            # Clé unique pour ce channel aujourd'hui
+            bonus_key = f"{channel_id}_{today}"
+            
+            # Donner 1M une seule fois ce soir si pas déjà donné
+            if bonus_key not in bonuses:
+                bonuses[bonus_key] = True
+                save_bonuses(bonuses)
+                bonus_text = " 1M"
+            else:
+                bonus_text = " 1M"
+        else:
+            # Réinitialiser les bonus hors heures bonus
+            bonuses = load_bonuses()
+            channel_id = str(channel.id)
+            for key in list(bonuses.keys()):
+                if key.startswith(channel_id):
+                    del bonuses[key]
+            save_bonuses(bonuses)
+        
+        description = f"{emoji} {count}/100{bonus_text}"
         await channel.edit(topic=description)
     except Exception as e:
         pass
@@ -4047,6 +4093,8 @@ if __name__ == "__main__":
                 else:
                     print(f"âŒ Nombre maximum de tentatives atteint ({max_retries}). ArrÃªt dÃ©finitif.")
                     break
+
+
 
 
 
