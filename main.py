@@ -424,7 +424,7 @@ async def on_message(message):
         stats[employee_key] += 1
         current_count = stats[employee_key]
         save_stats(stats)
-          await update_channel_description(message.channel, current_count)
+        await update_channel_description(message.channel, current_count)
         # Pas de logique de badges: on garde simple et fiable
         
         # Ajouter réaction
@@ -4106,6 +4106,7 @@ if __name__ == "__main__":
                 else:
                     print(f"❌ Nombre maximum de tentatives atteint ({max_retries}). Arrêt définitif.")
                     break
+
 
 
 
