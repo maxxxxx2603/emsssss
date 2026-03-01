@@ -1286,9 +1286,20 @@ class ReviewView(discord.ui.View):
             # Envoyer dans le channel de logs CV (1458956197796515979)
             cv_log_channel = bot.get_channel(1458956197796515979)
             if cv_log_channel:
-                await cv_log_channel.send(embed=embed)
-            
-            # Poster l'image du membre dans le channel 1460752929429520427
+                  await cv_log_channel.send(embed=embed)
+                  
+                  # Chercher et copier le CV original
+                  try:
+                      cv_channel = bot.get_channel(1460755743228825641)
+                      if cv_channel:
+                          async for cv_msg in cv_channel.history(limit=200):
+                              if cv_msg.embeds and member.display_name.lower() in str(cv_msg.embeds[0].title).lower():
+                                  for cv_embed in cv_msg.embeds:
+                                      await cv_log_channel.send(embed=cv_embed)
+                                  break
+                  except:
+                      pass
+              # Poster l'image du membre dans le channel 1460752929429520427
             image_channel = bot.get_channel(1460752929429520427)
             if image_channel and member.avatar:
                 try:
@@ -1684,9 +1695,20 @@ class FormulaireCVValidation(discord.ui.View):
             # Envoyer dans le channel de logs CV (1458956197796515979)
             cv_log_channel = bot.get_channel(1458956197796515979)
             if cv_log_channel:
-                await cv_log_channel.send(embed=embed)
-            
-            # Poster l'image du membre dans le channel 1460752929429520427
+                  await cv_log_channel.send(embed=embed)
+                  
+                  # Chercher et copier le CV original
+                  try:
+                      cv_channel = bot.get_channel(1460755743228825641)
+                      if cv_channel:
+                          async for cv_msg in cv_channel.history(limit=200):
+                              if cv_msg.embeds and member.display_name.lower() in str(cv_msg.embeds[0].title).lower():
+                                  for cv_embed in cv_msg.embeds:
+                                      await cv_log_channel.send(embed=cv_embed)
+                                  break
+                  except:
+                      pass
+              # Poster l'image du membre dans le channel 1460752929429520427
             image_channel = bot.get_channel(1460752929429520427)
             if image_channel and member.avatar:
                 try:
@@ -4025,6 +4047,9 @@ if __name__ == "__main__":
                 else:
                     print(f"❌ Nombre maximum de tentatives atteint ({max_retries}). Arrêt définitif.")
                     break
+
+
+
 
 
 
