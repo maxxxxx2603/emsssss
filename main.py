@@ -261,9 +261,9 @@ def extract_employee_name(channel_name):
 
 def get_color_emoji(count):
     """Retourne l'emoji couleur en fonction du nombre de réactions"""
-    if count >= 150:
+    if count >= 100:
         return "🟢"
-    elif count >= 100:
+    elif count >= 75:
         return "🟠"
     else:
         return "🔴"
@@ -455,7 +455,7 @@ async def total(interaction: discord.Interaction):
         emoji = get_color_emoji(count)
         # Afficher le nom joliment formaté
         display_name = ' '.join([p.capitalize() for p in name.split('-')])
-        current_embed.add_field(name=f"{emoji} {display_name}", value=f"{count}/150", inline=False)
+        current_embed.add_field(name=f"{emoji} {display_name}", value=f"{count}/100", inline=False)
         field_count += 1
     
     # Ajouter le dernier embed avec le footer
@@ -690,11 +690,11 @@ async def info(interaction: discord.Interaction):
     embed.add_field(
         name=" Quota Hebdomadaire",
         value=(
-            "**Chaque semaine, vous devez effectuer un minimum de 100 r�animations.**\n\n"
+            "**Chaque semaine, vous devez effectuer un minimum de 75 r�animations.**\n\n"
             "** Syst�me de couleurs (�mojis) :**\n"
-            " **Rouge** : Moins de 100 r�animations\n"
-            " **Orange** : 100 r�animations (quota atteint)\n"
-            " **Vert** : 150 r�animations et plus (augmentation de grade)"
+            " **Rouge** : Moins de 75 r�animations\n"
+            " **Orange** : 75 r�animations (quota atteint)\n"
+            " **Vert** : 100 r�animations et plus (augmentation de grade)"
         ),
         inline=False
     )
@@ -4015,5 +4015,6 @@ if __name__ == "__main__":
                 else:
                     print(f"❌ Nombre maximum de tentatives atteint ({max_retries}). Arrêt définitif.")
                     break
+
 
 
