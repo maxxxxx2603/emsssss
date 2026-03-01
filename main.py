@@ -1018,6 +1018,56 @@ async def sync_rea(interaction: discord.Interaction):
     
     await interaction.followup.send(embed=embed)
 
+@bot.tree.command(name="force_update", description="Force la mise à jour des stats d'un employé")
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(
+    member="Le membre à mettre à jour",
+    value="La nouvelle valeur de réanimations"
+)
+async def force_update(interaction: discord.Interaction, member: discord.Member, value: int):
+    await interaction.response.defer()
+    
+    stats = load_stats()
+    member_name = f"{member.name}".lower().replace(" ", "-")
+    
+    # Chercher la clé dans stats
+    found_key = None
+    for key in stats.keys():
+        if member.name.lower() in key or key.lower() in member.name.lower():
+            found_key = key
+            break
+    
+    if found_key:
+        old_value = stats[found_key]
+        stats[found_key] = value
+        save_stats(stats)
+        
+        # Mettre à jour la description du channel si applicable
+        if member.name in [ch.name for ch in interaction.guild.text_channels]:
+            channel = discord.utils.get(interaction.guild.text_channels, name=member.name)
+            if channel:
+                try:
+                    emoji = get_color_emoji(value)
+                    description = f"{emoji} {value}/100"
+                    await channel.edit(topic=description)
+                except:
+                    pass
+        
+        embed = discord.Embed(
+            title="✅ STATS MISES À JOUR",
+            description=f"**{member.name}**\nAncienne valeur: `{old_value}`\nNouvelle valeur: `{value}`",
+            color=EMS_RED
+        )
+        embed.set_footer(text="🚑 EMS System | Force Update")
+    else:
+        embed = discord.Embed(
+            title="❌ ERREUR",
+            description=f"Impossible de trouver les stats de `{member.name}`",
+            color=0xFF0000
+        )
+    
+    await interaction.followup.send(embed=embed)
+
 @bot.tree.command(name="update_colors", description="Met à jour les couleurs de tous les channels selon les quotas")
 @app_commands.checks.has_permissions(administrator=True)
 async def update_colors(interaction: discord.Interaction):
