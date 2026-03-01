@@ -302,7 +302,6 @@ def save_giveaways(giveaways):
     atomic_write_json(GIVEAWAY_FILE, giveaways)
 
 # --- SYSTEME DE RÉACTIONS ET COMPTAGE TAXI ---
-@bot.event
 
 def load_bonuses():
     """Charge les bonus journaliers"""
@@ -358,6 +357,8 @@ async def update_channel_description(channel: discord.TextChannel, count: int):
         await channel.edit(topic=description)
     except Exception as e:
         pass
+
+@bot.event
 async def on_message(message):
     if message.author.bot:
         return
