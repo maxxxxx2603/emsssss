@@ -320,12 +320,12 @@ def save_bonuses(bonuses):
         json.dump(bonuses, f, indent=2)
 
 async def update_channel_description(channel: discord.TextChannel, count: int):
-    """Met à jour la description du channel avec réa et prime soir 1M"""
+    """Met ï¿½ jour la description du channel avec rï¿½a et prime soir 1M"""
     try:
         from datetime import datetime
         emoji = get_color_emoji(count)
         
-        # Vérifier si c'est entre 21h et 23h
+        # Vï¿½rifier si c'est entre 21h et 23h
         current_hour = datetime.now().hour
         bonus_text = ""
         
@@ -335,10 +335,10 @@ async def update_channel_description(channel: discord.TextChannel, count: int):
             channel_id = str(channel.id)
             today = datetime.now().strftime("%Y-%m-%d")
             
-            # Clé unique pour ce channel aujourd'hui
+            # Clï¿½ unique pour ce channel aujourd'hui
             bonus_key = f"{channel_id}_{today}"
             
-            # Donner 1M une seule fois ce soir si pas déjà donné
+            # Donner 1M une seule fois ce soir si pas dï¿½jï¿½ donnï¿½
             if bonus_key not in bonuses:
                 bonuses[bonus_key] = True
                 save_bonuses(bonuses)
@@ -346,7 +346,7 @@ async def update_channel_description(channel: discord.TextChannel, count: int):
             else:
                 bonus_text = " 1M"
         else:
-            # Réinitialiser les bonus hors heures bonus
+            # Rï¿½initialiser les bonus hors heures bonus
             bonuses = load_bonuses()
             channel_id = str(channel.id)
             for key in list(bonuses.keys()):
@@ -754,13 +754,13 @@ async def info(interaction: discord.Interaction):
         ),
         inline=False
     )
-      # Section prime soirée
+      # Section prime soirï¿½e
       embed.add_field(
-          name=" Prime d'Activité Soirée",
+          name=" Prime d'Activitï¿½ Soirï¿½e",
           value=(
               "**Bonus 1M par soir entre 21h-23h**\n"
-              " Effectuez au moins 1 réanimation entre 21h et 23h\n"
-              " Gagnez automatiquement +1M (primes à la fin de la semaine)\n"
+              " Effectuez au moins 1 rï¿½animation entre 21h et 23h\n"
+              " Gagnez automatiquement +1M (primes ï¿½ la fin de la semaine)\n"
               " Consultez votre progression dans la **description de votre channel personnel**\n"
               " La progression s'affiche comme :  75/100 1M"
           ),
