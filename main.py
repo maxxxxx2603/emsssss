@@ -1068,6 +1068,69 @@ async def force_update(interaction: discord.Interaction, member: discord.Member,
     
     await interaction.followup.send(embed=embed)
 
+@bot.tree.command(name="force_update_all", description="Force la mise à jour de TOUS les stats EMS")
+@app_commands.checks.has_permissions(administrator=True)
+async def force_update_all(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    # Mise à jour forcée de toutes les stats
+    new_stats = {
+        "balake-andrew": 234,
+        "marc-zenter": 204,
+        "momo-ahmet": 161,
+        "alvaro-benz": 152,
+        "mehmet-momo": 152,
+        "bouras-anas": 110,
+        "ethan-cocacherry": 102,
+        "sacha-icetee": 100,
+        "david-tares": 98,
+        "alex-winston": 82,
+        "jason-trigo": 81,
+        "avi-ramirez": 81,
+        "mathis-martin": 70,
+        "farid-lamatraque": 90,
+        "juan-pablo-escobar": 54,
+        "louis-fera": 46,
+        "jean-martin": 35,
+        "imran-meknessi": 24,
+        "jonson-jayden": 15,
+        "leo-lenz": 14,
+        "jean-dan": 6
+    }
+    
+    save_stats(new_stats)
+    
+    # Mettre à jour les descriptions des channels
+    guild = interaction.guild
+    updated_count = 0
+    
+    for key, value in new_stats.items():
+        # Chercher le channel correspondant
+        channel_name = key.replace("-", " ").title()
+        channel = discord.utils.get(guild.text_channels, name=channel_name)
+        
+        if channel:
+            try:
+                emoji = get_color_emoji(value)
+                description = f"{emoji} {value}/100"
+                await channel.edit(topic=description)
+                updated_count += 1
+            except:
+                pass
+    
+    embed = discord.Embed(
+        title="✅ TOUS LES STATS MIS À JOUR",
+        description=f"**{len(new_stats)} employés mises à jour**\n**{updated_count} channels descriptions mises à jour**",
+        color=EMS_RED
+    )
+    
+    # Ajouter les détails
+    stats_text = "\n".join([f"`{k}`: {v}/100" for k, v in list(new_stats.items())[:10]])
+    embed.add_field(name="Premiers 10 employés", value=stats_text, inline=False)
+    embed.set_footer(text="🚑 EMS System | Force Update All")
+    
+    await interaction.followup.send(embed=embed)
+
 @bot.tree.command(name="update_colors", description="Met à jour les couleurs de tous les channels selon les quotas")
 @app_commands.checks.has_permissions(administrator=True)
 async def update_colors(interaction: discord.Interaction):
