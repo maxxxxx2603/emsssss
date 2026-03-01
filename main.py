@@ -754,18 +754,19 @@ async def info(interaction: discord.Interaction):
         ),
         inline=False
     )
-      # Section prime soir�e
-      embed.add_field(
-          name=" Prime d'Activit� Soir�e",
-          value=(
-              "**Bonus 1M par soir entre 21h-23h**\n"
-              " Effectuez au moins 1 r�animation entre 21h et 23h\n"
-              " Gagnez automatiquement +1M (primes � la fin de la semaine)\n"
-              " Consultez votre progression dans la **description de votre channel personnel**\n"
-              " La progression s'affiche comme :  75/100 1M"
-          ),
-          inline=False
-      )
+
+    # Section prime soir�e
+    embed.add_field(
+        name=" Prime d'Activit� Soir�e",
+        value=(
+            "**Bonus 1M par soir entre 21h-23h**\n"
+            " Effectuez au moins 1 r�animation entre 21h et 23h\n"
+            " Gagnez automatiquement +1M (primes � la fin de la semaine)\n"
+            " Consultez votre progression dans la **description de votre channel personnel**\n"
+            " La progression s'affiche comme :  75/100 1M"
+        ),
+        inline=False
+    )
 
 
     # Section nourriture
@@ -4106,6 +4107,8 @@ if __name__ == "__main__":
                 else:
                     print(f"❌ Nombre maximum de tentatives atteint ({max_retries}). Arrêt définitif.")
                     break
+
+
 
 
 
