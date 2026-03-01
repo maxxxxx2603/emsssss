@@ -2901,6 +2901,30 @@ async def on_ready():
     stats = load_stats()
     print(f'📊 Stats chargées: {len(stats)} employés, {sum(stats.values())} réas totales')
     
+    # MISE À JOUR AUTOMATIQUE DES DESCRIPTIONS DES CHANNELS
+    try:
+        guild = bot.get_guild(config["GUILD_ID"])
+        if guild:
+            updated_count = 0
+            for key, value in stats.items():
+                # Chercher le channel correspondant
+                displayname = key.replace("-", " ").title()
+                channel = discord.utils.get(guild.text_channels, name=displayname)
+                
+                if channel:
+                    try:
+                        emoji = get_color_emoji(value)
+                        description = f"{emoji} {value}/100"
+                        await channel.edit(topic=description)
+                        updated_count += 1
+                    except:
+                        pass
+            
+            if updated_count > 0:
+                print(f'✅ Descriptions mises à jour: {updated_count}/{len(stats)} channels')
+    except Exception as e:
+        print(f'⚠️ Erreur mise à jour descriptions: {e}')
+    
     # Créer un backup des stats au démarrage
     if stats:
         try:
