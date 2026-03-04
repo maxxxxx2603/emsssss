@@ -2978,11 +2978,107 @@ async def setup_appointment(interaction: discord.Interaction):
 
 @bot.event
 async def on_error(event, *args, **kwargs):
-    """Gestionnaire d'erreurs global pour éviter les crashs complets"""
+    """Gestionnaire d'erreurs global"""
     import sys
     import traceback
     print(f"❌ Erreur dans {event}:", file=sys.stderr)
     traceback.print_exc()
+
+@bot.event
+async def on_message(message):
+    """Compte les réas quand un utilisateur envoie une réa avec pièces jointes"""
+    # Ignorer les messages du bot
+    if message.author.bot:
+        return
+    
+    # Ignorer les messages sans pièces jointes
+    if not message.attachments:
+        await bot.process_commands(message)
+        return
+    
+    try:
+        # Obtenir le channel et l'employé associé
+        channel = message.channel
+        if not channel or not channel.name:
+            await bot.process_commands(message)
+            return
+        
+        # Vérifier que c'est un channel EMS (commence par emoji)
+        if not (channel.name and len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]):
+            await bot.process_commands(message)
+            return
+        
+        # Obtenir la clé employé du channel
+        employee_key = get_channel_employee_key(channel)
+        if not employee_key:
+            await bot.process_commands(message)
+            return
+        
+        # Charger les stats
+        stats = load_stats()
+        
+        # Incrémenter le compteur
+        if employee_key not in stats:
+            stats[employee_key] = 0
+        
+        stats[employee_key] += 1
+        current_count = stats[employee_key]
+        
+        # Sauvegarder les stats
+        save_stats(stats)
+        
+        # Ajouter réaction ✅
+        try:
+            await message.add_reaction("✅")
+        except:
+            pass
+        
+        # Mettre à jour la couleur du channel si nécessaire
+        try:
+            current_emoji = channel.name[0]
+            new_emoji = get_color_emoji(current_count)
+            
+            if current_emoji != new_emoji:
+                new_channel_name = f"{new_emoji}{channel.name[1:]}"
+                await channel.edit(name=new_channel_name)
+        except:
+            pass
+        
+        # Mettre à jour la description du channel
+        try:
+            emoji = get_color_emoji(current_count)
+            
+            # Vérifier les bonus (entre 21h et 23h)
+            now = datetime.now()
+            is_bonus_time = 21 <= now.hour < 23
+            bonus_text = ""
+            
+            if is_bonus_time:
+                if award_bonus(employee_key):
+                    bonus_text = " 1M NEW"
+                else:
+                    bonus_text = " 1M"
+            
+            description = f"{emoji} {current_count}/100{bonus_text}"
+            await channel.edit(topic=description)
+        except:
+            pass
+        
+        # Envoyer log
+        log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+        if log_channel:
+            try:
+                emoji = get_color_emoji(current_count)
+                message_text = f"✅ **{employee_key}** | {current_count} réas"
+                await log_channel.send(message_text)
+            except:
+                pass
+    
+    except Exception as e:
+        print(f"❌ Erreur on_message: {e}")
+    
+    # Traiter les commandes slash
+    await bot.process_commands(message)
 
 @bot.event
 async def on_ready():
@@ -4322,9 +4418,6 @@ async def on_ready():
     if not auto_backup_stats.is_running():
         auto_backup_stats.start()
         print('✅ Tâche de sauvegarde automatique démarrée')
-    
-    # Planifier la mise à jour des descriptions en arrière-plan (après 10 secondes)
-    asyncio.create_task(update_descriptions_delayed(stats))
 
 async def update_descriptions_delayed(stats):
     """Met à jour les descriptions 10 secondes après le démarrage"""
