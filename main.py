@@ -172,7 +172,7 @@ def load_stats():
         "marc-zenter": 59,
         "balake-andrew": 48,
         "max-ferdinand": 43,
-        "jorghen-monteiro-mbombo": 42,
+        "jorghen-monteiro-mbombo": 80,
         "thomas-bult": 37,
         "mouloud-pembele": 15,
         "jason-trigo": 14,
