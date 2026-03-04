@@ -1131,6 +1131,57 @@ async def force_update_all(interaction: discord.Interaction):
     
     await interaction.followup.send(embed=embed)
 
+@bot.tree.command(name="fix_emojis", description="Corrige les emojis et descriptions de tous les salons EMS")
+@app_commands.checks.has_permissions(administrator=True)
+async def fix_emojis(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    stats = load_stats()
+    
+    updated_count = 0
+    failed_count = 0
+    skipped_count = 0
+    
+    # Délai entre chaque mise à jour pour éviter le rate limiting
+    DELAY_BETWEEN_UPDATES = 1.5  # secondes
+    
+    for key, value in stats.items():
+        try:
+            # Chercher le channel correspondant
+            displayname = key.replace("-", " ").title()
+            channel = discord.utils.get(guild.text_channels, name=displayname)
+            
+            if channel:
+                try:
+                    emoji = get_color_emoji(value)
+                    description = f"{emoji} {value}/100"
+                    await channel.edit(topic=description)
+                    updated_count += 1
+                    # Délai pour éviter le rate limiting
+                    await asyncio.sleep(DELAY_BETWEEN_UPDATES)
+                except Exception as e:
+                    failed_count += 1
+                    print(f"❌ Erreur mise à jour {key}: {e}")
+            else:
+                skipped_count += 1
+                
+        except Exception as e:
+            failed_count += 1
+            print(f"❌ Erreur traitement {key}: {e}")
+    
+    embed = discord.Embed(
+        title="✅ CORRECTION DES EMOJIS COMPLÉTÉE",
+        description=f"Mise à jour des descriptions de salons",
+        color=EMS_RED
+    )
+    embed.add_field(name="✅ Mis à jour", value=f"{updated_count} salons", inline=True)
+    embed.add_field(name="⏭️ Ignorés", value=f"{skipped_count} salons", inline=True)
+    embed.add_field(name="❌ Erreurs", value=f"{failed_count} salons", inline=True)
+    embed.set_footer(text="🚑 EMS System | Fix Emojis")
+    
+    await interaction.followup.send(embed=embed)
+
 @bot.tree.command(name="update_colors", description="Met à jour les couleurs de tous les channels selon les quotas")
 @app_commands.checks.has_permissions(administrator=True)
 async def update_colors(interaction: discord.Interaction):
