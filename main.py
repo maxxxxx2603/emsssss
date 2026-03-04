@@ -4497,40 +4497,12 @@ async def on_message(message):
         stats[employee_key] += 1
         current_count = stats[employee_key]
         
-        # Sauvegarder les stats
+        # Sauvegarder les stats IMMÉDIATEMENT
         save_stats(stats)
         
         # Ajouter réaction ✅
         try:
             await message.add_reaction("✅")
-        except:
-            pass
-        
-        # Mettre à jour la couleur du channel si nécessaire
-        try:
-            current_emoji = channel.name[0]
-            new_emoji = get_color_emoji(current_count)
-            
-            if current_emoji != new_emoji:
-                new_channel_name = f"{new_emoji}{channel.name[1:]}"
-                await channel.edit(name=new_channel_name)
-        except:
-            pass
-        
-        # Mettre à jour la description avec bonus cumulatif par semaine
-        try:
-            emoji = get_color_emoji(current_count)
-            
-            # Obtenir le nombre de jours avec bonus cette semaine
-            bonus_days = award_bonus_week(employee_key)
-            bonus_text = ""
-            
-            if bonus_days > 0:
-                # Format: 1M, 2M, 3M... jusqu'à 7M
-                bonus_text = f" {bonus_days}M"
-            
-            description = f"{emoji} {current_count}/100{bonus_text}"
-            await channel.edit(topic=description)
         except:
             pass
         
