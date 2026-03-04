@@ -4522,6 +4522,73 @@ async def on_message(message):
     # Traiter les commandes slash
     await bot.process_commands(message)
 
+# --- TÂCHE DE MISE À JOUR DES DESCRIPTIONS AVEC DÉLAI ---
+@update_descriptions_background.before_loop
+async def before_update_descriptions():
+    """Attendre que le bot soit prêt"""
+    await bot.wait_until_ready()
+
+@tasks.loop(minutes=3)
+async def update_descriptions_background():
+    """Met à jour les descriptions de tous les channels EMS toutes les 3 minutes"""
+    try:
+        guild = bot.get_guild(config["GUILD_ID"])
+        if not guild:
+            return
+        
+        stats = load_stats()
+        updated_count = 0
+        
+        for key, value in stats.items():
+            try:
+                # Chercher le channel EMS qui correspond à cet employé
+                channel = None
+                for ch in guild.text_channels:
+                    if ch.name and len(ch.name) > 0 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+                        ch_employee_key = get_channel_employee_key(ch)
+                        if ch_employee_key == key:
+                            channel = ch
+                            break
+                
+                if channel:
+                    # Mettre à jour la couleur du channel
+                    try:
+                        current_emoji = channel.name[0]
+                        new_emoji = get_color_emoji(value)
+                        
+                        if current_emoji != new_emoji:
+                            new_channel_name = f"{new_emoji}{channel.name[1:]}"
+                            await channel.edit(name=new_channel_name)
+                    except:
+                        pass
+                    
+                    # Mettre à jour la description
+                    try:
+                        emoji = get_color_emoji(value)
+                        
+                        # Obtenir le nombre de jours avec bonus cette semaine
+                        bonus_days = get_week_bonus_count(key)
+                        bonus_text = ""
+                        
+                        if bonus_days > 0:
+                            bonus_text = f" {bonus_days}M"
+                        
+                        description = f"{emoji} {value}/100{bonus_text}"
+                        await channel.edit(topic=description)
+                        updated_count += 1
+                    except:
+                        pass
+                    
+                    # DÉLAI DE 2 SECONDES POUR ÉVITER LES 429
+                    await asyncio.sleep(2)
+            except Exception as e:
+                pass
+        
+        if updated_count > 0:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Descriptions mises à jour: {updated_count}/{len(stats)} channels")
+    except Exception as e:
+        print(f"❌ Erreur update_descriptions_background: {e}")
+
 @bot.event
 async def on_ready():
     print(f'✅ Bot: {bot.user}')
@@ -4547,53 +4614,10 @@ async def on_ready():
     if not auto_backup_stats.is_running():
         auto_backup_stats.start()
         print('✅ Tâche de sauvegarde automatique démarrée')
-
-async def update_descriptions_delayed(stats):
-    """Met à jour les descriptions 10 secondes après le démarrage"""
-    await asyncio.sleep(10)  # Attendre 10 secondes que Discord se stabilise
     
-    try:
-        guild = bot.get_guild(config["GUILD_ID"])
-        if guild:
-            updated_count = 0
-            for key, value in stats.items():
-                # Chercher le channel EMS qui correspond à cet employé
-                channel = None
-                for ch in guild.text_channels:
-                    if ch.name and len(ch.name) > 0 and ch.name[0] in ["🔴", "🟠", "🟢"]:
-                        ch_employee_key = get_channel_employee_key(ch)
-                        if ch_employee_key == key:
-                            channel = ch
-                            break
-                
-                if channel:
-                    try:
-                        emoji = get_color_emoji(value)
-                        
-                        # Vérifier les bonus (entre 21h et 23h)
-                        now = datetime.now()
-                        is_bonus_time = 21 <= now.hour < 23
-                        bonus_text = ""
-                        
-                        if is_bonus_time:
-                            if award_bonus(key):
-                                bonus_text = " 1M NEW"
-                            else:
-                                bonus_text = " 1M"
-                        
-                        description = f"{emoji} {value}/100{bonus_text}"
-                        await channel.edit(topic=description)
-                        updated_count += 1
-                        
-                        # DÉLAI DE 2 SECONDES POUR ÉVITER LES 429
-                        await asyncio.sleep(2)
-                    except Exception as e:
-                        pass
-            
-            if updated_count > 0:
-                print(f'✅ Descriptions mises à jour en arrière-plan: {updated_count}/{len(stats)} channels')
-    except Exception as e:
-        print(f'⚠️ Erreur mise à jour descriptions: {e}')
+    if not update_descriptions_background.is_running():
+        update_descriptions_background.start()
+        print('✅ Tâche de mise à jour des descriptions démarrée (toutes les 3 min)')
 
 # --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
 @tasks.loop(minutes=5)
