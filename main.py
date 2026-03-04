@@ -4388,9 +4388,6 @@ async def auto_backup_stats():
 async def before_auto_backup():
     await bot.wait_until_ready()
 
-# Démarrer la tâche automatique
-auto_backup_stats.start()
-
 if __name__ == "__main__":
     if not config['TOKEN']:
         print("Erreur: TOKEN manquant. Vérifiez votre fichier config.json ou vos variables d'environnement.")
