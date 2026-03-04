@@ -164,16 +164,47 @@ bot = EMSBot()
 
 # --- GESTION DES STATS ---
 def load_stats():
+    # Données par défaut (15 employés) 
+    DEFAULT_STATS = {
+        "mat-duja": 154,
+        "wilson-koffi": 134,
+        "marc-zenter": 59,
+        "balake-andrew": 48,
+        "thomas-bult": 37,
+        "max-ferdinand": 36,
+        "mouloud-pembele": 15,
+        "jason-trigo": 14,
+        "farid-lamatraque": 7,
+        "mehmet-momo": 5,
+        "imran-meknessi": 4,
+        "alvaro-benz": 3,
+        "jean-dan": 3,
+        "melano-montasart": 5,
+        "jorghen-monteiro-mbombo": 3
+    }
+    
     if not os.path.exists(STATS_FILE):
-        return {}
+        # Fichier n'existe pas - créer avec les données par défaut
+        atomic_write_json(STATS_FILE, DEFAULT_STATS)
+        return DEFAULT_STATS
+    
     try:
         with open(STATS_FILE, 'r', encoding='utf-8') as f:
             data = f.read().strip()
             if not data:
-                return {}
-            return json.loads(data)
+                # Fichier vide - créer avec les données par défaut
+                atomic_write_json(STATS_FILE, DEFAULT_STATS)
+                return DEFAULT_STATS
+            loaded = json.loads(data)
+            # Si le fichier est vide (dict vide), utiliser par défaut
+            if not loaded:
+                atomic_write_json(STATS_FILE, DEFAULT_STATS)
+                return DEFAULT_STATS
+            return loaded
     except:
-        return {}
+        # Erreur de parsing - utiliser par défaut
+        atomic_write_json(STATS_FILE, DEFAULT_STATS)
+        return DEFAULT_STATS
 
 def save_stats(stats):
     atomic_write_json(STATS_FILE, stats)
