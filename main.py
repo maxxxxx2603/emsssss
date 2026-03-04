@@ -4305,18 +4305,35 @@ async def on_ready():
     stats = load_stats()
     print(f'📊 Stats chargées: {len(stats)} employés, {sum(stats.values())} réas totales')
     
-    # MISE À JOUR AUTOMATIQUE DES DESCRIPTIONS AVEC BONUS + DÉLAIS
+    # Créer un backup des stats au démarrage
+    if stats:
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = f"stats_backup_{timestamp}.json"
+            with open(backup_path, 'w', encoding='utf-8') as f:
+                json.dump(stats, f, ensure_ascii=False, indent=2)
+            print(f'💾 Backup créé: {backup_path}')
+        except Exception as e:
+            print(f'⚠️ Erreur backup: {e}')
+    
+    print('✅ Bot prêt - Sauvegarde automatique activée')
+    
+    # Planifier la mise à jour des descriptions en arrière-plan (après 10 secondes)
+    asyncio.create_task(update_descriptions_delayed(stats))
+
+async def update_descriptions_delayed(stats):
+    """Met à jour les descriptions 10 secondes après le démarrage"""
+    await asyncio.sleep(10)  # Attendre 10 secondes que Discord se stabilise
+    
     try:
         guild = bot.get_guild(config["GUILD_ID"])
         if guild:
             updated_count = 0
             for key, value in stats.items():
                 # Chercher le channel EMS qui correspond à cet employé
-                # Les channels EMS ont le format: 🟢employee-key ou emoji + employee-key
                 channel = None
                 for ch in guild.text_channels:
                     if ch.name and len(ch.name) > 0 and ch.name[0] in ["🔴", "🟠", "🟢"]:
-                        # Extraire la clé employé du nom du channel (sans l'emoji)
                         ch_employee_key = get_channel_employee_key(ch)
                         if ch_employee_key == key:
                             channel = ch
@@ -4341,28 +4358,15 @@ async def on_ready():
                         await channel.edit(topic=description)
                         updated_count += 1
                         
-                        # DÉLAI DE 1.5s POUR ÉVITER LES 429
-                        await asyncio.sleep(1.5)
+                        # DÉLAI DE 2 SECONDES POUR ÉVITER LES 429
+                        await asyncio.sleep(2)
                     except Exception as e:
                         pass
             
             if updated_count > 0:
-                print(f'✅ Descriptions mises à jour: {updated_count}/{len(stats)} channels')
+                print(f'✅ Descriptions mises à jour en arrière-plan: {updated_count}/{len(stats)} channels')
     except Exception as e:
         print(f'⚠️ Erreur mise à jour descriptions: {e}')
-    
-    # Créer un backup des stats au démarrage
-    if stats:
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = f"stats_backup_{timestamp}.json"
-            with open(backup_path, 'w', encoding='utf-8') as f:
-                json.dump(stats, f, ensure_ascii=False, indent=2)
-            print(f'💾 Backup créé: {backup_path}')
-        except Exception as e:
-            print(f'⚠️ Erreur backup: {e}')
-    
-    print('✅ Bot prêt - Sauvegarde automatique activée')
 
 if __name__ == "__main__":
     if not config['TOKEN']:
