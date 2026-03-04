@@ -2992,7 +2992,7 @@ async def on_ready():
     stats = load_stats()
     print(f'📊 Stats chargées: {len(stats)} employés, {sum(stats.values())} réas totales')
     
-    # MISE À JOUR AUTOMATIQUE DES DESCRIPTIONS DES CHANNELS
+    # MISE À JOUR AUTOMATIQUE DES DESCRIPTIONS DES CHANNELS (avec bonus)
     try:
         guild = bot.get_guild(config["GUILD_ID"])
         if guild:
@@ -3005,7 +3005,18 @@ async def on_ready():
                 if channel:
                     try:
                         emoji = get_color_emoji(value)
-                        description = f"{emoji} {value}/100"
+                        
+                        # Ajouter les bonus si entre 21h-23h
+                        bonus_text = ""
+                        now = datetime.now()
+                        if 21 <= now.hour < 23:
+                            # C'est entre 21h et 23h
+                            if award_bonus(key):  # Première réa de la journée
+                                bonus_text = " 1M NEW"
+                            else:
+                                bonus_text = " 1M"
+                        
+                        description = f"{emoji} {value}/100{bonus_text}"
                         await channel.edit(topic=description)
                         updated_count += 1
                     except:
