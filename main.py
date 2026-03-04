@@ -4297,6 +4297,66 @@ async def synchronise(interaction: discord.Interaction):
         embed_error.set_footer(text="🚑 EMS System")
         await interaction.followup.send(embed=embed_error)
 
+@bot.event
+async def on_ready():
+    print(f'✅ Bot: {bot.user}')
+    
+    # Charger les stats existantes
+    stats = load_stats()
+    print(f'📊 Stats chargées: {len(stats)} employés, {sum(stats.values())} réas totales')
+    
+    # MISE À JOUR AUTOMATIQUE DES DESCRIPTIONS AVEC BONUS + DÉLAIS
+    try:
+        guild = bot.get_guild(config["GUILD_ID"])
+        if guild:
+            updated_count = 0
+            for key, value in stats.items():
+                # Chercher le channel correspondant
+                displayname = key.replace("-", " ").title()
+                channel = discord.utils.get(guild.text_channels, name=displayname)
+                
+                if channel:
+                    try:
+                        emoji = get_color_emoji(value)
+                        
+                        # Vérifier les bonus (entre 21h et 23h)
+                        now = datetime.now()
+                        is_bonus_time = 21 <= now.hour < 23
+                        bonus_text = ""
+                        
+                        if is_bonus_time:
+                            if award_bonus(key):
+                                bonus_text = " 1M NEW"
+                            else:
+                                bonus_text = " 1M"
+                        
+                        description = f"{emoji} {value}/100{bonus_text}"
+                        await channel.edit(topic=description)
+                        updated_count += 1
+                        
+                        # DÉLAI DE 1.5s POUR ÉVITER LES 429
+                        await asyncio.sleep(1.5)
+                    except Exception as e:
+                        pass
+            
+            if updated_count > 0:
+                print(f'✅ Descriptions mises à jour: {updated_count}/{len(stats)} channels')
+    except Exception as e:
+        print(f'⚠️ Erreur mise à jour descriptions: {e}')
+    
+    # Créer un backup des stats au démarrage
+    if stats:
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = f"stats_backup_{timestamp}.json"
+            with open(backup_path, 'w', encoding='utf-8') as f:
+                json.dump(stats, f, ensure_ascii=False, indent=2)
+            print(f'💾 Backup créé: {backup_path}')
+        except Exception as e:
+            print(f'⚠️ Erreur backup: {e}')
+    
+    print('✅ Bot prêt - Sauvegarde automatique activée')
+
 if __name__ == "__main__":
     if not config['TOKEN']:
         print("Erreur: TOKEN manquant. Vérifiez votre fichier config.json ou vos variables d'environnement.")
