@@ -4318,6 +4318,11 @@ async def on_ready():
     
     print('✅ Bot prêt - Sauvegarde automatique activée')
     
+    # Démarrer les tâches automatiques si elles ne sont pas déjà en train de tourner
+    if not auto_backup_stats.is_running():
+        auto_backup_stats.start()
+        print('✅ Tâche de sauvegarde automatique démarrée')
+    
     # Planifier la mise à jour des descriptions en arrière-plan (après 10 secondes)
     asyncio.create_task(update_descriptions_delayed(stats))
 
@@ -4367,6 +4372,24 @@ async def update_descriptions_delayed(stats):
                 print(f'✅ Descriptions mises à jour en arrière-plan: {updated_count}/{len(stats)} channels')
     except Exception as e:
         print(f'⚠️ Erreur mise à jour descriptions: {e}')
+
+# --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
+@tasks.loop(minutes=5)
+async def auto_backup_stats():
+    """Sauvegarde automatique des stats toutes les 5 minutes"""
+    try:
+        stats = load_stats()
+        atomic_write_json(STATS_FILE, stats, make_backup=True)
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Sauvegarde automatique des stats effectuée ({len(stats)} employés, {sum(stats.values())} réas)")
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde automatique: {e}")
+
+@auto_backup_stats.before_loop
+async def before_auto_backup():
+    await bot.wait_until_ready()
+
+# Démarrer la tâche automatique
+auto_backup_stats.start()
 
 if __name__ == "__main__":
     if not config['TOKEN']:
