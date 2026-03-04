@@ -4311,9 +4311,16 @@ async def on_ready():
         if guild:
             updated_count = 0
             for key, value in stats.items():
-                # Chercher le channel correspondant
-                displayname = key.replace("-", " ").title()
-                channel = discord.utils.get(guild.text_channels, name=displayname)
+                # Chercher le channel EMS qui correspond à cet employé
+                # Les channels EMS ont le format: 🟢employee-key ou emoji + employee-key
+                channel = None
+                for ch in guild.text_channels:
+                    if ch.name and len(ch.name) > 0 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+                        # Extraire la clé employé du nom du channel (sans l'emoji)
+                        ch_employee_key = get_channel_employee_key(ch)
+                        if ch_employee_key == key:
+                            channel = ch
+                            break
                 
                 if channel:
                     try:
