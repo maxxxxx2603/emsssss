@@ -304,60 +304,65 @@ def save_giveaways(giveaways):
 # --- SYSTEME DE RÉACTIONS ET COMPTAGE TAXI ---
 
 def load_bonuses():
-    """Charge les bonus journaliers"""
-    if os.path.exists("bonuses.json"):
-        try:
-            with open("bonuses.json", "r") as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
+    """Charge les bonus journaliers (format: {'employee-key_YYYY-MM-DD': 1})"""
+    return robust_load_json("bonuses.json", {})
 
 def save_bonuses(bonuses):
     """Sauvegarde les bonus journaliers"""
-    with open("bonuses.json", "w") as f:
-        json.dump(bonuses, f, indent=2)
+    atomic_write_json("bonuses.json", bonuses, make_backup=True)
+
+def get_today_bonus(employee_key: str) -> int:
+    """Retourne le bonus total d'aujourd'hui pour cet employé (0 ou 1M)"""
+    bonuses = load_bonuses()
+    today = datetime.now().strftime("%Y-%m-%d")
+    bonus_key = f"{employee_key}_{today}"
+    # Retourne 1 si la clé existe, sinon 0
+    return 1 if bonus_key in bonuses else 0
+
+def award_bonus(employee_key: str) -> bool:
+    """Attribue le bonus 1M de la soirée si pas déjà donné aujourd'hui"""
+    bonuses = load_bonuses()
+    today = datetime.now().strftime("%Y-%m-%d")
+    bonus_key = f"{employee_key}_{today}"
+    
+    if bonus_key not in bonuses:
+        bonuses[bonus_key] = 1
+        save_bonuses(bonuses)
+        return True  # Bonus attribué
+    return False  # Bonus déjà reçu
+
+def get_total_bonuses(employee_key: str) -> int:
+    """Retourne le nombre total de primes jamais reçues par cet employé"""
+    bonuses = load_bonuses()
+    total = 0
+    for key, value in bonuses.items():
+        if key.startswith(f"{employee_key}_"):
+            total += value
+    return total
 
 async def update_channel_description(channel: discord.TextChannel, count: int):
     """Met � jour la description du channel avec r�a et prime soir 1M"""
     try:
-        from datetime import datetime
         emoji = get_color_emoji(count)
+        employee_key = get_channel_employee_key(channel)
         
-        # V�rifier si c'est entre 21h et 23h
+        if not employee_key:
+            return
+        
+        # Vérifier si c'est entre 21h et 23h pour la prime soirée
         current_hour = datetime.now().hour
         bonus_text = ""
         
         if 21 <= current_hour < 23:
-            # Charger les bonus
-            bonuses = load_bonuses()
-            channel_id = str(channel.id)
-            today = datetime.now().strftime("%Y-%m-%d")
-            
-            # Cl� unique pour ce channel aujourd'hui
-            bonus_key = f"{channel_id}_{today}"
-            
-            # Donner 1M une seule fois ce soir si pas d�j� donn�
-            if bonus_key not in bonuses:
-                bonuses[bonus_key] = True
-                save_bonuses(bonuses)
-                bonus_text = " 1M"
+            if award_bonus(employee_key):
+                bonus_text = " 1M NEW"  # Bonus fraîchement attribué
             else:
-                bonus_text = " 1M"
-        else:
-            # R�initialiser les bonus hors heures bonus
-            bonuses = load_bonuses()
-            channel_id = str(channel.id)
-            for key in list(bonuses.keys()):
-                if key.startswith(channel_id):
-                    del bonuses[key]
-            save_bonuses(bonuses)
+                bonus_text = " 1M"  # Bonus déjà reçu aujourd'hui
         
         description = f"{emoji} {count}/100{bonus_text}"
         await channel.edit(topic=description)
     except Exception as e:
-        pass
-
+        print(f"Erreur update_channel_description: {e}")
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -459,7 +464,7 @@ async def on_message(message):
                 pass
 
 # --- COMMANDES ADMIN ---
-@bot.tree.command(name="total", description="Affiche le total des réactions")
+@bot.tree.command(name="total", description="Affiche le total des réactions + primes")
 @app_commands.checks.has_permissions(administrator=True)
 async def total(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -512,7 +517,10 @@ async def total(interaction: discord.Interaction):
         emoji = get_color_emoji(count)
         # Afficher le nom joliment formaté
         display_name = ' '.join([p.capitalize() for p in name.split('-')])
-        current_embed.add_field(name=f"{emoji} {display_name}", value=f"{count}/100", inline=False)
+        # Ajouter les primes totales
+        total_bonuses = get_total_bonuses(name)
+        bonus_text = f" (+{total_bonuses}M primes)" if total_bonuses > 0 else ""
+        current_embed.add_field(name=f"{emoji} {display_name}", value=f"{count}/100{bonus_text}", inline=False)
         field_count += 1
     
     # Ajouter le dernier embed avec le footer
@@ -520,13 +528,14 @@ async def total(interaction: discord.Interaction):
         current_embed.set_footer(text="🚑 EMS System")
         embeds.append(current_embed)
     
-    # Calculer le total des réactions
+    # Calculer le total des réactions et primes
     total_reactions = sum(grouped_stats.values())
+    total_all_bonuses = sum(get_total_bonuses(name) for name, _ in grouped_stats.items())
     
     # Ajouter un dernier embed avec le résumé
     summary_embed = discord.Embed(
         title="📊 RÉSUMÉ DE CETTE SEMAINE",
-        description=f"**Total des réactions :** `{total_reactions}` 🎯",
+        description=f"**Total des réactions :** `{total_reactions}` 🎯\n**Total des primes :** `{total_all_bonuses}M` 💰",
         color=EMS_RED
     )
     summary_embed.set_footer(text="🚑 EMS System")
