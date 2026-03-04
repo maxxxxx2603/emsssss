@@ -30,6 +30,7 @@ STATS_FILE = 'stats.json'
 TAXI_STATS_FILE = 'taxi_stats.json'
 CHANNEL_MAP_FILE = 'channel_map.json'
 CATEGORIES_FILE = 'categories.json'
+BONUSES_WEEK_FILE = 'bonuses_week.json'
 
 # Configuration Taxi
 TAXI_CHANNEL_ID = 1457304629456011264
@@ -208,6 +209,69 @@ def load_stats():
 
 def save_stats(stats):
     atomic_write_json(STATS_FILE, stats)
+
+# --- GESTION DES BONUSES CUMULATIFS PAR SEMAINE ---
+def get_week_start():
+    """Retourne la date du lundi de cette semaine"""
+    today = datetime.now()
+    monday = today - timedelta(days=today.weekday())
+    return monday.strftime("%Y-%m-%d")
+
+def load_bonuses_week():
+    """Charge les bonuses cumulatifs de cette semaine"""
+    default = {}
+    if not os.path.exists(BONUSES_WEEK_FILE):
+        return default
+    return robust_load_json(BONUSES_WEEK_FILE, default)
+
+def save_bonuses_week(bonuses):
+    """Sauvegarde les bonuses cumulatifs"""
+    atomic_write_json(BONUSES_WEEK_FILE, bonuses)
+
+def get_week_bonus_count(employee_key):
+    """Retourne le nombre de jours avec bonus cette semaine (1M, 2M, 3M...)"""
+    bonuses = load_bonuses_week()
+    week_start = get_week_start()
+    key = f"{employee_key}_{week_start}"
+    
+    if key not in bonuses:
+        return 0
+    
+    # Retourner le nombre de jours distincts
+    days = bonuses[key]
+    if isinstance(days, list):
+        return len(set(days))
+    return 0
+
+def award_bonus_week(employee_key):
+    """
+    Ajoute un bonus pour aujourd'hui si entre 21h-23h
+    Retourne le nombre total de jours avec bonus cette semaine
+    """
+    now = datetime.now()
+    
+    # Vérifier que c'est entre 21h et 23h
+    if not (21 <= now.hour < 23):
+        return 0
+    
+    bonuses = load_bonuses_week()
+    week_start = get_week_start()
+    today = now.strftime("%Y-%m-%d")
+    key = f"{employee_key}_{week_start}"
+    
+    # Initialiser la liste si elle n'existe pas
+    if key not in bonuses:
+        bonuses[key] = []
+    
+    # Ajouter la date d'aujourd'hui si pas déjà présente
+    if today not in bonuses[key]:
+        bonuses[key].append(today)
+    
+    # Sauvegarder
+    save_bonuses_week(bonuses)
+    
+    # Retourner le nombre total de jours distincts
+    return len(set(bonuses[key]))
 
 def normalize_employee_key(name: str) -> str:
     """Normalise un identifiant d'employé pour correspondre aux clés de stats.json.
@@ -4392,6 +4456,99 @@ async def synchronise(interaction: discord.Interaction):
         )
         embed_error.set_footer(text="🚑 EMS System")
         await interaction.followup.send(embed=embed_error)
+
+@bot.event
+async def on_message(message):
+    """Compte les réas quand un utilisateur envoie une réa avec pièces jointes"""
+    # Ignorer les messages du bot
+    if message.author.bot:
+        return
+    
+    # Ignorer les messages sans pièces jointes
+    if not message.attachments:
+        await bot.process_commands(message)
+        return
+    
+    try:
+        # Obtenir le channel et l'employé associé
+        channel = message.channel
+        if not channel or not channel.name:
+            await bot.process_commands(message)
+            return
+        
+        # Vérifier que c'est un channel EMS (commence par emoji)
+        if not (channel.name and len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]):
+            await bot.process_commands(message)
+            return
+        
+        # Obtenir la clé employé du channel
+        employee_key = get_channel_employee_key(channel)
+        if not employee_key:
+            await bot.process_commands(message)
+            return
+        
+        # Charger les stats
+        stats = load_stats()
+        
+        # Incrémenter le compteur
+        if employee_key not in stats:
+            stats[employee_key] = 0
+        
+        stats[employee_key] += 1
+        current_count = stats[employee_key]
+        
+        # Sauvegarder les stats
+        save_stats(stats)
+        
+        # Ajouter réaction ✅
+        try:
+            await message.add_reaction("✅")
+        except:
+            pass
+        
+        # Mettre à jour la couleur du channel si nécessaire
+        try:
+            current_emoji = channel.name[0]
+            new_emoji = get_color_emoji(current_count)
+            
+            if current_emoji != new_emoji:
+                new_channel_name = f"{new_emoji}{channel.name[1:]}"
+                await channel.edit(name=new_channel_name)
+        except:
+            pass
+        
+        # Mettre à jour la description avec bonus cumulatif par semaine
+        try:
+            emoji = get_color_emoji(current_count)
+            
+            # Obtenir le nombre de jours avec bonus cette semaine
+            bonus_days = award_bonus_week(employee_key)
+            bonus_text = ""
+            
+            if bonus_days > 0:
+                # Format: 1M, 2M, 3M... jusqu'à 7M
+                bonus_text = f" {bonus_days}M"
+            
+            description = f"{emoji} {current_count}/100{bonus_text}"
+            await channel.edit(topic=description)
+        except:
+            pass
+        
+        # Envoyer log
+        log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+        if log_channel:
+            try:
+                emoji = get_color_emoji(current_count)
+                message_text = f"✅ **{employee_key}** | {current_count} réas"
+                await log_channel.send(message_text)
+            except:
+                pass
+    
+    except Exception as e:
+        print(f"❌ Erreur on_message: {e}")
+    
+    # Traiter les commandes slash
+    await bot.process_commands(message)
 
 @bot.event
 async def on_ready():
