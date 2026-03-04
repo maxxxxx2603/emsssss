@@ -4523,11 +4523,6 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # --- TÂCHE DE MISE À JOUR DES DESCRIPTIONS AVEC DÉLAI ---
-@update_descriptions_background.before_loop
-async def before_update_descriptions():
-    """Attendre que le bot soit prêt"""
-    await bot.wait_until_ready()
-
 @tasks.loop(minutes=3)
 async def update_descriptions_background():
     """Met à jour les descriptions de tous les channels EMS toutes les 3 minutes"""
@@ -4588,6 +4583,11 @@ async def update_descriptions_background():
             print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Descriptions mises à jour: {updated_count}/{len(stats)} channels")
     except Exception as e:
         print(f"❌ Erreur update_descriptions_background: {e}")
+
+@update_descriptions_background.before_loop
+async def before_update_descriptions():
+    """Attendre que le bot soit prêt"""
+    await bot.wait_until_ready()
 
 @bot.event
 async def on_ready():
