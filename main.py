@@ -544,8 +544,6 @@ async def on_message(message):
         stats[employee_key] += 1
         current_count = stats[employee_key]
         save_stats(stats)
-        await update_channel_description(message.channel, current_count)
-        # Pas de logique de badges: on garde simple et fiable
         
         # Ajouter réaction
         try:
@@ -553,14 +551,22 @@ async def on_message(message):
         except:
             pass
         
-        # Changer l'emoji du channel
-        current_emoji = channel_name[0]
+        # Combiner topic + emoji en un seul appel API pour éviter le rate limit
         new_emoji = get_color_emoji(current_count)
+        current_emoji = channel_name[0]
+        bonus_days = get_week_bonus_count(employee_key)
+        bonus_text = f" {bonus_days}M" if bonus_days > 0 else ""
+        new_topic = f"{new_emoji} {current_count}/100{bonus_text}"
         
+        edit_args = {}
         if current_emoji != new_emoji:
-            new_channel_name = f"{new_emoji}{channel_name[1:]}"
+            edit_args["name"] = f"{new_emoji}{channel_name[1:]}"
+        if message.channel.topic != new_topic:
+            edit_args["topic"] = new_topic
+        
+        if edit_args:
             try:
-                await message.channel.edit(name=new_channel_name)
+                await message.channel.edit(**edit_args)
             except:
                 pass
         
@@ -5568,7 +5574,7 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # --- TÂCHE DE MISE À JOUR DES DESCRIPTIONS AVEC DÉLAI ---
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=10)
 async def update_descriptions_background():
     """Met à jour les descriptions de tous les channels EMS toutes les 5 minutes"""
     try:
@@ -5622,12 +5628,12 @@ async def update_descriptions_background():
                 await channel.edit(**edit_args)
                 updated_count += 1
                 
-                # Délai de 4 secondes entre chaque channel modifié
-                await asyncio.sleep(4)
+                # Délai de 10 secondes entre chaque channel modifié (rate limit Discord: 2 PATCH/10min/channel)
+                await asyncio.sleep(10)
                 
             except Exception as e:
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur update {key}: {e}")
-                await asyncio.sleep(5)  # Délai plus long en cas d'erreur
+                await asyncio.sleep(15)  # Délai plus long en cas d'erreur
         
         if updated_count > 0:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔄 Descriptions: {updated_count} modifiés, {skipped_count} inchangés")
@@ -5661,7 +5667,7 @@ async def on_ready():
     if not update_descriptions_background.is_running():
         update_descriptions_background.start()
     
-    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (5min) activées')
+    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) activées')
 
 # --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
 @tasks.loop(minutes=5)
