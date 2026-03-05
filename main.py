@@ -4950,37 +4950,40 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                 member = guild.get_member(self.target_user.id)
                                 
                                 if member:
-                                    # Relancer le MP pour remettre les dispo
-                                    embed_retry = discord.Embed(
-                                        title="📅 ❌ Disponibilités Refusées",
-                                        description=f"Bonjour {user_name},\n\nVos disponibilités ont été refusées par la direction.\n\nVeuillez les remettre à jour via le bouton ci-dessous.",
-                                        color=discord.Color.red()
-                                    )
-                                    embed_retry.set_footer(text="🚑 EMS System | Nouvelle tentative")
+                                    # Retirer tous les rôles sauf citoyen
+                                    for role in member.roles:
+                                        if role.id in [ROLE_EMT_1, ROLE_EMT_2, ROLE_EMT_3, ROLE_PENDING_ID] and role.id != ROLE_CITOYEN:
+                                            try:
+                                                await member.remove_roles(role)
+                                            except:
+                                                pass
                                     
-                                    # Créer une classe pour le bouton dispo retry
-                                    class RetryDispoButton(discord.ui.View):
-                                        def __init__(self):
-                                            super().__init__(timeout=None)
-                                        
-                                        @discord.ui.button(label="📅 Remettre mes Disponibilités", style=discord.ButtonStyle.primary)
-                                        async def retry_dispo_button(self, btn_interaction: discord.Interaction, btn: discord.ui.Button):
-                                            """Ouvre le modal pour remettre ses dispo"""
-                                            modal = CVDispoModal(target_user=member)
-                                            await btn_interaction.response.send_modal(modal)
-                                    
-                                    retry_view = RetryDispoButton()
-                                    user_obj = bot.get_user(self.target_user.id)
-                                    if user_obj:
-                                        await user_obj.send(embed=embed_retry, view=retry_view)
+                                    # Retirer le pseudo du serveur
+                                    try:
+                                        await member.edit(nick=None)
+                                    except:
+                                        pass
                                     
                                     # Message de refus
                                     embed_refuse = discord.Embed(
-                                        title="❌ Disponibilités Refusées",
-                                        description=f"Les disponibilités de **{user_name}** ont été refusées. Un MP a été envoyé pour remettre.",
+                                        title="❌ Candidature Refusée",
+                                        description=f"**{user_name}** a été refusé(e) au recrutement.",
                                         color=discord.Color.red()
                                     )
                                     await interaction_refus.response.send_message(embed=embed_refuse, ephemeral=True)
+                                    
+                                    # DM de refus
+                                    try:
+                                        embed_refuse_dm = discord.Embed(
+                                            title="❌ Candidature Refusée",
+                                            description=f"Nous sommes désolés {user_name},\n\nVotre candidature au recrutement EMS a été refusée.\n\nVous pouvez réessayer ultérieurement.",
+                                            color=discord.Color.red()
+                                        )
+                                        user_obj = bot.get_user(self.target_user.id)
+                                        if user_obj:
+                                            await user_obj.send(embed=embed_refuse_dm)
+                                    except:
+                                        pass
                                     
                                     # Désactiver les boutons
                                     recruter_btn.disabled = True
@@ -4991,7 +4994,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     if hasattr(interaction_refus.message, 'add_reaction'):
                                         await interaction_refus.message.add_reaction("❌")
                             except Exception as e:
-                                print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur refus dispo: {e}")
+                                print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur refus recrutement: {e}")
                                 await interaction_refus.response.send_message(f"❌ Erreur: {e}", ephemeral=True)
                         
                         recruter_btn.callback = recruter_callback
@@ -5300,10 +5303,9 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                             except:
                                                 pass
                                     
-                                    # Retirer le préfixe [EMT] si présent
+                                    # Retirer le préfixe [EMT] et le pseudo du serveur
                                     try:
-                                        if member.nick and member.nick.startswith("[EMT]"):
-                                            await member.edit(nick=user_name)
+                                        await member.edit(nick=None)
                                     except:
                                         pass
                                     
