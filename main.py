@@ -57,6 +57,10 @@ ROLE_TAXI_REQUEST_ID = 1311784189984505876
 ROLE_BASE_ID = 838102445095256066  # Rôle de base à conserver
 RESET_CHANNEL_ID = 1450938023033176247
 
+# Configuration Leaderboard
+LEADERBOARD_CHANNEL_ID = 1018904202971459644
+LEADERBOARD_ROLE_ID = 838102445095256068
+
 # Configuration Giveaway
 GIVEAWAY_PING_ROLE_ID = 838102445095256068  # Rôle à ping pour les giveaways
 GIVEAWAY_FILE = 'giveaways.json'
@@ -4456,6 +4460,120 @@ async def synchronise(interaction: discord.Interaction):
         )
         embed_error.set_footer(text="🚑 EMS System")
         await interaction.followup.send(embed=embed_error)
+
+# --- COMMANDE STATS AVEC GRAPHIQUE ---
+@bot.tree.command(name="stats", description="Affiche les statistiques avec graphique ASCII")
+async def stats_command(interaction: discord.Interaction):
+    """Affiche les stats complètes des réas avec graphique"""
+    await interaction.response.defer()
+    
+    stats = load_stats()
+    if not stats:
+        await interaction.followup.send("❌ Aucune donnée disponible")
+        return
+    
+    # Trier par réas décroissants
+    sorted_stats = sorted(stats.items(), key=lambda x: x[1], reverse=True)
+    max_value = max(stats.values()) if stats else 100
+    
+    # Créer le graphique ASCII
+    graph_text = "```\n"
+    graph_text += "STATISTIQUES RÉAS\n"
+    graph_text += "=" * 50 + "\n\n"
+    
+    for i, (key, value) in enumerate(sorted_stats, 1):
+        emoji = get_color_emoji(value)
+        bar_length = int((value / max(max_value, 100)) * 25)  # Max 25 caractères
+        bar = "█" * bar_length + "░" * (25 - bar_length)
+        
+        # Normaliser le nom pour affichage
+        display_name = key.replace("-", " ").title()
+        graph_text += f"{i:2}. {emoji} {display_name:<20} │ {bar} │ {value}/100\n"
+    
+    graph_text += "\n" + "=" * 50 + "\n"
+    graph_text += f"Total: {sum(stats.values())} réas | {len(stats)} employés\n```"
+    
+    # Créer l'embed
+    embed = discord.Embed(
+        title="📊 Statistiques EMS",
+        description=graph_text,
+        color=EMS_DARK_RED
+    )
+    embed.set_footer(text=f"Mise à jour: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    
+    await interaction.followup.send(embed=embed)
+
+# --- COMMANDE LEADERBOARD AVEC ANNONCE ---
+@bot.tree.command(name="leaderboard", description="Affiche le top 5 et envoie une annonce")
+async def leaderboard_command(interaction: discord.Interaction):
+    """Affiche le leaderboard du top 5 et envoie une annonce motivante"""
+    await interaction.response.defer()
+    
+    stats = load_stats()
+    if not stats or len(stats) < 5:
+        await interaction.followup.send("❌ Pas assez de données pour un leaderboard")
+        return
+    
+    # Trier par réas décroissants
+    top_5 = sorted(stats.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    # Messages félicitations personnalisés
+    felicitations = [
+        "🥇 Félicitations pour la première place. Travail constant et très bonne implication.",
+        "🥈 Très bon travail également, continue comme ça.",
+        "🥉 Belle progression cette semaine.",
+        "4️⃣ Bonne présence et bon investissement.",
+        "5️⃣ Tu complètes le classement, continue tes efforts."
+    ]
+    
+    # Créer l'embed du classement
+    embed = discord.Embed(
+        title="🏆 Annonce – Top 5 de la semaine",
+        description="Voici le classement du Top 5 basé sur l'activité et le travail effectué :\n",
+        color=discord.Color.gold()
+    )
+    
+    for i, (key, value) in enumerate(top_5):
+        display_name = key.replace("-", " ").title()
+        emoji = get_color_emoji(value)
+        embed.add_field(
+            name=f"#{i+1} {emoji} {display_name}",
+            value=f"**{value} réas**",
+            inline=False
+        )
+    
+    embed.add_field(
+        name="",
+        value="\n".join([
+            f"{i+1}. {felicitations[i]}" 
+            for i in range(5)
+        ]),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="Bravo !",
+        value="Bravo à vous cinq pour votre activité.\nPour les autres, continuez vos interventions et vous pourrez apparaître dans le prochain classement.",
+        inline=False
+    )
+    
+    embed.set_footer(text="🚑 EMS System | Leaderboard")
+    
+    # Envoyer dans le channel d'annonce avec ping du role
+    try:
+        channel = bot.get_channel(LEADERBOARD_CHANNEL_ID)
+        role = interaction.guild.get_role(LEADERBOARD_ROLE_ID)
+        
+        if channel and role:
+            # Message avec ping du role
+            ping_msg = f"<@&{LEADERBOARD_ROLE_ID}>"
+            await channel.send(ping_msg, embed=embed)
+            await interaction.followup.send("✅ Annonce du leaderboard envoyée !")
+        else:
+            await interaction.followup.send("❌ Canal ou rôle non trouvé")
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur leaderboard: {e}")
+        await interaction.followup.send(f"❌ Erreur: {e}")
 
 @bot.event
 async def on_message(message):
