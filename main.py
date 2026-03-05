@@ -5745,9 +5745,8 @@ async def update_service_status():
                 h = total_min // 60
                 m = total_min % 60
                 duree = f"{h}h{m:02d}" if h > 0 else f"{m} min"
-                display = svc['employee_key'].replace('-', ' ').title()
                 reas = svc.get('reas_count', 0)
-                lines.append(f"🟢 **{display}** — en service depuis **{duree}** ({reas} réas)")
+                lines.append(f"🟢 <@{uid}> — en service depuis **{duree}** ({reas} réas)")
             
             description = "\n".join(lines)
             description += f"\n\n*Dernière mise à jour : {datetime.now().strftime('%H:%M:%S')}*"
