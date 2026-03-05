@@ -4864,9 +4864,12 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     except:
                                         pass
                                     
-                                    # Créer le channel privé avec emoji + nom
+                                    # Créer le channel privé avec emoji + nom dans la catégorie
                                     try:
-                                        channel_name = f"🚑-{user_name.lower().replace(' ', '-')}"
+                                        category_id = 1460041009453858826
+                                        category = guild.get_channel(category_id)
+                                        
+                                        channel_name = f"🔴{user_name.lower().replace(' ', '-')}"
                                         
                                         # Obtenir les permissions pour le channel
                                         overwrites = {
@@ -4875,10 +4878,11 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
                                         }
                                         
-                                        # Créer le channel
+                                        # Créer le channel dans la catégorie
                                         new_channel = await guild.create_text_channel(
                                             channel_name,
-                                            overwrites=overwrites
+                                            overwrites=overwrites,
+                                            category=category
                                         )
                                         
                                         # Message de bienvenue dans le channel
