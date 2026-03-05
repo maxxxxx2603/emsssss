@@ -4575,6 +4575,135 @@ async def leaderboard_command(interaction: discord.Interaction):
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur leaderboard: {e}")
         await interaction.followup.send(f"❌ Erreur: {e}")
 
+# --- MODAL POUR LES AVIS ---
+class AvisModal(discord.ui.Modal, title="📝 Donner un Avis"):
+    """Modal pour soumettre un avis sur un employé"""
+    
+    # Sélection de l'employé
+    employee = discord.ui.TextInput(
+        label="Employé concerné",
+        placeholder="Sélectionnez l'employé...",
+        required=True
+    )
+    
+    # Notation (1-5 étoiles)
+    stars = discord.ui.TextInput(
+        label="Nombre d'étoiles (1-5)",
+        placeholder="Entrez un chiffre de 1 à 5",
+        required=True,
+        min_length=1,
+        max_length=1
+    )
+    
+    # Raison (optionnel)
+    raison = discord.ui.TextInput(
+        label="Raison (optionnel)",
+        placeholder="Décrivez votre avis...",
+        required=False,
+        style=discord.TextStyle.long,
+        max_length=500
+    )
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        """Quand l'utilisateur soumet le formulaire"""
+        try:
+            # Valider les étoiles
+            try:
+                star_count = int(self.stars.value)
+                if star_count < 1 or star_count > 5:
+                    await interaction.response.send_message(
+                        "❌ Le nombre d'étoiles doit être entre 1 et 5",
+                        ephemeral=True
+                    )
+                    return
+            except ValueError:
+                await interaction.response.send_message(
+                    "❌ Veuillez entrer un chiffre valide (1-5)",
+                    ephemeral=True
+                )
+                return
+            
+            # Créer l'embed de l'avis
+            embed = discord.Embed(
+                title="⭐ Nouvel Avis Reçu",
+                color=discord.Color.gold()
+            )
+            
+            embed.add_field(name="Employé", value=self.employee.value, inline=False)
+            embed.add_field(name="Note", value="⭐" * star_count, inline=True)
+            embed.add_field(name="Raison", value=self.raison.value or "Aucune raison donnée", inline=False)
+            embed.add_field(name="Auteur", value=interaction.user.mention, inline=True)
+            embed.set_footer(text=f"Avis soumis le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
+            
+            # Envoyer dans le channel de logs
+            logs_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+            if logs_channel:
+                await logs_channel.send(embed=embed)
+            
+            await interaction.response.send_message(
+                "✅ Votre avis a été enregistré avec succès !",
+                ephemeral=True
+            )
+        except Exception as e:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur avis: {e}")
+            await interaction.response.send_message(
+                f"❌ Erreur: {e}",
+                ephemeral=True
+            )
+
+# --- BOUTON POUR DONNER UN AVIS ---
+class AvisButton(discord.ui.View):
+    """Bouton pour ouvrir le formulaire d'avis"""
+    
+    def __init__(self):
+        super().__init__(timeout=None)
+    
+    @discord.ui.button(label="📝 Donner un Avis", style=discord.ButtonStyle.primary)
+    async def avis_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Ouvre le modal pour donner un avis"""
+        
+        # Construire la liste des employés
+        stats = load_stats()
+        employee_list = "\n".join([
+            f"• {key.replace('-', ' ').title()}"
+            for key in sorted(stats.keys())
+        ])
+        
+        # Montrer la liste des employés dans le placeholder
+        modal = AvisModal()
+        modal.employee.placeholder = f"Exemples: {', '.join(list(stats.keys())[:3])}..."
+        
+        await interaction.response.send_modal(modal)
+
+# --- COMMANDE AVIS ---
+@bot.tree.command(name="avis", description="Envoie une annonce pour recueillir des avis sur les employés")
+async def avis_command(interaction: discord.Interaction):
+    """Lance une campagne d'avis pour les employés"""
+    await interaction.response.defer()
+    
+    try:
+        # Créer l'embed d'annonce
+        embed = discord.Embed(
+            title="📝 Campagne d'Avis - Vos Retours Sont Importants",
+            description="Aidez-nous à améliorer notre équipe en partageant vos avis sur les employés.\n\n"
+                       "**Comment ça fonctionne ?**\n"
+                       "1️⃣ Appuyez sur le bouton ci-dessous\n"
+                       "2️⃣ Sélectionnez un employé\n"
+                       "3️⃣ Donnez une note de 1 à 5 étoiles\n"
+                       "4️⃣ Laissez un commentaire (optionnel)\n\n"
+                       "Vos avis sont importants pour l'évolution de chacun. Merci ! ✨",
+            color=discord.Color.gold()
+        )
+        
+        embed.set_footer(text="🚑 EMS System | Vos avis comptent")
+        
+        # Envoyer avec le bouton
+        await interaction.followup.send(embed=embed, view=AvisButton())
+        
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur avis command: {e}")
+        await interaction.followup.send(f"❌ Erreur: {e}")
+
 @bot.event
 async def on_message(message):
     """Compte les réas quand un utilisateur envoie une réa avec pièces jointes"""
