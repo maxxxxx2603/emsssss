@@ -4833,9 +4833,12 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                         refuser_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
                         
                         async def recruter_callback(interaction_recrutement: discord.Interaction):
+                            # DEFER IMMÉDIATEMENT pour éviter le timeout (3 secondes)
+                            await interaction_recrutement.response.defer()
+                            
                             # Vérifier que seul la direction peut recruter
                             if not any(role.id == DIRECTION_ROLE_ID for role in interaction_recrutement.user.roles):
-                                await interaction_recrutement.response.send_message(
+                                await interaction_recrutement.followup.send(
                                     "❌ Seule la direction peut recruter !",
                                     ephemeral=True
                                 )
@@ -4909,7 +4912,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                         description=f"**{user_name}** a été recruté(e) en tant que **[EMT]**.",
                                         color=discord.Color.green()
                                     )
-                                    await interaction_recrutement.response.send_message(embed=embed_recrute, ephemeral=True)
+                                    await interaction_recrutement.followup.send(embed=embed_recrute, ephemeral=True)
                                     
                                     # DM de bienvenue
                                     try:
@@ -4934,12 +4937,15 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                         await interaction_recrutement.message.add_reaction("✅")
                             except Exception as e:
                                 print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur recrutement: {e}")
-                                await interaction_recrutement.response.send_message(f"❌ Erreur: {e}", ephemeral=True)
+                                await interaction_recrutement.followup.send(f"❌ Erreur: {e}", ephemeral=True)
                         
                         async def refuser_recrutement_callback(interaction_refus: discord.Interaction):
+                            # DEFER IMMÉDIATEMENT pour éviter le timeout
+                            await interaction_refus.response.defer()
+                            
                             # Vérifier que seul la direction peut refuser
                             if not any(role.id == DIRECTION_ROLE_ID for role in interaction_refus.user.roles):
-                                await interaction_refus.response.send_message(
+                                await interaction_refus.followup.send(
                                     "❌ Seule la direction peut refuser !",
                                     ephemeral=True
                                 )
@@ -4970,7 +4976,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                         description=f"**{user_name}** a été refusé(e) au recrutement.",
                                         color=discord.Color.red()
                                     )
-                                    await interaction_refus.response.send_message(embed=embed_refuse, ephemeral=True)
+                                    await interaction_refus.followup.send(embed=embed_refuse, ephemeral=True)
                                     
                                     # DM de refus
                                     try:
@@ -4995,7 +5001,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                         await interaction_refus.message.add_reaction("❌")
                             except Exception as e:
                                 print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur refus recrutement: {e}")
-                                await interaction_refus.response.send_message(f"❌ Erreur: {e}", ephemeral=True)
+                                await interaction_refus.followup.send(f"❌ Erreur: {e}", ephemeral=True)
                         
                         recruter_btn.callback = recruter_callback
                         refuser_btn.callback = refuser_recrutement_callback
