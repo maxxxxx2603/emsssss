@@ -5146,7 +5146,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                         description=f"La dispo de {user_name} a été approuvée.\n\nEn attente de recrutement...",
                         color=discord.Color.green()
                     )
-                    await interaction_confirm.response.send_message(embed=embed_confirm, ephemeral=True)
+                    await interaction_confirm.followup.send(embed=embed_confirm, ephemeral=True)
                     
                     # Désactiver les boutons
                     confirm_btn.disabled = True
@@ -5360,13 +5360,16 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                         await interaction_confirm.message.add_reaction("✅")
                 
                 async def refuse_callback(interaction_refuse: discord.Interaction):
+                    # DEFER IMMÉDIATEMENT pour éviter le timeout
+                    await interaction_refuse.response.defer()
+                    
                     # Message de refus à la direction
                     embed_refuse = discord.Embed(
                         title="❌ Disponibilité Refusée",
                         description=f"La dispo de {user_name} a été déclinée.",
                         color=discord.Color.red()
                     )
-                    await interaction_refuse.response.send_message(embed=embed_refuse, ephemeral=True)
+                    await interaction_refuse.followup.send(embed=embed_refuse, ephemeral=True)
                     
                     # Désactiver les boutons
                     confirm_btn.disabled = True
