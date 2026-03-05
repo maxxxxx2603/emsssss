@@ -4789,6 +4789,11 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                     )
                     await interaction_confirm.response.send_message(embed=embed_confirm, ephemeral=True)
                     
+                    # Désactiver les boutons
+                    confirm_btn.disabled = True
+                    refuse_btn.disabled = True
+                    await interaction_confirm.message.edit(view=view)
+                    
                     # Envoyer un DM de rappel à l'utilisateur
                     try:
                         embed_dm = discord.Embed(
@@ -4859,6 +4864,33 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     except:
                                         pass
                                     
+                                    # Créer le channel privé avec emoji + nom
+                                    try:
+                                        channel_name = f"🚑-{user_name.lower().replace(' ', '-')}"
+                                        
+                                        # Obtenir les permissions pour le channel
+                                        overwrites = {
+                                            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+                                            member: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+                                            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+                                        }
+                                        
+                                        # Créer le channel
+                                        new_channel = await guild.create_text_channel(
+                                            channel_name,
+                                            overwrites=overwrites
+                                        )
+                                        
+                                        # Message de bienvenue dans le channel
+                                        embed_channel = discord.Embed(
+                                            title=f"🎉 Bienvenue {user_name} !",
+                                            description=f"Bienvenue dans ton channel personnel.\n\nTu as été recruté(e) en tant que **[EMT]**.\n\nVoici tes disponibilités:\n{self.disponibilites.value}",
+                                            color=discord.Color.green()
+                                        )
+                                        await new_channel.send(embed=embed_channel)
+                                    except Exception as e:
+                                        print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur création channel: {e}")
+                                    
                                     # Message de confirmation
                                     embed_recrute = discord.Embed(
                                         title="✅ Recrutement Effectué",
@@ -4871,7 +4903,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     try:
                                         embed_welcome = discord.Embed(
                                             title="🎉 Bienvenue dans l'EMS !",
-                                            description=f"Félicitations {user_name} !\n\nVous avez été recruté(e) en tant que **[EMT]**.\n\nVous pouvez maintenant accéder à tous les channels de l'EMS.",
+                                            description=f"Félicitations {user_name} !\n\nVous avez été recruté(e) en tant que **[EMT]**.\n\nUn channel privé a été créé pour vous : **{channel_name}**",
                                             color=discord.Color.green()
                                         )
                                         user_obj = bot.get_user(interaction.user.id)
@@ -4879,6 +4911,11 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                             await user_obj.send(embed=embed_welcome)
                                     except:
                                         pass
+                                    
+                                    # Désactiver les boutons
+                                    recruter_btn.disabled = True
+                                    refuser_btn.disabled = True
+                                    await interaction_recrutement.message.edit(view=recrutement_view)
                                     
                                     # Ajouter réaction ✅
                                     if hasattr(interaction_recrutement.message, 'add_reaction'):
@@ -4937,6 +4974,11 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     except:
                                         pass
                                     
+                                    # Désactiver les boutons
+                                    recruter_btn.disabled = True
+                                    refuser_btn.disabled = True
+                                    await interaction_refus.message.edit(view=recrutement_view)
+                                    
                                     # Ajouter réaction ❌
                                     if hasattr(interaction_refus.message, 'add_reaction'):
                                         await interaction_refus.message.add_reaction("❌")
@@ -4963,6 +5005,11 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                         color=discord.Color.red()
                     )
                     await interaction_refuse.response.send_message(embed=embed_refuse, ephemeral=True)
+                    
+                    # Désactiver les boutons
+                    confirm_btn.disabled = True
+                    refuse_btn.disabled = True
+                    await interaction_refuse.message.edit(view=view)
                     
                     # Envoyer un DM de rappel/refus à l'utilisateur
                     try:
