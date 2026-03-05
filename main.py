@@ -65,6 +65,10 @@ LEADERBOARD_ROLE_ID = 838102445095256068
 AVIS_CHANNEL_ID = 1478910608228487255
 CITOYEN_ROLE_ID = 838102445095256066
 
+# Configuration Dispo
+DISPO_CHANNEL_ID = 1478912686069780602
+DISPO_CONFIRMATION_ROLE_ID = 896103247096471613
+
 # Configuration Giveaway
 GIVEAWAY_PING_ROLE_ID = 838102445095256068  # Rôle à ping pour les giveaways
 GIVEAWAY_FILE = 'giveaways.json'
@@ -4712,6 +4716,148 @@ async def avis_command(interaction: discord.Interaction):
         
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur avis command: {e}")
+        await interaction.followup.send(f"❌ Erreur: {e}")
+
+# --- MODAL POUR LES DISPONIBILITÉS ---
+class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilités"):
+    """Modal pour soumettre ses disponibilités"""
+    
+    # Nom/Pseudo
+    nom = discord.ui.TextInput(
+        label="Votre nom ou pseudo",
+        placeholder="Ex: Mat Duja",
+        required=True,
+        max_length=100
+    )
+    
+    # Disponibilités
+    disponibilites = discord.ui.TextInput(
+        label="Vos disponibilités",
+        placeholder="Ex: Lundi 10h-18h, Mardi 14h-22h, etc.",
+        required=True,
+        style=discord.TextStyle.long,
+        max_length=500
+    )
+    
+    # Notes (optionnel)
+    notes = discord.ui.TextInput(
+        label="Notes additionnelles (optionnel)",
+        placeholder="Ex: Pas disponible le 8 mars, préférence horaires...",
+        required=False,
+        style=discord.TextStyle.long,
+        max_length=500
+    )
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        """Quand l'utilisateur soumet ses disponibilités"""
+        try:
+            # Créer l'embed de la dispo
+            embed = discord.Embed(
+                title="📅 Nouvelle Disponibilité Soumise",
+                color=discord.Color.blue()
+            )
+            
+            embed.add_field(name="Personne", value=self.nom.value, inline=False)
+            embed.add_field(name="Disponibilités", value=self.disponibilites.value, inline=False)
+            if self.notes.value:
+                embed.add_field(name="Notes", value=self.notes.value, inline=False)
+            embed.add_field(name="Soumis par", value=interaction.user.mention, inline=True)
+            embed.set_footer(text=f"Reçu le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
+            
+            # Envoyer dans le channel des dispo avec boutons de confirmation
+            dispo_channel = bot.get_channel(DISPO_CHANNEL_ID)
+            if dispo_channel:
+                # Créer les boutons de confirmation/refus
+                view = discord.ui.View()
+                confirm_btn = discord.ui.Button(label="✅ Confirmer", style=discord.ButtonStyle.green)
+                refuse_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
+                
+                async def confirm_callback(interaction_confirm: discord.Interaction):
+                    embed_confirm = discord.Embed(
+                        title="✅ Disponibilité Confirmée",
+                        description=f"{self.nom.value} est confirmé(e) avec ses dispo.",
+                        color=discord.Color.green()
+                    )
+                    await interaction_confirm.response.send_message(embed=embed_confirm, ephemeral=True)
+                    # Ajouter une réaction pour marquer comme confirmée
+                    if hasattr(interaction_confirm.message, 'add_reaction'):
+                        await interaction_confirm.message.add_reaction("✅")
+                
+                async def refuse_callback(interaction_refuse: discord.Interaction):
+                    embed_refuse = discord.Embed(
+                        title="❌ Disponibilité Refusée",
+                        description=f"La dispo de {self.nom.value} a été refusée.",
+                        color=discord.Color.red()
+                    )
+                    await interaction_refuse.response.send_message(embed=embed_refuse, ephemeral=True)
+                    # Ajouter une réaction pour marquer comme refusée
+                    if hasattr(interaction_refuse.message, 'add_reaction'):
+                        await interaction_refuse.message.add_reaction("❌")
+                
+                confirm_btn.callback = confirm_callback
+                refuse_btn.callback = refuse_callback
+                view.add_item(confirm_btn)
+                view.add_item(refuse_btn)
+                
+                ping_msg = f"<@&{DISPO_CONFIRMATION_ROLE_ID}>"
+                await dispo_channel.send(ping_msg, embed=embed, view=view)
+            
+            await interaction.response.send_message(
+                "✅ Vos disponibilités ont été soumises avec succès !",
+                ephemeral=True
+            )
+        except Exception as e:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur dispo: {e}")
+            await interaction.response.send_message(
+                f"❌ Erreur: {e}",
+                ephemeral=True
+            )
+
+# --- BOUTON POUR LES DISPONIBILITÉS ---
+class DispoButton(discord.ui.View):
+    """Bouton pour ouvrir le formulaire de disponibilités"""
+    
+    def __init__(self):
+        super().__init__(timeout=None)
+    
+    @discord.ui.button(label="📅 Soumettre ma Dispo", style=discord.ButtonStyle.primary)
+    async def dispo_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """Ouvre le modal pour soumettre ses dispo"""
+        await interaction.response.send_modal(DispoModal())
+
+# --- COMMANDE DISPO ---
+@bot.tree.command(name="dispo", description="Lance la campagne de disponibilités")
+async def dispo_command(interaction: discord.Interaction):
+    """Lance une campagne pour recueillir les disponibilités"""
+    await interaction.response.defer()
+    
+    try:
+        # Créer l'embed d'annonce
+        embed = discord.Embed(
+            title="📅 Mise à Jour des Disponibilités",
+            description="Merci de mettre à jour vos disponibilités !\n\n"
+                       "**Comment ça fonctionne ?**\n"
+                       "1️⃣ Appuyez sur le bouton ci-dessous\n"
+                       "2️⃣ Remplissez vos disponibilités\n"
+                       "3️⃣ Ajoutez des notes si nécessaire\n"
+                       "4️⃣ La direction confirmera ou refusera\n\n"
+                       "Vos disponibilités nous aident à mieux organiser les plannings. Merci ! 📋",
+            color=discord.Color.blue()
+        )
+        
+        embed.set_footer(text="🚑 EMS System | Mettez à jour vos dispo")
+        
+        # Envoyer dans le channel des dispo avec ping du role citoyen
+        dispo_channel = bot.get_channel(DISPO_CHANNEL_ID)
+        if dispo_channel:
+            ping_msg = f"<@&{CITOYEN_ROLE_ID}>"
+            await dispo_channel.send(ping_msg, embed=embed, view=DispoButton())
+            await interaction.followup.send("✅ Annonce des disponibilités lancée !")
+        else:
+            await interaction.followup.send("❌ Channel non trouvé")
+        
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur dispo command: {e}")
         await interaction.followup.send(f"❌ Erreur: {e}")
 
 @bot.event
