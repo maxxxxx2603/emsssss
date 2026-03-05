@@ -1567,6 +1567,14 @@ class ReviewView(discord.ui.View):
             await interaction.followup.send("❌ Le candidat n'est plus sur le serveur.", ephemeral=True)
             return
         
+        # Ajouter le rôle en attente
+        try:
+            role = guild.get_role(896103247096471613)
+            if role:
+                await member.add_roles(role)
+        except Exception as e:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur ajout rôle CV: {e}")
+        
         # Désactiver les boutons
         self.disable_all_items()
         if self.message:
