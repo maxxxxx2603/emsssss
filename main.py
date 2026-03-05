@@ -5728,50 +5728,65 @@ async def on_message(message):
 # --- SYSTÈME DE PRISE DE SERVICE ---
 SERVICE_CHANNEL_ID = 1413994272616611880
 
+def build_status_embed():
+    """Construit l'embed de statut des services en direct"""
+    if active_services:
+        lines = []
+        for uid, svc in active_services.items():
+            start_t = datetime.fromisoformat(svc['start'])
+            delta = datetime.now() - start_t
+            total_min = int(delta.total_seconds() // 60)
+            h = total_min // 60
+            m = total_min % 60
+            duree = f"{h}h{m:02d}" if h > 0 else f"{m} min"
+            reas = svc.get('reas_count', 0)
+            lines.append(f"🟢 <@{uid}> — en service depuis **{duree}** ({reas} réas)")
+        
+        status_text = "\n".join(lines)
+    else:
+        status_text = "*Aucun employé en service actuellement.*"
+    return status_text
+
+def build_service_embed():
+    """Construit l'embed complet prise de service + statut en direct"""
+    status_text = build_status_embed()
+    
+    embed = discord.Embed(
+        title="🚑 PRISE DE SERVICE EMS",
+        description=(
+            "**Bienvenue dans le système de prise de service !**\n\n"
+            "📋 **Comment ça marche ?**\n"
+            "1️⃣ Clique sur **🟢 Prise de Service** avant de commencer tes réas\n"
+            "2️⃣ Envoie tes réas normalement dans ton channel\n"
+            "3️⃣ Clique sur **🔴 Fin de Service** quand tu as terminé\n\n"
+            "⚠️ **Important :**\n"
+            "• Tu **dois** prendre ton service avant d'envoyer des réas\n"
+            "• Après **20 min** sans réa, ton service sera terminé automatiquement\n"
+            "• La direction peut consulter les heures avec `/services`\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"📡 **EMPLOYÉS EN SERVICE :**\n{status_text}\n\n"
+            f"*Dernière mise à jour : {datetime.now().strftime('%H:%M:%S')}*"
+        ),
+        color=EMS_RED
+    )
+    embed.set_footer(text="🚑 EMS System | Prise de Service")
+    return embed
+
 async def update_service_status():
-    """Met à jour le message de statut des services en temps réel"""
+    """Met à jour le message de prise de service avec le statut en temps réel"""
     global service_status_message_id
     try:
         channel = bot.get_channel(SERVICE_CHANNEL_ID)
         if not channel:
             return
         
-        if active_services:
-            lines = []
-            for uid, svc in active_services.items():
-                start_t = datetime.fromisoformat(svc['start'])
-                delta = datetime.now() - start_t
-                total_min = int(delta.total_seconds() // 60)
-                h = total_min // 60
-                m = total_min % 60
-                duree = f"{h}h{m:02d}" if h > 0 else f"{m} min"
-                reas = svc.get('reas_count', 0)
-                lines.append(f"🟢 <@{uid}> — en service depuis **{duree}** ({reas} réas)")
-            
-            description = "\n".join(lines)
-            description += f"\n\n*Dernière mise à jour : {datetime.now().strftime('%H:%M:%S')}*"
-        else:
-            description = "*Aucun employé en service actuellement.*\n\n*Dernière mise à jour : " + datetime.now().strftime('%H:%M:%S') + "*"
-        
-        embed = discord.Embed(
-            title="📡 STATUT DES SERVICES EN DIRECT",
-            description=description,
-            color=discord.Color.green() if active_services else discord.Color.light_grey()
-        )
-        embed.set_footer(text="🚑 EMS System | Mise à jour automatique")
-        
-        # Éditer le message existant ou en créer un nouveau
         if service_status_message_id:
             try:
                 msg = await channel.fetch_message(service_status_message_id)
-                await msg.edit(embed=embed)
+                await msg.edit(embed=build_service_embed())
                 return
             except discord.NotFound:
                 service_status_message_id = None
-        
-        # Si pas de message, en envoyer un nouveau
-        msg = await channel.send(embed=embed)
-        service_status_message_id = msg.id
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur update_service_status: {e}")
 
@@ -5907,29 +5922,12 @@ async def prise_command(interaction: discord.Interaction):
         await interaction.followup.send("❌ Channel de service introuvable.", ephemeral=True)
         return
     
-    embed = discord.Embed(
-        title="🚑 PRISE DE SERVICE EMS",
-        description=(
-            "**Bienvenue dans le système de prise de service !**\n\n"
-            "📋 **Comment ça marche ?**\n"
-            "1️⃣ Clique sur **🟢 Prise de Service** avant de commencer tes réas\n"
-            "2️⃣ Envoie tes réas normalement dans ton channel\n"
-            "3️⃣ Clique sur **🔴 Fin de Service** quand tu as terminé\n\n"
-            "⚠️ **Important :**\n"
-            "• Tu **dois** prendre ton service avant d'envoyer des réas\n"
-            "• Après **20 min** sans réa, ton service sera terminé automatiquement\n"
-            "• La direction peut consulter les heures avec `/services`"
-        ),
-        color=EMS_RED
-    )
-    embed.set_footer(text="🚑 EMS System | Prise de Service")
+    embed = build_service_embed()
     
-    await service_channel.send(content="<@&838102445095256068>", embed=embed, view=ServiceView())
+    msg = await service_channel.send(content="<@&838102445095256068>", embed=embed, view=ServiceView())
     
-    # Envoyer le message de statut en temps réel
     global service_status_message_id
-    service_status_message_id = None  # Reset pour créer un nouveau message
-    await update_service_status()
+    service_status_message_id = msg.id
     
     await interaction.followup.send("✅ Annonce de prise de service envoyée !", ephemeral=True)
 
