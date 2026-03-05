@@ -504,111 +504,7 @@ async def update_channel_description(channel: discord.TextChannel, count: int):
         await channel.edit(topic=description)
     except Exception as e:
         print(f"Erreur update_channel_description: {e}")
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-    
-    # Comptage automatique pour les tests d'aptitude taxi (réaction + comptage)
-    if message.channel.id == TAXI_CHANNEL_ID:
-        # Vérifier si l'auteur a le rôle taxi
-        if any(role.id == TAXI_ROLE_ID for role in getattr(message.author, "roles", [])):
-            # Ajouter une réaction
-            try:
-                await message.add_reaction("✅")
-            except:
-                pass
-            
-            # Incrémenter le compteur
-            taxi_stats = load_taxi_stats()
-            taxi_stats["count"] += 1
-            save_taxi_stats(taxi_stats)
-    
-    # Comptage automatique pour les tests d'aptitude BurgerShot (réaction + comptage)
-    # Pour BurgerShot : on compte TOUS les messages avec image, pas besoin de vérifier le rôle
-    if message.channel.id == BURGERSHOT_CHANNEL_ID:
-        # Vérifier si le message contient une image
-        if message.attachments:
-            # Ajouter une réaction
-            try:
-                await message.add_reaction("✅")
-            except:
-                pass
-            
-            # Incrémenter le compteur
-            burgershot_stats = load_burgershot_stats()
-            burgershot_stats["count"] += 1
-            save_burgershot_stats(burgershot_stats)
-
-    if not message.attachments or not getattr(message.channel, "name", None):
-        return
-    
-    # Éviter les traitements multiples
-    if message.id in processed_reactions:
-        return
-    
-    channel_name = message.channel.name
-    
-    # Vérifier si c'est un channel de réactions
-    if len(channel_name) > 0 and channel_name[0] in ["🔴", "🟠", "🟢"]:
-        processed_reactions.add(message.id)
-        
-        # Nettoyer si trop grand
-        if len(processed_reactions) > 500:
-            processed_reactions.clear()
-        
-        stats = load_stats()
-        # Utiliser un mapping persistant channel->employé pour garantir la stabilité
-        employee_key = get_channel_employee_key(message.channel)
-        
-        if not employee_key:
-            return
-        
-        # Incrémenter le compteur
-        if employee_key not in stats:
-            stats[employee_key] = 0
-        
-        stats[employee_key] += 1
-        current_count = stats[employee_key]
-        save_stats(stats)
-        
-        # Ajouter réaction
-        try:
-            await message.add_reaction("✅")
-        except:
-            pass
-        
-        # Combiner topic + emoji en un seul appel API pour éviter le rate limit
-        new_emoji = get_color_emoji(current_count)
-        current_emoji = channel_name[0]
-        bonus_days = get_week_bonus_count(employee_key)
-        bonus_text = f" {bonus_days}M" if bonus_days > 0 else ""
-        new_topic = f"{new_emoji} {current_count}/100{bonus_text}"
-        
-        edit_args = {}
-        if current_emoji != new_emoji:
-            edit_args["name"] = f"{new_emoji}{channel_name[1:]}"
-        if message.channel.topic != new_topic:
-            edit_args["topic"] = new_topic
-        
-        if edit_args:
-            try:
-                await message.channel.edit(**edit_args)
-            except:
-                pass
-        
-        # Envoyer log simplifié
-        log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
-        if log_channel:
-            new_emoji = get_color_emoji(current_count)
-            
-            # Message simple et normal (affiche la clé normalisée)
-            message_text = f"✅ **{employee_key}** | {current_count} réas"
-            
-            try:
-                await log_channel.send(message_text)
-            except:
-                pass
+# (1er on_message supprimé - fusionné dans le handler principal)
 
 # --- COMMANDES ADMIN ---
 @bot.tree.command(name="total", description="Affiche le total des réactions + primes")
@@ -3158,157 +3054,7 @@ async def on_error(event, *args, **kwargs):
     print(f"❌ Erreur dans {event}:", file=sys.stderr)
     traceback.print_exc()
 
-@bot.event
-async def on_message(message):
-    """Compte les réas quand un utilisateur envoie une réa avec pièces jointes"""
-    # Ignorer les messages du bot
-    if message.author.bot:
-        return
-    
-    # Ignorer les messages sans pièces jointes
-    if not message.attachments:
-        await bot.process_commands(message)
-        return
-    
-    try:
-        # Obtenir le channel et l'employé associé
-        channel = message.channel
-        if not channel or not channel.name:
-            await bot.process_commands(message)
-            return
-        
-        # Vérifier que c'est un channel EMS (commence par emoji)
-        if not (channel.name and len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]):
-            await bot.process_commands(message)
-            return
-        
-        # Obtenir la clé employé du channel
-        employee_key = get_channel_employee_key(channel)
-        if not employee_key:
-            await bot.process_commands(message)
-            return
-        
-        # Charger les stats
-        stats = load_stats()
-        
-        # Incrémenter le compteur
-        if employee_key not in stats:
-            stats[employee_key] = 0
-        
-        stats[employee_key] += 1
-        current_count = stats[employee_key]
-        
-        # Sauvegarder les stats
-        save_stats(stats)
-        
-        # Ajouter réaction ✅
-        try:
-            await message.add_reaction("✅")
-        except:
-            pass
-        
-        # Mettre à jour la couleur du channel si nécessaire
-        try:
-            current_emoji = channel.name[0]
-            new_emoji = get_color_emoji(current_count)
-            
-            if current_emoji != new_emoji:
-                new_channel_name = f"{new_emoji}{channel.name[1:]}"
-                await channel.edit(name=new_channel_name)
-        except:
-            pass
-        
-        # Mettre à jour la description du channel
-        try:
-            emoji = get_color_emoji(current_count)
-            
-            # Vérifier les bonus (entre 21h et 23h)
-            now = datetime.now()
-            is_bonus_time = 21 <= now.hour < 23
-            bonus_text = ""
-            
-            if is_bonus_time:
-                if award_bonus(employee_key):
-                    bonus_text = " 1M NEW"
-                else:
-                    bonus_text = " 1M"
-            
-            description = f"{emoji} {current_count}/100{bonus_text}"
-            await channel.edit(topic=description)
-        except:
-            pass
-        
-        # Envoyer log
-        log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
-        if log_channel:
-            try:
-                emoji = get_color_emoji(current_count)
-                message_text = f"✅ **{employee_key}** | {current_count} réas"
-                await log_channel.send(message_text)
-            except:
-                pass
-    
-    except Exception as e:
-        print(f"❌ Erreur on_message: {e}")
-    
-    # Traiter les commandes slash
-    await bot.process_commands(message)
-
-@bot.event
-async def on_ready():
-    print(f'✅ Bot: {bot.user}')
-    
-    # Charger les stats existantes
-    stats = load_stats()
-    print(f'📊 Stats chargées: {len(stats)} employés, {sum(stats.values())} réas totales')
-    
-    # MISE À JOUR AUTOMATIQUE DES DESCRIPTIONS DES CHANNELS (avec bonus)
-    try:
-        guild = bot.get_guild(config["GUILD_ID"])
-        if guild:
-            updated_count = 0
-            for key, value in stats.items():
-                # Chercher le channel correspondant
-                displayname = key.replace("-", " ").title()
-                channel = discord.utils.get(guild.text_channels, name=displayname)
-                
-                if channel:
-                    try:
-                        emoji = get_color_emoji(value)
-                        
-                        # Ajouter les bonus si entre 21h-23h
-                        bonus_text = ""
-                        now = datetime.now()
-                        if 21 <= now.hour < 23:
-                            # C'est entre 21h et 23h
-                            if award_bonus(key):  # Première réa de la journée
-                                bonus_text = " 1M NEW"
-                            else:
-                                bonus_text = " 1M"
-                        
-                        description = f"{emoji} {value}/100{bonus_text}"
-                        await channel.edit(topic=description)
-                        updated_count += 1
-                    except:
-                        pass
-            
-            if updated_count > 0:
-                print(f'✅ Descriptions mises à jour: {updated_count}/{len(stats)} channels')
-    except Exception as e:
-        print(f'⚠️ Erreur mise à jour descriptions: {e}')
-    
-    # Créer un backup des stats au démarrage
-    if stats:
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = f"stats_backup_{timestamp}.json"
-            with open(backup_path, 'w', encoding='utf-8') as f:
-                json.dump(stats, f, ensure_ascii=False, indent=2)
-            print(f'💾 Backup créé: {backup_path}')
-        except Exception as e:
-            print(f'⚠️ Erreur backup: {e}')
-    
-    print('✅ Bot prêt - Sauvegarde automatique activée')
+# (2e on_message + 1er on_ready supprimés - fusionnés dans les handlers principaux)
 
 # --- TÂCHE AUTOMATISÉE HEBDOMADAIRE TAXI ---
 @tasks.loop(hours=1)
@@ -3327,21 +3073,7 @@ async def weekly_taxi_announcement():
 async def before_weekly_announcement():
     await bot.wait_until_ready()
 
-# --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
-@tasks.loop(minutes=5)
-async def auto_backup_stats():
-    """Sauvegarde automatique des stats toutes les 5 minutes pour éviter toute perte de données"""
-    try:
-        stats = load_stats()
-        # Force une sauvegarde avec backup
-        atomic_write_json(STATS_FILE, stats, make_backup=True)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Sauvegarde automatique des stats effectuée ({len(stats)} employés, {sum(stats.values())} réas)")
-    except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde automatique: {e}")
-
-@auto_backup_stats.before_loop
-async def before_auto_backup():
-    await bot.wait_until_ready()
+# (1er auto_backup_stats supprimé - doublon du handler principal)
 
 async def send_weekly_taxi_announcement():
     """Envoie l'annonce hebdomadaire et réinitialise les compteurs"""
@@ -5608,12 +5340,34 @@ async def dispo_command(interaction: discord.Interaction):
 
 @bot.event
 async def on_message(message):
-    """Compte les réas quand un utilisateur envoie une réa avec pièces jointes"""
+    """Handler principal des messages - comptage réas, taxi, burgershot"""
     # Ignorer les messages du bot
     if message.author.bot:
         return
     
-    # Ignorer les messages sans pièces jointes
+    # --- COMPTAGE TAXI ---
+    if message.channel.id == TAXI_CHANNEL_ID:
+        if any(role.id == TAXI_ROLE_ID for role in getattr(message.author, "roles", [])):
+            try:
+                await message.add_reaction("✅")
+            except:
+                pass
+            taxi_stats = load_taxi_stats()
+            taxi_stats["count"] += 1
+            save_taxi_stats(taxi_stats)
+    
+    # --- COMPTAGE BURGERSHOT ---
+    if message.channel.id == BURGERSHOT_CHANNEL_ID:
+        if message.attachments:
+            try:
+                await message.add_reaction("✅")
+            except:
+                pass
+            burgershot_stats = load_burgershot_stats()
+            burgershot_stats["count"] += 1
+            save_burgershot_stats(burgershot_stats)
+    
+    # Ignorer les messages sans pièces jointes pour le reste
     if not message.attachments:
         await bot.process_commands(message)
         return
@@ -6153,8 +5907,8 @@ async def on_ready():
     if stats:
         try:
             atomic_write_json(STATS_FILE, stats, make_backup=True)
-        except:
-            pass
+        except Exception as e:
+            print(f'⚠️ Erreur backup démarrage: {e}')
     
     # Démarrer les tâches si pas déjà en cours
     if not auto_backup_stats.is_running():
@@ -6165,6 +5919,27 @@ async def on_ready():
         check_inactive_services.start()
     
     print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) activées')
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    """Gestionnaire d'erreurs pour les commandes slash"""
+    if isinstance(error, app_commands.MissingPermissions):
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.send_message("❌ Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+            else:
+                await interaction.followup.send("❌ Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        except:
+            pass
+    else:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur commande /{interaction.command.name if interaction.command else '?'}: {error}")
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.send_message("❌ Une erreur est survenue.", ephemeral=True)
+            else:
+                await interaction.followup.send("❌ Une erreur est survenue.", ephemeral=True)
+        except:
+            pass
 
 # --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
 @tasks.loop(minutes=5)
