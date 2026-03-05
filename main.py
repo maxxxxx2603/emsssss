@@ -5696,7 +5696,7 @@ async def on_message(message):
                         color=discord.Color.orange()
                     )
                     embed_50.set_footer(text="🚑 EMS System | Continue comme ça !")
-                    await log_channel.send(embed=embed_50)
+                    await message.channel.send(embed=embed_50)
                 
                 # Milestone 100 réas (QUOTA COMPLET)
                 if old_count < 100 and current_count >= 100:
@@ -5710,12 +5710,12 @@ async def on_message(message):
                     )
                     embed_100.set_footer(text="🚑 EMS System | Bravo !")
                     
-                    # Envoyer avec ping du role
+                    # Envoyer dans le channel employé avec ping
                     try:
                         role_mention = f"<@&838102445095256068>"
-                        await log_channel.send(role_mention, embed=embed_100)
+                        await message.channel.send(role_mention, embed=embed_100)
                     except:
-                        await log_channel.send(embed=embed_100)
+                        await message.channel.send(embed=embed_100)
             except:
                 pass
     
