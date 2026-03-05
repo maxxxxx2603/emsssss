@@ -191,12 +191,12 @@ bot = EMSBot()
 def load_stats():
     # Données par défaut (16 employés) - doit correspondre à stats.json
     DEFAULT_STATS = {
-        "mat-duja": 155,
+        "mat-duja": 156,
         "wilson-koffi": 134,
         "marc-zenter": 59,
-        "balake-andrew": 48,
+        "balake-andrew": 49,
         "max-ferdinand": 43,
-        "jorghen-monteiro-mbombo": 80,
+        "jorghen-monteiro-mbombo": 104,
         "thomas-bult": 37,
         "mouloud-pembele": 15,
         "jason-trigo": 14,
