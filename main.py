@@ -265,10 +265,21 @@ def get_week_start():
 
 def load_bonuses_week():
     """Charge les bonuses cumulatifs de cette semaine"""
-    default = {}
     if not os.path.exists(BONUSES_WEEK_FILE):
+        return {}
+    data = robust_load_json(BONUSES_WEEK_FILE, {})
+    if not data:
+        # Valeurs par défaut
+        today = datetime.now().strftime("%Y-%m-%d")
+        monday = (datetime.now() - timedelta(days=datetime.now().weekday())).strftime("%Y-%m-%d")
+        employees = ["mat-duja", "wilson-koffi", "jorghen-monteiro-mbombo", "marc-zenter",
+                      "balake-andrew", "max-ferdinand", "thomas-bult", "mouloud-pembele",
+                      "jason-trigo", "farid-lamatraque", "mehmet-momo", "melano-montasart",
+                      "imran-meknessi", "alvaro-benz", "jean-dan", "labigne-evan"]
+        default = {f"{emp}_{monday}": [today] for emp in employees}
+        atomic_write_json(BONUSES_WEEK_FILE, default)
         return default
-    return robust_load_json(BONUSES_WEEK_FILE, default)
+    return data
 
 def save_bonuses_week(bonuses):
     """Sauvegarde les bonuses cumulatifs"""
@@ -446,7 +457,31 @@ def save_giveaways(giveaways):
 
 def load_bonuses():
     """Charge les bonus journaliers (format: {'employee-key_YYYY-MM-DD': 1})"""
-    return robust_load_json("bonuses.json", {})
+    data = robust_load_json("bonuses.json", {})
+    if not data:
+        # Valeurs par défaut
+        today = datetime.now().strftime("%Y-%m-%d")
+        DEFAULT_BONUSES = {
+            f"mat-duja_{today}": 1,
+            f"wilson-koffi_{today}": 1,
+            f"jorghen-monteiro-mbombo_{today}": 1,
+            f"marc-zenter_{today}": 1,
+            f"balake-andrew_{today}": 1,
+            f"max-ferdinand_{today}": 1,
+            f"thomas-bult_{today}": 1,
+            f"mouloud-pembele_{today}": 1,
+            f"jason-trigo_{today}": 1,
+            f"farid-lamatraque_{today}": 1,
+            f"mehmet-momo_{today}": 1,
+            f"melano-montasart_{today}": 1,
+            f"imran-meknessi_{today}": 1,
+            f"alvaro-benz_{today}": 1,
+            f"jean-dan_{today}": 1,
+            f"labigne-evan_{today}": 1
+        }
+        atomic_write_json("bonuses.json", DEFAULT_BONUSES, make_backup=True)
+        return DEFAULT_BONUSES
+    return data
 
 def save_bonuses(bonuses):
     """Sauvegarde les bonus journaliers"""
