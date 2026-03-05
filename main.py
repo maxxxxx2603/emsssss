@@ -4866,7 +4866,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     
                                     # Créer le channel privé avec emoji + nom
                                     try:
-                                        channel_name = f"🚑-{user_name.lower().replace(' ', '-')}"
+                                        channel_name = f"�-{user_name.lower().replace(' ', '-')}"
                                         
                                         # Obtenir les permissions pour le channel
                                         overwrites = {
@@ -4881,13 +4881,13 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                             overwrites=overwrites
                                         )
                                         
-                                        # Message de bienvenue dans le channel
+                                        # Message de bienvenue dans le channel avec mention
                                         embed_channel = discord.Embed(
                                             title=f"🎉 Bienvenue {user_name} !",
                                             description=f"Bienvenue dans ton channel personnel.\n\nTu as été recruté(e) en tant que **[EMT]**.\n\nVoici tes disponibilités:\n{self.disponibilites.value}",
                                             color=discord.Color.green()
                                         )
-                                        await new_channel.send(embed=embed_channel)
+                                        await new_channel.send(f"{member.mention}", embed=embed_channel)
                                     except Exception as e:
                                         print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur création channel: {e}")
                                     
@@ -4991,7 +4991,9 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                         recrutement_view.add_item(recruter_btn)
                         recrutement_view.add_item(refuser_btn)
                         
-                        await recruitment_channel.send(embed=embed_recrutement, view=recrutement_view)
+                        # Ping la personne qui a soumis la dispo et celle qui a accepté
+                        ping_msg = f"{interaction.user.mention} {interaction_confirm.user.mention}"
+                        await recruitment_channel.send(ping_msg, embed=embed_recrutement, view=recrutement_view)
                     
                     # Ajouter une réaction pour marquer comme confirmée
                     if hasattr(interaction_confirm.message, 'add_reaction'):
