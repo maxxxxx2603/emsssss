@@ -4524,16 +4524,23 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # --- TÂCHE DE MISE À JOUR DES DESCRIPTIONS AVEC DÉLAI ---
-@tasks.loop(minutes=3)
+@tasks.loop(minutes=5)
 async def update_descriptions_background():
-    """Met à jour les descriptions de tous les channels EMS toutes les 3 minutes"""
+    """Met à jour les descriptions de tous les channels EMS toutes les 5 minutes"""
     try:
         guild = bot.get_guild(config["GUILD_ID"])
         if not guild:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Guild non trouvée, skip update")
             return
         
         stats = load_stats()
+        if not stats:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Stats vides, skip update")
+            return
+        
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔄 Démarrage mise à jour descriptions ({len(stats)} channels)...")
         updated_count = 0
+        skipped_count = 0
         
         for key, value in stats.items():
             try:
@@ -4546,44 +4553,58 @@ async def update_descriptions_background():
                             channel = ch
                             break
                 
-                if channel:
-                    # Mettre à jour la couleur du channel
-                    try:
-                        current_emoji = channel.name[0]
-                        new_emoji = get_color_emoji(value)
-                        
-                        if current_emoji != new_emoji:
+                if not channel:
+                    skipped_count += 1
+                    continue
+                
+                # Mettre à jour la couleur du channel (nom avec emoji)
+                try:
+                    current_emoji = channel.name[0]
+                    new_emoji = get_color_emoji(value)
+                    
+                    if current_emoji != new_emoji:
+                        try:
                             new_channel_name = f"{new_emoji}{channel.name[1:]}"
                             await channel.edit(name=new_channel_name)
-                    except:
-                        pass
+                            print(f"  ✏️ {key}: emoji {current_emoji} → {new_emoji}")
+                            await asyncio.sleep(3)  # Délai après edit nom
+                        except Exception as e:
+                            print(f"  ❌ Erreur emoji pour {key}: {e}")
+                except Exception as e:
+                    print(f"  ⚠️ Erreur comparaison emoji {key}: {e}")
+                
+                # Mettre à jour la description (topic)
+                try:
+                    emoji = get_color_emoji(value)
+                    bonus_days = get_week_bonus_count(key)
+                    bonus_text = ""
                     
-                    # Mettre à jour la description
-                    try:
-                        emoji = get_color_emoji(value)
-                        
-                        # Obtenir le nombre de jours avec bonus cette semaine
-                        bonus_days = get_week_bonus_count(key)
-                        bonus_text = ""
-                        
-                        if bonus_days > 0:
-                            bonus_text = f" {bonus_days}M"
-                        
-                        description = f"{emoji} {value}/100{bonus_text}"
+                    if bonus_days > 0:
+                        bonus_text = f" {bonus_days}M"
+                    
+                    description = f"{emoji} {value}/100{bonus_text}"
+                    
+                    # Vérifier si la description a changé
+                    if channel.topic != description:
                         await channel.edit(topic=description)
+                        print(f"  📝 {key}: {description}")
                         updated_count += 1
-                    except:
-                        pass
+                    else:
+                        skipped_count += 1
                     
-                    # DÉLAI DE 2 SECONDES POUR ÉVITER LES 429
-                    await asyncio.sleep(2)
+                except Exception as e:
+                    print(f"  ❌ Erreur description pour {key}: {e}")
+                
+                # DÉLAI DE 3 SECONDES POUR ÉVITER LES 429
+                await asyncio.sleep(3)
+                
             except Exception as e:
-                pass
+                print(f"  ⚠️ Erreur traitement {key}: {e}")
         
-        if updated_count > 0:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Descriptions mises à jour: {updated_count}/{len(stats)} channels")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Mise à jour complète: {updated_count} modifiés, {skipped_count} inchangés")
+        
     except Exception as e:
-        print(f"❌ Erreur update_descriptions_background: {e}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur update_descriptions_background: {e}")
 
 @update_descriptions_background.before_loop
 async def before_update_descriptions():
@@ -4596,7 +4617,8 @@ async def on_ready():
     
     # Charger les stats existantes
     stats = load_stats()
-    print(f'📊 Stats chargées: {len(stats)} employés, {sum(stats.values())} réas totales')
+    total_reas = sum(stats.values()) if stats else 0
+    print(f'📊 Stats chargées: {len(stats)} employés, {total_reas} réas totales')
     
     # Créer un backup des stats au démarrage
     if stats:
@@ -4618,7 +4640,7 @@ async def on_ready():
     
     if not update_descriptions_background.is_running():
         update_descriptions_background.start()
-        print('✅ Tâche de mise à jour des descriptions démarrée (toutes les 3 min)')
+        print('✅ Tâche de mise à jour des descriptions démarrée (toutes les 5 min)')
 
 # --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
 @tasks.loop(minutes=5)
@@ -4626,8 +4648,9 @@ async def auto_backup_stats():
     """Sauvegarde automatique des stats toutes les 5 minutes"""
     try:
         stats = load_stats()
+        total_reas = sum(stats.values()) if stats else 0
         atomic_write_json(STATS_FILE, stats, make_backup=True)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Sauvegarde automatique des stats effectuée ({len(stats)} employés, {sum(stats.values())} réas)")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 💾 Sauvegarde automatique: {len(stats)} employés, {total_reas} réas")
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde automatique: {e}")
 
