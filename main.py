@@ -35,6 +35,7 @@ SERVICE_FILE = 'services.json'
 
 # Services actifs en mémoire: {user_id: {"start": datetime_iso, "last_rea": datetime_iso, "employee_key": str}}
 active_services = {}
+service_status_message_id = None  # ID du message de statut en temps réel
 
 # Configuration Taxi
 TAXI_CHANNEL_ID = 1457304629456011264
@@ -5727,6 +5728,54 @@ async def on_message(message):
 # --- SYSTÈME DE PRISE DE SERVICE ---
 SERVICE_CHANNEL_ID = 1413994272616611880
 
+async def update_service_status():
+    """Met à jour le message de statut des services en temps réel"""
+    global service_status_message_id
+    try:
+        channel = bot.get_channel(SERVICE_CHANNEL_ID)
+        if not channel:
+            return
+        
+        if active_services:
+            lines = []
+            for uid, svc in active_services.items():
+                start_t = datetime.fromisoformat(svc['start'])
+                delta = datetime.now() - start_t
+                total_min = int(delta.total_seconds() // 60)
+                h = total_min // 60
+                m = total_min % 60
+                duree = f"{h}h{m:02d}" if h > 0 else f"{m} min"
+                display = svc['employee_key'].replace('-', ' ').title()
+                reas = svc.get('reas_count', 0)
+                lines.append(f"🟢 **{display}** — en service depuis **{duree}** ({reas} réas)")
+            
+            description = "\n".join(lines)
+            description += f"\n\n*Dernière mise à jour : {datetime.now().strftime('%H:%M:%S')}*"
+        else:
+            description = "*Aucun employé en service actuellement.*\n\n*Dernière mise à jour : " + datetime.now().strftime('%H:%M:%S') + "*"
+        
+        embed = discord.Embed(
+            title="📡 STATUT DES SERVICES EN DIRECT",
+            description=description,
+            color=discord.Color.green() if active_services else discord.Color.light_grey()
+        )
+        embed.set_footer(text="🚑 EMS System | Mise à jour automatique")
+        
+        # Éditer le message existant ou en créer un nouveau
+        if service_status_message_id:
+            try:
+                msg = await channel.fetch_message(service_status_message_id)
+                await msg.edit(embed=embed)
+                return
+            except discord.NotFound:
+                service_status_message_id = None
+        
+        # Si pas de message, en envoyer un nouveau
+        msg = await channel.send(embed=embed)
+        service_status_message_id = msg.id
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur update_service_status: {e}")
+
 class ServiceView(discord.ui.View):
     """Vue persistante avec boutons Prise / Fin de service"""
     def __init__(self):
@@ -5795,6 +5844,9 @@ class ServiceView(discord.ui.View):
             f"Clique sur **🔴 Fin de Service** pour terminer.",
             ephemeral=True
         )
+        
+        # Mettre à jour le statut en temps réel
+        await update_service_status()
     
     @discord.ui.button(label="🔴 Fin de Service", style=discord.ButtonStyle.red, custom_id="fin_service")
     async def fin_service(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -5842,6 +5894,9 @@ class ServiceView(discord.ui.View):
             f"Merci pour ton service !",
             ephemeral=True
         )
+        
+        # Mettre à jour le statut en temps réel
+        await update_service_status()
 
 @bot.tree.command(name="prise", description="Envoie l'annonce de prise de service avec boutons")
 @app_commands.checks.has_permissions(administrator=True)
@@ -5871,6 +5926,12 @@ async def prise_command(interaction: discord.Interaction):
     embed.set_footer(text="🚑 EMS System | Prise de Service")
     
     await service_channel.send(content="<@&838102445095256068>", embed=embed, view=ServiceView())
+    
+    # Envoyer le message de statut en temps réel
+    global service_status_message_id
+    service_status_message_id = None  # Reset pour créer un nouveau message
+    await update_service_status()
+    
     await interaction.followup.send("✅ Annonce de prise de service envoyée !", ephemeral=True)
 
 @bot.tree.command(name="services", description="Affiche les heures de service de la semaine")
@@ -5999,6 +6060,9 @@ async def check_inactive_services():
         
         if to_remove:
             print(f"[{now.strftime('%H:%M:%S')}] ⏰ Fin de service auto: {len(to_remove)} employé(s)")
+        
+        # Toujours mettre à jour le statut en temps réel
+        await update_service_status()
     
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur check_inactive_services: {e}")
