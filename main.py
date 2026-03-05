@@ -1597,27 +1597,36 @@ class ReviewView(discord.ui.View):
             except:
                 pass
         
-        # Ajouter le rôle
+        # Envoyer le DM avec bouton pour indiquer dispo
         try:
-            role = guild.get_role(config.get("ROLE_ATTENTE_ID"))
-            if role:
-                await member.add_roles(role)
-        except:
-            pass
-        
-        # Envoyer le DM
-        try:
-            await member.send(
-                "🎉 **FÉLICITATIONS !**\n\n"
-                "✅ Votre candidature a été **ACCEPTÉE** !\n\n"
-                "Bienvenue dans la famille des **EMS** ! 🚑\n\n"
-                "📝 **Prochaine étape :**\n"
-                "Merci de mettre vos disponibilités ici :\n"
-                "https://discord.com/channels/838102445083197470/1470742714604847124\n\n"
-                "et nous nous chargeons du reste !\n\n"
-                "Cordialement,\n**La Direction des EMS** 🚑"
+            embed_accept = discord.Embed(
+                title="🎉 FÉLICITATIONS !",
+                description="✅ Votre candidature a été **ACCEPTÉE** !\n\n"
+                           "Bienvenue dans la famille des **EMS** ! 🚑\n\n"
+                           "📝 **Étape suivante:**\n"
+                           "Veuillez indiquer vos disponibilités pour la suite du processus.",
+                color=discord.Color.green()
             )
-        except:
+            embed_accept.set_footer(text="🚑 EMS System | Direction")
+            
+            # Créer une classe pour le bouton dispo du CV
+            class CVDispoButton(discord.ui.View):
+                def __init__(self):
+                    super().__init__(timeout=None)
+                
+                @discord.ui.button(label="📅 Indiquer mes Disponibilités", style=discord.ButtonStyle.primary)
+                async def dispo_button(self, btn_interaction: discord.Interaction, btn: discord.ui.Button):
+                    """Ouvre le modal pour soumettre ses dispo après acceptation CV"""
+                    # Créer une instance du DispoModal avec le contexte du CV
+                    modal = CVDispoModal(target_user=self.target_user)
+                    await btn_interaction.response.send_modal(modal)
+            
+            dispo_view = CVDispoButton()
+            dispo_view.target_user = member
+            
+            await member.send(embed=embed_accept, view=dispo_view)
+        except Exception as e:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur DM CV accepté: {e}")
             pass
         
         # Envoyer les logs
@@ -4724,6 +4733,341 @@ async def avis_command(interaction: discord.Interaction):
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur avis command: {e}")
         await interaction.followup.send(f"❌ Erreur: {e}")
+
+# --- MODAL POUR LES DISPONIBILITÉS (CV) ---
+class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
+    """Modal pour soumettre ses disponibilités après acceptation CV"""
+    
+    def __init__(self, target_user):
+        super().__init__()
+        self.target_user = target_user
+    
+    # Disponibilités
+    disponibilites = discord.ui.TextInput(
+        label="Vos disponibilités",
+        placeholder="Ex: Lundi 10h-18h, Mardi 14h-22h, Dimanche fermé",
+        required=True,
+        style=discord.TextStyle.long,
+        max_length=500
+    )
+    
+    # Notes (optionnel)
+    notes = discord.ui.TextInput(
+        label="Notes additionnelles (optionnel)",
+        placeholder="Ex: Pas disponible le 8 mars, préférence horaires...",
+        required=False,
+        style=discord.TextStyle.long,
+        max_length=500
+    )
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        """Quand l'utilisateur soumet ses dispo après acceptation CV"""
+        try:
+            user_name = self.target_user.name
+            
+            # Créer l'embed de la dispo
+            embed = discord.Embed(
+                title="📅 Nouvelle Disponibilité Soumise (CV accepté)",
+                color=discord.Color.blue()
+            )
+            
+            embed.add_field(name="Personne", value=f"{self.target_user.mention} ({user_name})", inline=False)
+            embed.add_field(name="Disponibilités", value=self.disponibilites.value, inline=False)
+            if self.notes.value:
+                embed.add_field(name="Notes", value=self.notes.value, inline=False)
+            embed.set_footer(text=f"Reçu le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
+            
+            # Envoyer dans le channel de demande avec boutons de confirmation pour la direction
+            request_channel = bot.get_channel(DISPO_REQUEST_CHANNEL_ID)
+            if request_channel:
+                # Créer les boutons de confirmation/refus
+                view = discord.ui.View()
+                confirm_btn = discord.ui.Button(label="✅ Confirmer", style=discord.ButtonStyle.green)
+                refuse_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
+                
+                async def confirm_callback(interaction_confirm: discord.Interaction):
+                    # Vérifier que seul la direction peut confirmer
+                    if not any(role.id == DIRECTION_ROLE_ID for role in interaction_confirm.user.roles):
+                        await interaction_confirm.response.send_message(
+                            "❌ Seule la direction peut valider les disponibilités !",
+                            ephemeral=True
+                        )
+                        return
+                    
+                    # Désactiver les boutons
+                    confirm_btn.disabled = True
+                    refuse_btn.disabled = True
+                    await interaction_confirm.message.edit(view=view)
+                    
+                    # Envoyer un DM de confirmation
+                    try:
+                        embed_dm = discord.Embed(
+                            title="📅 ✅ Vos Disponibilités ont été Confirmées",
+                            description=f"Bonjour {user_name},\n\nVos disponibilités ont été validées par la direction !\n\nVos dispo:\n{self.disponibilites.value}\n\nEn attente de recrutement...",
+                            color=discord.Color.green()
+                        )
+                        embed_dm.set_footer(text="🚑 EMS System | Confirmation dispo")
+                        
+                        user = bot.get_user(self.target_user.id)
+                        if user:
+                            await user.send(embed=embed_dm)
+                    except:
+                        pass
+                    
+                    # Envoyer un message de recrutement dans le channel de recrutement
+                    recruitment_channel = bot.get_channel(DISPO_CHANNEL_ID)
+                    if recruitment_channel:
+                        embed_recrutement = discord.Embed(
+                            title="👤 Candidature Approuvée - Décision de Recrutement",
+                            description=f"**{self.target_user.mention}** a été approuvé(e) par la direction (CV + Dispo).\n\n"
+                                       f"Disponibilités:\n{self.disponibilites.value}",
+                            color=discord.Color.blue()
+                        )
+                        
+                        # Boutons Recruter/Refuser
+                        recrutement_view = discord.ui.View()
+                        recruter_btn = discord.ui.Button(label="✅ Recruter", style=discord.ButtonStyle.green)
+                        refuser_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
+                        
+                        async def recruter_callback(interaction_recrutement: discord.Interaction):
+                            # Vérifier que seul la direction peut recruter
+                            if not any(role.id == DIRECTION_ROLE_ID for role in interaction_recrutement.user.roles):
+                                await interaction_recrutement.response.send_message(
+                                    "❌ Seule la direction peut recruter !",
+                                    ephemeral=True
+                                )
+                                return
+                            
+                            try:
+                                guild = bot.get_guild(config["GUILD_ID"])
+                                member = guild.get_member(self.target_user.id)
+                                
+                                if member:
+                                    # Retirer le rôle pending
+                                    try:
+                                        role_pending = guild.get_role(ROLE_PENDING_ID)
+                                        if role_pending:
+                                            await member.remove_roles(role_pending)
+                                    except:
+                                        pass
+                                    
+                                    # Ajouter les rôles EMS
+                                    roles_to_add = [
+                                        guild.get_role(ROLE_EMT_1),
+                                        guild.get_role(ROLE_EMT_2),
+                                        guild.get_role(ROLE_EMT_3)
+                                    ]
+                                    roles_to_add = [r for r in roles_to_add if r]
+                                    
+                                    if roles_to_add:
+                                        await member.add_roles(*roles_to_add)
+                                    
+                                    # Ajouter le préfixe [EMT]
+                                    try:
+                                        new_nick = f"[EMT] {user_name}"
+                                        await member.edit(nick=new_nick)
+                                    except:
+                                        pass
+                                    
+                                    # Créer le channel privé avec emoji + nom dans la catégorie
+                                    try:
+                                        category_id = 1460041009453858826
+                                        category = guild.get_channel(category_id)
+                                        
+                                        channel_name = f"🔴{user_name.lower().replace(' ', '-')}"
+                                        
+                                        # Obtenir les permissions pour le channel
+                                        overwrites = {
+                                            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+                                            member: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+                                            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+                                        }
+                                        
+                                        # Créer le channel dans la catégorie
+                                        new_channel = await guild.create_text_channel(
+                                            channel_name,
+                                            overwrites=overwrites,
+                                            category=category
+                                        )
+                                        
+                                        # Message de bienvenue dans le channel avec mention
+                                        embed_channel = discord.Embed(
+                                            title=f"🎉 Bienvenue {user_name} !",
+                                            description=f"Bienvenue dans ton channel personnel.\n\nTu as été recruté(e) en tant que **[EMT]**.\n\nVoici tes disponibilités:\n{self.disponibilites.value}",
+                                            color=discord.Color.green()
+                                        )
+                                        await new_channel.send(f"{member.mention}", embed=embed_channel)
+                                    except Exception as e:
+                                        print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur création channel: {e}")
+                                    
+                                    # Message de confirmation
+                                    embed_recrute = discord.Embed(
+                                        title="✅ Recrutement Effectué",
+                                        description=f"**{user_name}** a été recruté(e) en tant que **[EMT]**.",
+                                        color=discord.Color.green()
+                                    )
+                                    await interaction_recrutement.response.send_message(embed=embed_recrute, ephemeral=True)
+                                    
+                                    # DM de bienvenue
+                                    try:
+                                        embed_welcome = discord.Embed(
+                                            title="🎉 Bienvenue dans l'EMS !",
+                                            description=f"Félicitations {user_name} !\n\nVous avez été recruté(e) en tant que **[EMT]**.\n\nUn channel privé a été créé pour vous : **{channel_name}**",
+                                            color=discord.Color.green()
+                                        )
+                                        user_obj = bot.get_user(self.target_user.id)
+                                        if user_obj:
+                                            await user_obj.send(embed=embed_welcome)
+                                    except:
+                                        pass
+                                    
+                                    # Désactiver les boutons
+                                    recruter_btn.disabled = True
+                                    refuser_btn.disabled = True
+                                    await interaction_recrutement.message.edit(view=recrutement_view)
+                                    
+                                    # Ajouter réaction ✅
+                                    if hasattr(interaction_recrutement.message, 'add_reaction'):
+                                        await interaction_recrutement.message.add_reaction("✅")
+                            except Exception as e:
+                                print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur recrutement: {e}")
+                                await interaction_recrutement.response.send_message(f"❌ Erreur: {e}", ephemeral=True)
+                        
+                        async def refuser_recrutement_callback(interaction_refus: discord.Interaction):
+                            # Vérifier que seul la direction peut refuser
+                            if not any(role.id == DIRECTION_ROLE_ID for role in interaction_refus.user.roles):
+                                await interaction_refus.response.send_message(
+                                    "❌ Seule la direction peut refuser !",
+                                    ephemeral=True
+                                )
+                                return
+                            
+                            try:
+                                guild = bot.get_guild(config["GUILD_ID"])
+                                member = guild.get_member(self.target_user.id)
+                                
+                                if member:
+                                    # Relancer le MP pour remettre les dispo
+                                    embed_retry = discord.Embed(
+                                        title="📅 ❌ Disponibilités Refusées",
+                                        description=f"Bonjour {user_name},\n\nVos disponibilités ont été refusées par la direction.\n\nVeuillez les remettre à jour via le bouton ci-dessous.",
+                                        color=discord.Color.red()
+                                    )
+                                    embed_retry.set_footer(text="🚑 EMS System | Nouvelle tentative")
+                                    
+                                    # Créer une classe pour le bouton dispo retry
+                                    class RetryDispoButton(discord.ui.View):
+                                        def __init__(self):
+                                            super().__init__(timeout=None)
+                                        
+                                        @discord.ui.button(label="📅 Remettre mes Disponibilités", style=discord.ButtonStyle.primary)
+                                        async def retry_dispo_button(self, btn_interaction: discord.Interaction, btn: discord.ui.Button):
+                                            """Ouvre le modal pour remettre ses dispo"""
+                                            modal = CVDispoModal(target_user=member)
+                                            await btn_interaction.response.send_modal(modal)
+                                    
+                                    retry_view = RetryDispoButton()
+                                    user_obj = bot.get_user(self.target_user.id)
+                                    if user_obj:
+                                        await user_obj.send(embed=embed_retry, view=retry_view)
+                                    
+                                    # Message de refus
+                                    embed_refuse = discord.Embed(
+                                        title="❌ Disponibilités Refusées",
+                                        description=f"Les disponibilités de **{user_name}** ont été refusées. Un MP a été envoyé pour remettre.",
+                                        color=discord.Color.red()
+                                    )
+                                    await interaction_refus.response.send_message(embed=embed_refuse, ephemeral=True)
+                                    
+                                    # Désactiver les boutons
+                                    recruter_btn.disabled = True
+                                    refuser_btn.disabled = True
+                                    await interaction_refus.message.edit(view=recrutement_view)
+                                    
+                                    # Ajouter réaction ❌
+                                    if hasattr(interaction_refus.message, 'add_reaction'):
+                                        await interaction_refus.message.add_reaction("❌")
+                            except Exception as e:
+                                print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur refus dispo: {e}")
+                                await interaction_refus.response.send_message(f"❌ Erreur: {e}", ephemeral=True)
+                        
+                        recruter_btn.callback = recruter_callback
+                        refuser_btn.callback = refuser_recrutement_callback
+                        recrutement_view.add_item(recruter_btn)
+                        recrutement_view.add_item(refuser_btn)
+                        
+                        # Ping la personne qui a soumis la dispo et celle qui a accepté
+                        ping_msg = f"{self.target_user.mention} {interaction_confirm.user.mention}"
+                        await recruitment_channel.send(ping_msg, embed=embed_recrutement, view=recrutement_view)
+                    
+                    # Ajouter une réaction pour marquer comme confirmée
+                    if hasattr(interaction_confirm.message, 'add_reaction'):
+                        await interaction_confirm.message.add_reaction("✅")
+                
+                async def refuse_callback(interaction_refuse: discord.Interaction):
+                    # Message de refus à la direction
+                    embed_refuse = discord.Embed(
+                        title="❌ Disponibilités Refusées",
+                        description=f"Les dispo de {user_name} ont été déclinées.",
+                        color=discord.Color.red()
+                    )
+                    await interaction_refuse.response.send_message(embed=embed_refuse, ephemeral=True)
+                    
+                    # Désactiver les boutons
+                    confirm_btn.disabled = True
+                    refuse_btn.disabled = True
+                    await interaction_refuse.message.edit(view=view)
+                    
+                    # Envoyer un DM de rappel/refus à l'utilisateur
+                    try:
+                        embed_dm = discord.Embed(
+                            title="📅 ❌ Disponibilités Refusées",
+                            description=f"Bonjour {user_name},\n\nVos disponibilités ont été refusées.\n\nVeuillez cliquer sur le bouton pour les remettre à jour.",
+                            color=discord.Color.red()
+                        )
+                        embed_dm.set_footer(text="🚑 EMS System | Nouvelle tentative")
+                        
+                        # Créer une classe pour le bouton retry
+                        class RetryDispoButton(discord.ui.View):
+                            def __init__(self):
+                                super().__init__(timeout=None)
+                            
+                            @discord.ui.button(label="📅 Remettre mes Disponibilités", style=discord.ButtonStyle.primary)
+                            async def retry_dispo_button(self, btn_interaction: discord.Interaction, btn: discord.ui.Button):
+                                """Ouvre le modal pour remettre ses dispo"""
+                                modal = CVDispoModal(target_user=self.target_user)
+                                await btn_interaction.response.send_modal(modal)
+                        
+                        retry_view = RetryDispoButton()
+                        retry_view.target_user = self.target_user
+                        user = bot.get_user(self.target_user.id)
+                        if user:
+                            await user.send(embed=embed_dm, view=retry_view)
+                    except:
+                        pass
+                    
+                    # Ajouter une réaction pour marquer comme refusée
+                    if hasattr(interaction_refuse.message, 'add_reaction'):
+                        await interaction_refuse.message.add_reaction("❌")
+                
+                confirm_btn.callback = confirm_callback
+                refuse_btn.callback = refuse_callback
+                view.add_item(confirm_btn)
+                view.add_item(refuse_btn)
+                
+                ping_msg = f"<@&{DIRECTION_ROLE_ID}>"
+                await request_channel.send(ping_msg, embed=embed, view=view)
+            
+            await interaction.response.send_message(
+                "✅ Vos disponibilités ont été soumises avec succès !",
+                ephemeral=True
+            )
+        except Exception as e:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur dispo CV: {e}")
+            await interaction.response.send_message(
+                f"❌ Erreur: {e}",
+                ephemeral=True
+            )
 
 # --- MODAL POUR LES DISPONIBILITÉS ---
 class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilités"):
