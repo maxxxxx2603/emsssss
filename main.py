@@ -66,9 +66,10 @@ AVIS_CHANNEL_ID = 1478910608228487255
 CITOYEN_ROLE_ID = 838102445095256066
 
 # Configuration Dispo
-DISPO_CHANNEL_ID = 1478912686069780602
+DISPO_REQUEST_CHANNEL_ID = 1478916243858915591  # Canal pour les demandes initiales
+DISPO_CHANNEL_ID = 1478912686069780602  # Canal pour les décisions de recrutement
 DISPO_CONFIRMATION_ROLE_ID = 896103247096471613
-DIRECTION_ROLE_ID = 838120186585940010
+DIRECTION_ROLE_ID = 838120186585940010  # Rôle direction pour validation dispo et recrutement
 ROLE_PENDING_ID = 896103247096471613
 ROLE_EMT_1 = 838102445095256070
 ROLE_EMT_2 = 838102445095256068
@@ -4763,9 +4764,9 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                 embed.add_field(name="Notes", value=self.notes.value, inline=False)
             embed.set_footer(text=f"Reçu le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
             
-            # Envoyer dans le channel des dispo avec boutons de confirmation
-            dispo_channel = bot.get_channel(DISPO_CHANNEL_ID)
-            if dispo_channel:
+            # Envoyer dans le channel de demande avec boutons de confirmation pour la direction
+            request_channel = bot.get_channel(DISPO_REQUEST_CHANNEL_ID)
+            if request_channel:
                 # Créer les boutons de confirmation/refus
                 view = discord.ui.View()
                 confirm_btn = discord.ui.Button(label="✅ Confirmer", style=discord.ButtonStyle.green)
@@ -4803,9 +4804,9 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                     except:
                         pass
                     
-                    # Envoyer un message de recrutement dans le channel avis
-                    avis_channel = bot.get_channel(AVIS_CHANNEL_ID)
-                    if avis_channel:
+                    # Envoyer un message de recrutement dans le channel de recrutement
+                    recruitment_channel = bot.get_channel(DISPO_CHANNEL_ID)
+                    if recruitment_channel:
                         embed_recrutement = discord.Embed(
                             title="👤 Candidature Approuvée - Décision de Recrutement",
                             description=f"**{interaction.user.mention}** a été approuvé(e) par la direction.\n\n"
@@ -4948,7 +4949,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                         recrutement_view.add_item(recruter_btn)
                         recrutement_view.add_item(refuser_btn)
                         
-                        await avis_channel.send(embed=embed_recrutement, view=recrutement_view)
+                        await recruitment_channel.send(embed=embed_recrutement, view=recrutement_view)
                     
                     # Ajouter une réaction pour marquer comme confirmée
                     if hasattr(interaction_confirm.message, 'add_reaction'):
@@ -4987,8 +4988,8 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                 view.add_item(confirm_btn)
                 view.add_item(refuse_btn)
                 
-                ping_msg = f"<@&{DISPO_CONFIRMATION_ROLE_ID}>"
-                await dispo_channel.send(ping_msg, embed=embed, view=view)
+                ping_msg = f"<@&{DIRECTION_ROLE_ID}>"
+                await request_channel.send(ping_msg, embed=embed, view=view)
             
             await interaction.response.send_message(
                 "✅ Vos disponibilités ont été soumises avec succès !",
