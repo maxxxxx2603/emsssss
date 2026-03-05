@@ -4763,7 +4763,10 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
     async def on_submit(self, interaction: discord.Interaction):
         """Quand l'utilisateur soumet ses dispo après acceptation CV"""
         try:
-            user_name = self.target_user.name
+            # Récupérer le pseudonyme du serveur (pas le nom Discord)
+            guild = bot.get_guild(config["GUILD_ID"])
+            member = guild.get_member(self.target_user.id)
+            user_name = member.display_name if member else self.target_user.name
             
             # Créer l'embed de la dispo
             embed = discord.Embed(
@@ -5094,7 +5097,10 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
     async def on_submit(self, interaction: discord.Interaction):
         """Quand l'utilisateur soumet ses disponibilités"""
         try:
-            user_name = interaction.user.name
+            # Récupérer le pseudonyme du serveur (pas le nom Discord)
+            guild = bot.get_guild(config["GUILD_ID"])
+            member = guild.get_member(interaction.user.id)
+            user_name = member.display_name if member else interaction.user.name
             
             # Créer l'embed de la dispo
             embed = discord.Embed(
