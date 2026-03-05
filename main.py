@@ -4722,18 +4722,10 @@ async def avis_command(interaction: discord.Interaction):
 class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilités"):
     """Modal pour soumettre ses disponibilités"""
     
-    # Nom/Pseudo
-    nom = discord.ui.TextInput(
-        label="Votre nom ou pseudo",
-        placeholder="Ex: Mat Duja",
-        required=True,
-        max_length=100
-    )
-    
     # Disponibilités
     disponibilites = discord.ui.TextInput(
         label="Vos disponibilités",
-        placeholder="Ex: Lundi 10h-18h, Mardi 14h-22h, etc.",
+        placeholder="Ex: Lundi 10h-18h, Mardi 14h-22h, Dimanche fermé",
         required=True,
         style=discord.TextStyle.long,
         max_length=500
@@ -4751,17 +4743,18 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
     async def on_submit(self, interaction: discord.Interaction):
         """Quand l'utilisateur soumet ses disponibilités"""
         try:
+            user_name = interaction.user.name
+            
             # Créer l'embed de la dispo
             embed = discord.Embed(
                 title="📅 Nouvelle Disponibilité Soumise",
                 color=discord.Color.blue()
             )
             
-            embed.add_field(name="Personne", value=self.nom.value, inline=False)
+            embed.add_field(name="Personne", value=f"{interaction.user.mention} ({user_name})", inline=False)
             embed.add_field(name="Disponibilités", value=self.disponibilites.value, inline=False)
             if self.notes.value:
                 embed.add_field(name="Notes", value=self.notes.value, inline=False)
-            embed.add_field(name="Soumis par", value=interaction.user.mention, inline=True)
             embed.set_footer(text=f"Reçu le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
             
             # Envoyer dans le channel des dispo avec boutons de confirmation
@@ -4773,23 +4766,57 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                 refuse_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
                 
                 async def confirm_callback(interaction_confirm: discord.Interaction):
+                    # Message de confirmation à la direction
                     embed_confirm = discord.Embed(
                         title="✅ Disponibilité Confirmée",
-                        description=f"{self.nom.value} est confirmé(e) avec ses dispo.",
+                        description=f"La dispo de {user_name} a été approuvée.",
                         color=discord.Color.green()
                     )
                     await interaction_confirm.response.send_message(embed=embed_confirm, ephemeral=True)
+                    
+                    # Envoyer un DM de rappel à l'utilisateur
+                    try:
+                        embed_dm = discord.Embed(
+                            title="📅 ✅ Votre Disponibilité a été Confirmée",
+                            description=f"Bonjour {user_name},\n\nVotre disponibilité a été validée par la direction !\n\nVos dispo:\n{self.disponibilites.value}",
+                            color=discord.Color.green()
+                        )
+                        embed_dm.set_footer(text="🚑 EMS System | Rappel de confirmation")
+                        
+                        user = bot.get_user(interaction.user.id)
+                        if user:
+                            await user.send(embed=embed_dm)
+                    except:
+                        pass
+                    
                     # Ajouter une réaction pour marquer comme confirmée
                     if hasattr(interaction_confirm.message, 'add_reaction'):
                         await interaction_confirm.message.add_reaction("✅")
                 
                 async def refuse_callback(interaction_refuse: discord.Interaction):
+                    # Message de refus à la direction
                     embed_refuse = discord.Embed(
                         title="❌ Disponibilité Refusée",
-                        description=f"La dispo de {self.nom.value} a été refusée.",
+                        description=f"La dispo de {user_name} a été déclinée.",
                         color=discord.Color.red()
                     )
                     await interaction_refuse.response.send_message(embed=embed_refuse, ephemeral=True)
+                    
+                    # Envoyer un DM de rappel/refus à l'utilisateur
+                    try:
+                        embed_dm = discord.Embed(
+                            title="📅 ❌ Disponibilité Refusée",
+                            description=f"Bonjour {user_name},\n\nVotre proposition de disponibilité a été refusée.\n\nVeuillez contacter la direction pour plus d'informations.",
+                            color=discord.Color.red()
+                        )
+                        embed_dm.set_footer(text="🚑 EMS System | Avis de refus")
+                        
+                        user = bot.get_user(interaction.user.id)
+                        if user:
+                            await user.send(embed=embed_dm)
+                    except:
+                        pass
+                    
                     # Ajouter une réaction pour marquer comme refusée
                     if hasattr(interaction_refuse.message, 'add_reaction'):
                         await interaction_refuse.message.add_reaction("❌")
