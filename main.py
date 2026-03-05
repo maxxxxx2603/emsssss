@@ -68,6 +68,12 @@ CITOYEN_ROLE_ID = 838102445095256066
 # Configuration Dispo
 DISPO_CHANNEL_ID = 1478912686069780602
 DISPO_CONFIRMATION_ROLE_ID = 896103247096471613
+DIRECTION_ROLE_ID = 838120186585940010
+ROLE_PENDING_ID = 896103247096471613
+ROLE_EMT_1 = 838102445095256070
+ROLE_EMT_2 = 838102445095256068
+ROLE_EMT_3 = 895047492784238652
+ROLE_CITOYEN = 838102445095256068
 
 # Configuration Giveaway
 GIVEAWAY_PING_ROLE_ID = 838102445095256068  # Rôle à ping pour les giveaways
@@ -4766,10 +4772,18 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                 refuse_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
                 
                 async def confirm_callback(interaction_confirm: discord.Interaction):
+                    # Vérifier que seul la direction peut confirmer
+                    if not any(role.id == DIRECTION_ROLE_ID for role in interaction_confirm.user.roles):
+                        await interaction_confirm.response.send_message(
+                            "❌ Seule la direction peut valider les disponibilités !",
+                            ephemeral=True
+                        )
+                        return
+                    
                     # Message de confirmation à la direction
                     embed_confirm = discord.Embed(
                         title="✅ Disponibilité Confirmée",
-                        description=f"La dispo de {user_name} a été approuvée.",
+                        description=f"La dispo de {user_name} a été approuvée.\n\nEn attente de recrutement...",
                         color=discord.Color.green()
                     )
                     await interaction_confirm.response.send_message(embed=embed_confirm, ephemeral=True)
@@ -4788,6 +4802,153 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                             await user.send(embed=embed_dm)
                     except:
                         pass
+                    
+                    # Envoyer un message de recrutement dans le channel avis
+                    avis_channel = bot.get_channel(AVIS_CHANNEL_ID)
+                    if avis_channel:
+                        embed_recrutement = discord.Embed(
+                            title="👤 Candidature Approuvée - Décision de Recrutement",
+                            description=f"**{interaction.user.mention}** a été approuvé(e) par la direction.\n\n"
+                                       f"Disponibilités:\n{self.disponibilites.value}",
+                            color=discord.Color.blue()
+                        )
+                        
+                        # Boutons Recruter/Refuser
+                        recrutement_view = discord.ui.View()
+                        recruter_btn = discord.ui.Button(label="✅ Recruter", style=discord.ButtonStyle.green)
+                        refuser_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
+                        
+                        async def recruter_callback(interaction_recrutement: discord.Interaction):
+                            # Vérifier que seul la direction peut recruter
+                            if not any(role.id == DIRECTION_ROLE_ID for role in interaction_recrutement.user.roles):
+                                await interaction_recrutement.response.send_message(
+                                    "❌ Seule la direction peut recruter !",
+                                    ephemeral=True
+                                )
+                                return
+                            
+                            try:
+                                guild = bot.get_guild(config["GUILD_ID"])
+                                member = guild.get_member(interaction.user.id)
+                                
+                                if member:
+                                    # Retirer le rôle pending
+                                    try:
+                                        role_pending = guild.get_role(ROLE_PENDING_ID)
+                                        if role_pending:
+                                            await member.remove_roles(role_pending)
+                                    except:
+                                        pass
+                                    
+                                    # Ajouter les rôles EMS
+                                    roles_to_add = [
+                                        guild.get_role(ROLE_EMT_1),
+                                        guild.get_role(ROLE_EMT_2),
+                                        guild.get_role(ROLE_EMT_3)
+                                    ]
+                                    roles_to_add = [r for r in roles_to_add if r]
+                                    
+                                    if roles_to_add:
+                                        await member.add_roles(*roles_to_add)
+                                    
+                                    # Ajouter le préfixe [EMT]
+                                    try:
+                                        new_nick = f"[EMT] {user_name}"
+                                        await member.edit(nick=new_nick)
+                                    except:
+                                        pass
+                                    
+                                    # Message de confirmation
+                                    embed_recrute = discord.Embed(
+                                        title="✅ Recrutement Effectué",
+                                        description=f"**{user_name}** a été recruté(e) en tant que **[EMT]**.",
+                                        color=discord.Color.green()
+                                    )
+                                    await interaction_recrutement.response.send_message(embed=embed_recrute, ephemeral=True)
+                                    
+                                    # DM de bienvenue
+                                    try:
+                                        embed_welcome = discord.Embed(
+                                            title="🎉 Bienvenue dans l'EMS !",
+                                            description=f"Félicitations {user_name} !\n\nVous avez été recruté(e) en tant que **[EMT]**.\n\nVous pouvez maintenant accéder à tous les channels de l'EMS.",
+                                            color=discord.Color.green()
+                                        )
+                                        user_obj = bot.get_user(interaction.user.id)
+                                        if user_obj:
+                                            await user_obj.send(embed=embed_welcome)
+                                    except:
+                                        pass
+                                    
+                                    # Ajouter réaction ✅
+                                    if hasattr(interaction_recrutement.message, 'add_reaction'):
+                                        await interaction_recrutement.message.add_reaction("✅")
+                            except Exception as e:
+                                print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur recrutement: {e}")
+                                await interaction_recrutement.response.send_message(f"❌ Erreur: {e}", ephemeral=True)
+                        
+                        async def refuser_recrutement_callback(interaction_refus: discord.Interaction):
+                            # Vérifier que seul la direction peut refuser
+                            if not any(role.id == DIRECTION_ROLE_ID for role in interaction_refus.user.roles):
+                                await interaction_refus.response.send_message(
+                                    "❌ Seule la direction peut refuser !",
+                                    ephemeral=True
+                                )
+                                return
+                            
+                            try:
+                                guild = bot.get_guild(config["GUILD_ID"])
+                                member = guild.get_member(interaction.user.id)
+                                
+                                if member:
+                                    # Retirer tous les rôles EMS (sauf citoyen)
+                                    for role in member.roles:
+                                        if role.id in [ROLE_EMT_1, ROLE_EMT_2, ROLE_EMT_3, ROLE_PENDING_ID] and role.id != ROLE_CITOYEN:
+                                            try:
+                                                await member.remove_roles(role)
+                                            except:
+                                                pass
+                                    
+                                    # Retirer le préfixe [EMT] si présent
+                                    try:
+                                        if member.nick and member.nick.startswith("[EMT]"):
+                                            await member.edit(nick=user_name)
+                                    except:
+                                        pass
+                                    
+                                    # Message de refus
+                                    embed_refuse = discord.Embed(
+                                        title="❌ Candidature Refusée",
+                                        description=f"**{user_name}** a été refusé(e) au recrutement.",
+                                        color=discord.Color.red()
+                                    )
+                                    await interaction_refus.response.send_message(embed=embed_refuse, ephemeral=True)
+                                    
+                                    # DM de refus
+                                    try:
+                                        embed_refuse_dm = discord.Embed(
+                                            title="❌ Candidature Refusée",
+                                            description=f"Nous sommes désolés {user_name},\n\nVotre candidature au recrutement EMS a été refusée.\n\nVous pouvez réessayer ultérieurement.",
+                                            color=discord.Color.red()
+                                        )
+                                        user_obj = bot.get_user(interaction.user.id)
+                                        if user_obj:
+                                            await user_obj.send(embed=embed_refuse_dm)
+                                    except:
+                                        pass
+                                    
+                                    # Ajouter réaction ❌
+                                    if hasattr(interaction_refus.message, 'add_reaction'):
+                                        await interaction_refus.message.add_reaction("❌")
+                            except Exception as e:
+                                print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur refus recrutement: {e}")
+                                await interaction_refus.response.send_message(f"❌ Erreur: {e}", ephemeral=True)
+                        
+                        recruter_btn.callback = recruter_callback
+                        refuser_btn.callback = refuser_recrutement_callback
+                        recrutement_view.add_item(recruter_btn)
+                        recrutement_view.add_item(refuser_btn)
+                        
+                        await avis_channel.send(embed=embed_recrutement, view=recrutement_view)
                     
                     # Ajouter une réaction pour marquer comme confirmée
                     if hasattr(interaction_confirm.message, 'add_reaction'):
