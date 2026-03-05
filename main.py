@@ -1649,20 +1649,20 @@ class ReviewView(discord.ui.View):
             # Envoyer dans le channel de logs CV (1458956197796515979)
             cv_log_channel = bot.get_channel(1458956197796515979)
             if cv_log_channel:
-                  await cv_log_channel.send(embed=embed)
-                  
-                  # Chercher et copier le CV original
-                  try:
-                      cv_channel = bot.get_channel(1460755743228825641)
-                      if cv_channel:
-                          async for cv_msg in cv_channel.history(limit=200):
-                              if cv_msg.embeds and member.display_name.lower() in str(cv_msg.embeds[0].title).lower():
-                                  for cv_embed in cv_msg.embeds:
-                                      await cv_log_channel.send(embed=cv_embed)
-                                  break
-                  except:
-                      pass
-              # Poster l'image du membre dans le channel 1460752929429520427
+                await cv_log_channel.send(embed=embed)
+                
+                # Chercher et copier le CV original
+                try:
+                    cv_channel = bot.get_channel(1460755743228825641)
+                    if cv_channel:
+                        async for cv_msg in cv_channel.history(limit=200):
+                            if cv_msg.embeds and member.display_name.lower() in str(cv_msg.embeds[0].title).lower():
+                                for cv_embed in cv_msg.embeds:
+                                    await cv_log_channel.send(embed=cv_embed)
+                                break
+                except:
+                    pass
+            # Poster l'image du membre dans le channel 1460752929429520427
             image_channel = bot.get_channel(1460752929429520427)
             if image_channel and member.avatar:
                 try:
@@ -2058,20 +2058,20 @@ class FormulaireCVValidation(discord.ui.View):
             # Envoyer dans le channel de logs CV (1458956197796515979)
             cv_log_channel = bot.get_channel(1458956197796515979)
             if cv_log_channel:
-                  await cv_log_channel.send(embed=embed)
-                  
-                  # Chercher et copier le CV original
-                  try:
-                      cv_channel = bot.get_channel(1460755743228825641)
-                      if cv_channel:
-                          async for cv_msg in cv_channel.history(limit=200):
-                              if cv_msg.embeds and member.display_name.lower() in str(cv_msg.embeds[0].title).lower():
-                                  for cv_embed in cv_msg.embeds:
-                                      await cv_log_channel.send(embed=cv_embed)
-                                  break
-                  except:
-                      pass
-              # Poster l'image du membre dans le channel 1460752929429520427
+                await cv_log_channel.send(embed=embed)
+                
+                # Chercher et copier le CV original
+                try:
+                    cv_channel = bot.get_channel(1460755743228825641)
+                    if cv_channel:
+                        async for cv_msg in cv_channel.history(limit=200):
+                            if cv_msg.embeds and member.display_name.lower() in str(cv_msg.embeds[0].title).lower():
+                                for cv_embed in cv_msg.embeds:
+                                    await cv_log_channel.send(embed=cv_embed)
+                                break
+                except:
+                    pass
+            # Poster l'image du membre dans le channel 1460752929429520427
             image_channel = bot.get_channel(1460752929429520427)
             if image_channel and member.avatar:
                 try:
@@ -4795,9 +4795,12 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                 refuse_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
                 
                 async def confirm_callback(interaction_confirm: discord.Interaction):
+                    # DEFER IMMÉDIATEMENT pour éviter le timeout
+                    await interaction_confirm.response.defer()
+                    
                     # Vérifier que seul la direction peut confirmer
                     if not any(role.id == DIRECTION_ROLE_ID for role in interaction_confirm.user.roles):
-                        await interaction_confirm.response.send_message(
+                        await interaction_confirm.followup.send(
                             "❌ Seule la direction peut valider les disponibilités !",
                             ephemeral=True
                         )
@@ -5023,13 +5026,24 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                         await interaction_confirm.message.add_reaction("✅")
                 
                 async def refuse_callback(interaction_refuse: discord.Interaction):
+                    # DEFER IMMÉDIATEMENT pour éviter le timeout
+                    await interaction_refuse.response.defer()
+                    
+                    # Vérifier que seul la direction peut refuser
+                    if not any(role.id == DIRECTION_ROLE_ID for role in interaction_refuse.user.roles):
+                        await interaction_refuse.followup.send(
+                            "❌ Seule la direction peut refuser !",
+                            ephemeral=True
+                        )
+                        return
+                    
                     # Message de refus à la direction
                     embed_refuse = discord.Embed(
                         title="❌ Disponibilités Refusées",
                         description=f"Les dispo de {user_name} ont été déclinées.",
                         color=discord.Color.red()
                     )
-                    await interaction_refuse.response.send_message(embed=embed_refuse, ephemeral=True)
+                    await interaction_refuse.followup.send(embed=embed_refuse, ephemeral=True)
                     
                     # Désactiver les boutons
                     confirm_btn.disabled = True
@@ -5138,9 +5152,12 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                 refuse_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
                 
                 async def confirm_callback(interaction_confirm: discord.Interaction):
+                    # DEFER IMMÉDIATEMENT pour éviter le timeout
+                    await interaction_confirm.response.defer()
+                    
                     # Vérifier que seul la direction peut confirmer
                     if not any(role.id == DIRECTION_ROLE_ID for role in interaction_confirm.user.roles):
-                        await interaction_confirm.response.send_message(
+                        await interaction_confirm.followup.send(
                             "❌ Seule la direction peut valider les disponibilités !",
                             ephemeral=True
                         )
