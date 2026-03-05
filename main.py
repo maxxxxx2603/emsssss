@@ -158,8 +158,7 @@ class EMSBot(commands.Bot):
         self.add_view(ResetMemberButton())
         # Démarrer les tâches automatisées
         weekly_taxi_announcement.start()
-        auto_backup_stats.start()  # Sauvegarde automatique toutes les 5 minutes
-        check_giveaways.start()  # Vérifier les giveaways actifs
+        check_giveaways.start()
 
 bot = EMSBot()
 
@@ -4530,21 +4529,18 @@ async def update_descriptions_background():
     try:
         guild = bot.get_guild(config["GUILD_ID"])
         if not guild:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Guild non trouvée, skip update")
             return
         
         stats = load_stats()
         if not stats:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Stats vides, skip update")
             return
         
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔄 Démarrage mise à jour descriptions ({len(stats)} channels)...")
         updated_count = 0
         skipped_count = 0
         
         for key, value in stats.items():
             try:
-                # Chercher le channel EMS qui correspond à cet employé
+                # Chercher le channel EMS correspondant
                 channel = None
                 for ch in guild.text_channels:
                     if ch.name and len(ch.name) > 0 and ch.name[0] in ["🔴", "🟠", "🟢"]:
@@ -4554,93 +4550,73 @@ async def update_descriptions_background():
                             break
                 
                 if not channel:
+                    continue
+                
+                # Calculer la nouvelle description
+                new_emoji = get_color_emoji(value)
+                current_emoji = channel.name[0]
+                bonus_days = get_week_bonus_count(key)
+                bonus_text = f" {bonus_days}M" if bonus_days > 0 else ""
+                new_topic = f"{new_emoji} {value}/100{bonus_text}"
+                
+                # Vérifier si quelque chose a changé
+                name_changed = current_emoji != new_emoji
+                topic_changed = channel.topic != new_topic
+                
+                if not name_changed and not topic_changed:
                     skipped_count += 1
                     continue
                 
-                # Mettre à jour la couleur du channel (nom avec emoji)
-                try:
-                    current_emoji = channel.name[0]
-                    new_emoji = get_color_emoji(value)
-                    
-                    if current_emoji != new_emoji:
-                        try:
-                            new_channel_name = f"{new_emoji}{channel.name[1:]}"
-                            await channel.edit(name=new_channel_name)
-                            print(f"  ✏️ {key}: emoji {current_emoji} → {new_emoji}")
-                            await asyncio.sleep(3)  # Délai après edit nom
-                        except Exception as e:
-                            print(f"  ❌ Erreur emoji pour {key}: {e}")
-                except Exception as e:
-                    print(f"  ⚠️ Erreur comparaison emoji {key}: {e}")
+                # Un seul appel API pour nom + description
+                edit_args = {}
+                if name_changed:
+                    edit_args["name"] = f"{new_emoji}{channel.name[1:]}"
+                if topic_changed:
+                    edit_args["topic"] = new_topic
                 
-                # Mettre à jour la description (topic)
-                try:
-                    emoji = get_color_emoji(value)
-                    bonus_days = get_week_bonus_count(key)
-                    bonus_text = ""
-                    
-                    if bonus_days > 0:
-                        bonus_text = f" {bonus_days}M"
-                    
-                    description = f"{emoji} {value}/100{bonus_text}"
-                    
-                    # Vérifier si la description a changé
-                    if channel.topic != description:
-                        await channel.edit(topic=description)
-                        print(f"  📝 {key}: {description}")
-                        updated_count += 1
-                    else:
-                        skipped_count += 1
-                    
-                except Exception as e:
-                    print(f"  ❌ Erreur description pour {key}: {e}")
+                await channel.edit(**edit_args)
+                updated_count += 1
                 
-                # DÉLAI DE 3 SECONDES POUR ÉVITER LES 429
-                await asyncio.sleep(3)
+                # Délai de 4 secondes entre chaque channel modifié
+                await asyncio.sleep(4)
                 
             except Exception as e:
-                print(f"  ⚠️ Erreur traitement {key}: {e}")
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur update {key}: {e}")
+                await asyncio.sleep(5)  # Délai plus long en cas d'erreur
         
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Mise à jour complète: {updated_count} modifiés, {skipped_count} inchangés")
+        if updated_count > 0:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔄 Descriptions: {updated_count} modifiés, {skipped_count} inchangés")
         
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur update_descriptions_background: {e}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur descriptions: {e}")
 
 @update_descriptions_background.before_loop
 async def before_update_descriptions():
-    """Attendre que le bot soit prêt"""
     await bot.wait_until_ready()
+    await asyncio.sleep(15)  # Attendre 15s après connexion avant la première mise à jour
 
 @bot.event
 async def on_ready():
-    print(f'✅ Bot: {bot.user}')
-    
-    # Charger les stats existantes
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
-    print(f'📊 Stats chargées: {len(stats)} employés, {total_reas} réas totales')
     
-    # Créer un backup des stats au démarrage
+    print(f'✅ Bot connecté: {bot.user}')
+    print(f'📊 {len(stats)} employés | {total_reas} réas totales')
+    
+    # Backup au démarrage
     if stats:
         try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_path = f"stats_backup_{timestamp}.json"
-            with open(backup_path, 'w', encoding='utf-8') as f:
-                json.dump(stats, f, ensure_ascii=False, indent=2)
-            print(f'💾 Backup créé: {backup_path}')
-        except Exception as e:
-            print(f'⚠️ Erreur backup: {e}')
+            atomic_write_json(STATS_FILE, stats, make_backup=True)
+        except:
+            pass
     
-    print('✅ Bot prêt - Sauvegarde automatique activée')
-    
-    # Démarrer les tâches automatiques si elles ne sont pas déjà en train de tourner
+    # Démarrer les tâches si pas déjà en cours
     if not auto_backup_stats.is_running():
         auto_backup_stats.start()
-        print('✅ Tâche de sauvegarde automatique démarrée')
-    
     if not update_descriptions_background.is_running():
         update_descriptions_background.start()
-        print('✅ Tâche de mise à jour des descriptions démarrée (toutes les 5 min)')
+    
+    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (5min) activées')
 
 # --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
 @tasks.loop(minutes=5)
@@ -4650,9 +4626,9 @@ async def auto_backup_stats():
         stats = load_stats()
         total_reas = sum(stats.values()) if stats else 0
         atomic_write_json(STATS_FILE, stats, make_backup=True)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 💾 Sauvegarde automatique: {len(stats)} employés, {total_reas} réas")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] 💾 Sauvegarde: {len(stats)} employés, {total_reas} réas")
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde automatique: {e}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde: {e}")
 
 @auto_backup_stats.before_loop
 async def before_auto_backup():
@@ -4668,14 +4644,6 @@ if __name__ == "__main__":
         
         while retry_count < max_retries:
             try:
-                # 💾 SAUVEGARDE DE SÉCURITÉ AVANT DÉMARRAGE/REDÉMARRAGE
-                try:
-                    stats = load_stats()
-                    atomic_write_json(STATS_FILE, stats, make_backup=True)
-                    print(f"💾 Sauvegarde de sécurité effectuée ({len(stats)} employés, {sum(stats.values())} réas)")
-                except Exception as e:
-                    print(f"⚠️ Erreur lors de la sauvegarde de sécurité: {e}")
-                
                 print(f"🚀 Démarrage du bot EMS... (Tentative {retry_count + 1}/{max_retries})")
                 bot.run(config['TOKEN'])
                 break  # Si le bot s'arrête proprement, sortir de la boucle
