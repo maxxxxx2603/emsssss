@@ -31,6 +31,10 @@ TAXI_STATS_FILE = 'taxi_stats.json'
 CHANNEL_MAP_FILE = 'channel_map.json'
 CATEGORIES_FILE = 'categories.json'
 BONUSES_WEEK_FILE = 'bonuses_week.json'
+SERVICE_FILE = 'services.json'
+
+# Services actifs en mémoire: {user_id: {"start": datetime_iso, "last_rea": datetime_iso, "employee_key": str}}
+active_services = {}
 
 # Configuration Taxi
 TAXI_CHANNEL_ID = 1457304629456011264
@@ -228,6 +232,27 @@ def load_stats():
 
 def save_stats(stats):
     atomic_write_json(STATS_FILE, stats)
+
+# --- GESTION DES SERVICES ---
+def load_services():
+    """Charge l'historique des services (heures cumulées par employé)"""
+    return robust_load_json(SERVICE_FILE, {})
+
+def save_services(data):
+    atomic_write_json(SERVICE_FILE, data)
+
+def add_service_hours(employee_key: str, hours: float, reas_count: int):
+    """Ajoute des heures de service pour un employé"""
+    services = load_services()
+    week = get_week_start()
+    if week not in services:
+        services[week] = {}
+    if employee_key not in services[week]:
+        services[week][employee_key] = {"total_hours": 0, "total_reas": 0, "sessions": 0}
+    services[week][employee_key]["total_hours"] = round(services[week][employee_key]["total_hours"] + hours, 2)
+    services[week][employee_key]["total_reas"] += reas_count
+    services[week][employee_key]["sessions"] += 1
+    save_services(services)
 
 # --- GESTION DES BONUSES CUMULATIFS PAR SEMAINE ---
 def get_week_start():
@@ -5520,6 +5545,25 @@ async def on_message(message):
             await bot.process_commands(message)
             return
         
+        # --- VÉRIFICATION SERVICE ACTIF ---
+        user_id = str(message.author.id)
+        if user_id not in active_services:
+            try:
+                await message.reply(
+                    "❌ **Tu dois prendre ton service avant d'envoyer des réas !**\n"
+                    "Utilise la commande `/pds` pour prendre ton service.",
+                    delete_after=10
+                )
+                await message.add_reaction("⛔")
+            except:
+                pass
+            await bot.process_commands(message)
+            return
+        
+        # Mettre à jour la dernière réa et le compteur de service
+        active_services[user_id]["last_rea"] = datetime.now().isoformat()
+        active_services[user_id]["reas_count"] = active_services[user_id].get("reas_count", 0) + 1
+        
         # Charger les stats
         stats = load_stats()
         
@@ -5589,6 +5633,254 @@ async def on_message(message):
     
     # Traiter les commandes slash
     await bot.process_commands(message)
+
+# --- SYSTÈME DE PRISE DE SERVICE ---
+@bot.tree.command(name="pds", description="Prendre son service (obligatoire avant d'envoyer des réas)")
+async def prise_de_service(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+    
+    # Vérifier si déjà en service
+    if user_id in active_services:
+        start = datetime.fromisoformat(active_services[user_id]["start"])
+        duree = datetime.now() - start
+        minutes = int(duree.total_seconds() // 60)
+        await interaction.response.send_message(
+            f"⚠️ Tu es déjà en service depuis **{minutes} min** !\n"
+            f"Utilise `/fds` pour terminer ton service.",
+            ephemeral=True
+        )
+        return
+    
+    # Trouver le channel EMS de l'utilisateur pour identifier employee_key
+    guild = interaction.guild
+    employee_key = None
+    for ch in guild.text_channels:
+        if ch.name and len(ch.name) > 0 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+            ch_key = get_channel_employee_key(ch)
+            if ch_key:
+                # Vérifier si l'utilisateur a accès à ce channel
+                perms = ch.permissions_for(interaction.user)
+                if perms.send_messages and not ch.permissions_for(guild.default_role).view_channel:
+                    employee_key = ch_key
+                    break
+    
+    if not employee_key:
+        await interaction.response.send_message(
+            "❌ Impossible de trouver ton channel EMS. Contacte la direction.",
+            ephemeral=True
+        )
+        return
+    
+    now = datetime.now()
+    active_services[user_id] = {
+        "start": now.isoformat(),
+        "last_rea": now.isoformat(),
+        "employee_key": employee_key,
+        "reas_count": 0
+    }
+    
+    # Log dans le channel de logs
+    log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+    if log_channel:
+        try:
+            embed = discord.Embed(
+                title="🟢 Prise de Service",
+                description=f"**{interaction.user.mention}** ({employee_key}) a pris son service.",
+                color=discord.Color.green()
+            )
+            embed.set_footer(text=f"🚑 EMS System | {now.strftime('%H:%M')}")
+            await log_channel.send(embed=embed)
+        except:
+            pass
+    
+    await interaction.response.send_message(
+        f"✅ **Service commencé !** 🟢\n\n"
+        f"Tu peux maintenant envoyer tes réas.\n"
+        f"⏱️ Fin de service auto après **20 min** sans réa.\n"
+        f"Utilise `/fds` pour terminer manuellement.",
+        ephemeral=True
+    )
+
+@bot.tree.command(name="fds", description="Fin de service (terminer son service)")
+async def fin_de_service(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+    
+    if user_id not in active_services:
+        await interaction.response.send_message(
+            "❌ Tu n'es pas en service ! Utilise `/pds` pour commencer.",
+            ephemeral=True
+        )
+        return
+    
+    service = active_services.pop(user_id)
+    start = datetime.fromisoformat(service["start"])
+    end = datetime.now()
+    duree = end - start
+    hours = round(duree.total_seconds() / 3600, 2)
+    minutes = int(duree.total_seconds() // 60)
+    reas = service.get("reas_count", 0)
+    employee_key = service["employee_key"]
+    
+    # Enregistrer les heures
+    add_service_hours(employee_key, hours, reas)
+    
+    # Log dans le channel de logs
+    log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+    if log_channel:
+        try:
+            embed = discord.Embed(
+                title="🔴 Fin de Service",
+                description=f"**{interaction.user.mention}** ({employee_key}) a terminé son service.",
+                color=discord.Color.red()
+            )
+            embed.add_field(name="⏱️ Durée", value=f"{minutes} min", inline=True)
+            embed.add_field(name="🚑 Réas", value=f"{reas}", inline=True)
+            embed.set_footer(text=f"🚑 EMS System | {end.strftime('%H:%M')}")
+            await log_channel.send(embed=embed)
+        except:
+            pass
+    
+    await interaction.response.send_message(
+        f"✅ **Service terminé !** 🔴\n\n"
+        f"⏱️ Durée : **{minutes} min**\n"
+        f"🚑 Réas effectuées : **{reas}**\n\n"
+        f"Merci pour ton service !",
+        ephemeral=True
+    )
+
+@bot.tree.command(name="services", description="Affiche les heures de service de la semaine")
+@app_commands.checks.has_permissions(administrator=True)
+async def services_command(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    services = load_services()
+    week = get_week_start()
+    week_data = services.get(week, {})
+    
+    if not week_data:
+        await interaction.followup.send(
+            embed=discord.Embed(
+                title="📊 Services de la Semaine",
+                description="Aucun service enregistré cette semaine.",
+                color=EMS_RED
+            )
+        )
+        return
+    
+    # Trier par heures décroissantes
+    sorted_employees = sorted(week_data.items(), key=lambda x: x[1]["total_hours"], reverse=True)
+    
+    embed = discord.Embed(
+        title=f"📊 Services - Semaine du {week}",
+        color=EMS_RED
+    )
+    
+    total_hours_all = 0
+    total_reas_all = 0
+    
+    for employee_key, data in sorted_employees:
+        hours = data["total_hours"]
+        reas = data["total_reas"]
+        sessions = data["sessions"]
+        total_hours_all += hours
+        total_reas_all += reas
+        
+        h = int(hours)
+        m = int((hours - h) * 60)
+        display_name = employee_key.replace("-", " ").title()
+        
+        embed.add_field(
+            name=f"👤 {display_name}",
+            value=f"⏱️ {h}h{m:02d} | 🚑 {reas} réas | 📋 {sessions} services",
+            inline=False
+        )
+    
+    # En service actuellement
+    en_service = []
+    for uid, svc in active_services.items():
+        start = datetime.fromisoformat(svc["start"])
+        minutes = int((datetime.now() - start).total_seconds() // 60)
+        en_service.append(f"• **{svc['employee_key']}** - {minutes} min (🚑 {svc.get('reas_count', 0)} réas)")
+    
+    if en_service:
+        embed.add_field(
+            name="🟢 En service actuellement",
+            value="\n".join(en_service),
+            inline=False
+        )
+    
+    h_total = int(total_hours_all)
+    m_total = int((total_hours_all - h_total) * 60)
+    embed.set_footer(text=f"🚑 EMS System | Total: {h_total}h{m_total:02d} - {total_reas_all} réas")
+    
+    await interaction.followup.send(embed=embed)
+
+# --- TÂCHE AUTO FIN DE SERVICE (20 MIN SANS RÉA) ---
+@tasks.loop(minutes=2)
+async def check_inactive_services():
+    """Vérifie toutes les 2 min si un employé n'a pas envoyé de réa depuis 20 min"""
+    try:
+        now = datetime.now()
+        to_remove = []
+        
+        for user_id, service in active_services.items():
+            last_rea = datetime.fromisoformat(service["last_rea"])
+            if (now - last_rea).total_seconds() >= 1200:  # 20 minutes
+                to_remove.append(user_id)
+        
+        for user_id in to_remove:
+            service = active_services.pop(user_id)
+            start = datetime.fromisoformat(service["start"])
+            end = now
+            duree = end - start
+            hours = round(duree.total_seconds() / 3600, 2)
+            minutes = int(duree.total_seconds() // 60)
+            reas = service.get("reas_count", 0)
+            employee_key = service["employee_key"]
+            
+            # Enregistrer les heures
+            add_service_hours(employee_key, hours, reas)
+            
+            # Log dans le channel de logs
+            log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
+            if log_channel:
+                try:
+                    embed = discord.Embed(
+                        title="⏰ Fin de Service Automatique",
+                        description=f"**{employee_key}** - Service terminé automatiquement (20 min sans réa).",
+                        color=discord.Color.orange()
+                    )
+                    embed.add_field(name="⏱️ Durée", value=f"{minutes} min", inline=True)
+                    embed.add_field(name="🚑 Réas", value=f"{reas}", inline=True)
+                    embed.set_footer(text=f"🚑 EMS System | {end.strftime('%H:%M')}")
+                    await log_channel.send(embed=embed)
+                except:
+                    pass
+            
+            # DM à l'utilisateur
+            try:
+                guild = bot.get_guild(config["GUILD_ID"])
+                if guild:
+                    member = guild.get_member(int(user_id))
+                    if member:
+                        await member.send(
+                            f"⏰ **Fin de service automatique**\n\n"
+                            f"Ton service a été terminé automatiquement car tu n'as pas envoyé de réa depuis 20 minutes.\n\n"
+                            f"⏱️ Durée : **{minutes} min**\n"
+                            f"🚑 Réas : **{reas}**"
+                        )
+            except:
+                pass
+        
+        if to_remove:
+            print(f"[{now.strftime('%H:%M:%S')}] ⏰ Fin de service auto: {len(to_remove)} employé(s)")
+    
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur check_inactive_services: {e}")
+
+@check_inactive_services.before_loop
+async def before_check_inactive():
+    await bot.wait_until_ready()
 
 # --- TÂCHE DE MISE À JOUR DES DESCRIPTIONS AVEC DÉLAI ---
 @tasks.loop(minutes=10)
@@ -5683,8 +5975,10 @@ async def on_ready():
         auto_backup_stats.start()
     if not update_descriptions_background.is_running():
         update_descriptions_background.start()
+    if not check_inactive_services.is_running():
+        check_inactive_services.start()
     
-    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) activées')
+    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) activées')
 
 # --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
 @tasks.loop(minutes=5)
