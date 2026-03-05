@@ -61,6 +61,10 @@ RESET_CHANNEL_ID = 1450938023033176247
 LEADERBOARD_CHANNEL_ID = 1018904202971459644
 LEADERBOARD_ROLE_ID = 838102445095256068
 
+# Configuration Avis
+AVIS_CHANNEL_ID = 1451571514284703973
+CITOYEN_ROLE_ID = 838102445095256066
+
 # Configuration Giveaway
 GIVEAWAY_PING_ROLE_ID = 838102445095256068  # Rôle à ping pour les giveaways
 GIVEAWAY_FILE = 'giveaways.json'
@@ -4635,10 +4639,10 @@ class AvisModal(discord.ui.Modal, title="📝 Donner un Avis"):
             embed.add_field(name="Auteur", value=interaction.user.mention, inline=True)
             embed.set_footer(text=f"Avis soumis le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
             
-            # Envoyer dans le channel de logs
-            logs_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
-            if logs_channel:
-                await logs_channel.send(embed=embed)
+            # Envoyer dans le channel des avis
+            avis_channel = bot.get_channel(AVIS_CHANNEL_ID)
+            if avis_channel:
+                await avis_channel.send(embed=embed)
             
             await interaction.response.send_message(
                 "✅ Votre avis a été enregistré avec succès !",
@@ -4697,8 +4701,14 @@ async def avis_command(interaction: discord.Interaction):
         
         embed.set_footer(text="🚑 EMS System | Vos avis comptent")
         
-        # Envoyer avec le bouton
-        await interaction.followup.send(embed=embed, view=AvisButton())
+        # Envoyer dans le channel des avis avec ping du role citoyen
+        avis_channel = bot.get_channel(AVIS_CHANNEL_ID)
+        if avis_channel:
+            ping_msg = f"<@&{CITOYEN_ROLE_ID}>" if CITOYEN_ROLE_ID != 0 else ""
+            await avis_channel.send(ping_msg, embed=embed, view=AvisButton())
+            await interaction.followup.send("✅ Annonce des avis lancée !")
+        else:
+            await interaction.followup.send("❌ Channel des avis non trouvé")
         
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur avis command: {e}")
@@ -4741,6 +4751,7 @@ async def on_message(message):
         if employee_key not in stats:
             stats[employee_key] = 0
         
+        old_count = stats[employee_key]
         stats[employee_key] += 1
         current_count = stats[employee_key]
         
@@ -4760,6 +4771,40 @@ async def on_message(message):
                 emoji = get_color_emoji(current_count)
                 message_text = f"✅ **{employee_key}** | {current_count} réas"
                 await log_channel.send(message_text)
+                
+                # --- MILESTONES & CONGRATULATIONS ---
+                display_name = employee_key.replace("-", " ").title()
+                
+                # Milestone 50 réas
+                if old_count < 50 and current_count >= 50:
+                    embed_50 = discord.Embed(
+                        title="🎯 50 réas atteints !",
+                        description=f"Excellent travail **{display_name}** ! 🙌\n\n"
+                                   f"Tu continues et tu atteindras le quota complet.\n"
+                                   f"Reste motivé ! 💪",
+                        color=discord.Color.orange()
+                    )
+                    embed_50.set_footer(text="🚑 EMS System | Continue comme ça !")
+                    await log_channel.send(embed=embed_50)
+                
+                # Milestone 100 réas (QUOTA COMPLET)
+                if old_count < 100 and current_count >= 100:
+                    embed_100 = discord.Embed(
+                        title="🏆 QUOTA COMPLET - 100 réas ! 🏆",
+                        description=f"🎉 **{display_name}** a rempli le quota !\n\n"
+                                   f"Tu as atteint l'objectif de 100 réas.\n"
+                                   f"Continue comme ça, nous sommes fiers de ton activité ! 🌟\n\n"
+                                   f"Des récompenses seront offertes aux plus actifs à la fin du mois.",
+                        color=discord.Color.gold()
+                    )
+                    embed_100.set_footer(text="🚑 EMS System | Bravo !")
+                    
+                    # Envoyer avec ping du role
+                    try:
+                        role_mention = f"<@&838102445095256068>"
+                        await log_channel.send(role_mention, embed=embed_100)
+                    except:
+                        await log_channel.send(embed=embed_100)
             except:
                 pass
     
