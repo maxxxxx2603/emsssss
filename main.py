@@ -229,18 +229,7 @@ def load_bonuses_week():
     if not os.path.exists(BONUSES_WEEK_FILE):
         return {}
     data = robust_load_json(BONUSES_WEEK_FILE, {})
-    if not data:
-        # Valeurs par défaut
-        today = datetime.now().strftime("%Y-%m-%d")
-        monday = (datetime.now() - timedelta(days=datetime.now().weekday())).strftime("%Y-%m-%d")
-        employees = ["mat-duja", "wilson-koffi", "jorghen-monteiro-mbombo", "marc-zenter",
-                      "balake-andrew", "max-ferdinand", "thomas-bult", "mouloud-pembele",
-                      "jason-trigo", "farid-lamatraque", "mehmet-momo", "melano-montasart",
-                      "imran-meknessi", "alvaro-benz", "jean-dan", "labigne-evan"]
-        default = {f"{emp}_{monday}": [today] for emp in employees}
-        atomic_write_json(BONUSES_WEEK_FILE, default)
-        return default
-    return data
+    return data if data else {}
 
 def save_bonuses_week(bonuses):
     """Sauvegarde les bonuses cumulatifs"""
@@ -419,30 +408,7 @@ def save_giveaways(giveaways):
 def load_bonuses():
     """Charge les bonus journaliers (format: {'employee-key_YYYY-MM-DD': 1})"""
     data = robust_load_json("bonuses.json", {})
-    if not data:
-        # Valeurs par défaut
-        today = datetime.now().strftime("%Y-%m-%d")
-        DEFAULT_BONUSES = {
-            f"mat-duja_{today}": 1,
-            f"wilson-koffi_{today}": 1,
-            f"jorghen-monteiro-mbombo_{today}": 1,
-            f"marc-zenter_{today}": 1,
-            f"balake-andrew_{today}": 1,
-            f"max-ferdinand_{today}": 1,
-            f"thomas-bult_{today}": 1,
-            f"mouloud-pembele_{today}": 1,
-            f"jason-trigo_{today}": 1,
-            f"farid-lamatraque_{today}": 1,
-            f"mehmet-momo_{today}": 1,
-            f"melano-montasart_{today}": 1,
-            f"imran-meknessi_{today}": 1,
-            f"alvaro-benz_{today}": 1,
-            f"jean-dan_{today}": 1,
-            f"labigne-evan_{today}": 1
-        }
-        atomic_write_json("bonuses.json", DEFAULT_BONUSES, make_backup=True)
-        return DEFAULT_BONUSES
-    return data
+    return data if data else {}
 
 def save_bonuses(bonuses):
     """Sauvegarde les bonus journaliers"""
@@ -6040,18 +6006,17 @@ async def before_update_descriptions():
 
 @bot.event
 async def on_ready():
+    # Force reset au démarrage: jean-dan 15 réas uniquement
+    forced_stats = {"jean-dan": 15}
+    save_stats(forced_stats)
+    save_bonuses({})
+    save_bonuses_week({})
+    
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
     
     print(f'✅ Bot connecté: {bot.user}')
     print(f'📊 {len(stats)} employés | {total_reas} réas totales')
-    
-    # Backup au démarrage
-    if stats:
-        try:
-            atomic_write_json(STATS_FILE, stats, make_backup=True)
-        except Exception as e:
-            print(f'⚠️ Erreur backup démarrage: {e}')
     
     # Démarrer les tâches si pas déjà en cours
     if not auto_backup_stats.is_running():
