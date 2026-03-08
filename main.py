@@ -1508,11 +1508,10 @@ async def semaine(interaction: discord.Interaction):
         if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
             new_name = f"🔴{channel.name[1:]}"
             try:
-                # Reset le nom avec 🔴
-                await channel.edit(name=new_name)
-                # Reset la description du channel (topic) à 🔴 0/100
-                await channel.edit(topic="🔴 0/100")
+                # Combiner le nom + description en un seul edit() pour éviter les rate limits
+                await channel.edit(name=new_name, topic="🔴 0/100")
                 announcement_channels.append(channel)
+                await asyncio.sleep(2)  # Délai pour éviter rate limit
             except:
                 pass
     
@@ -1635,6 +1634,7 @@ async def force_red(interaction: discord.Interaction):
             try:
                 await channel.edit(name=new_name)
                 updated_count += 1
+                await asyncio.sleep(2)  # Délai pour éviter rate limit
             except Exception as e:
                 print(f"Erreur mise à jour {channel.name}: {e}")
     
@@ -6059,12 +6059,12 @@ async def update_descriptions_background():
                 await channel.edit(**edit_args)
                 updated_count += 1
                 
-                # Délai de 10 secondes entre chaque channel modifié (rate limit Discord: 2 PATCH/10min/channel)
-                await asyncio.sleep(10)
+                # Délai de 20 secondes entre chaque channel modifié (rate limit Discord: 2 PATCH/10min/channel)
+                await asyncio.sleep(20)
                 
             except Exception as e:
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur update {key}: {e}")
-                await asyncio.sleep(15)  # Délai plus long en cas d'erreur
+                await asyncio.sleep(30)  # Délai plus long en cas d'erreur
         
         if updated_count > 0:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔄 Descriptions: {updated_count} modifiés, {skipped_count} inchangés")
