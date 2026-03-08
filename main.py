@@ -189,48 +189,9 @@ bot = EMSBot()
 
 # --- GESTION DES STATS ---
 def load_stats():
-    # Données par défaut (16 employés) - doit correspondre à stats.json
-    DEFAULT_STATS = {
-        "mat-duja": 156,
-        "wilson-koffi": 134,
-        "marc-zenter": 59,
-        "balake-andrew": 49,
-        "max-ferdinand": 43,
-        "jorghen-monteiro-mbombo": 104,
-        "thomas-bult": 37,
-        "mouloud-pembele": 15,
-        "jason-trigo": 14,
-        "farid-lamatraque": 7,
-        "mehmet-momo": 5,
-        "melano-montasart": 5,
-        "imran-meknessi": 4,
-        "alvaro-benz": 3,
-        "jean-dan": 3,
-        "labigne-evan": 1
-    }
-    
-    if not os.path.exists(STATS_FILE):
-        # Fichier n'existe pas - créer avec les données par défaut
-        atomic_write_json(STATS_FILE, DEFAULT_STATS)
-        return DEFAULT_STATS
-    
-    try:
-        with open(STATS_FILE, 'r', encoding='utf-8') as f:
-            data = f.read().strip()
-            if not data:
-                # Fichier vide - créer avec les données par défaut
-                atomic_write_json(STATS_FILE, DEFAULT_STATS)
-                return DEFAULT_STATS
-            loaded = json.loads(data)
-            # Si le fichier est vide (dict vide), utiliser par défaut
-            if not loaded:
-                atomic_write_json(STATS_FILE, DEFAULT_STATS)
-                return DEFAULT_STATS
-            return loaded
-    except:
-        # Erreur de parsing - utiliser par défaut
-        atomic_write_json(STATS_FILE, DEFAULT_STATS)
-        return DEFAULT_STATS
+    # Retourner juste ce qui est dans le fichier, sans valeurs par défaut
+    data = robust_load_json(STATS_FILE, {})
+    return data if data else {}
 
 def save_stats(stats):
     atomic_write_json(STATS_FILE, stats)
