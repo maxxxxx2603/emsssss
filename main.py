@@ -1572,6 +1572,53 @@ async def semaine(interaction: discord.Interaction):
     embed_confirm.set_footer(text="🚑 EMS System")
     await interaction.followup.send(embed=embed_confirm)
 
+@bot.tree.command(name="+reset", description="Reset silencieux - Remet tout à 0 sans message et jean-dan à 15 réas")
+@app_commands.checks.has_permissions(administrator=True)
+async def plus_reset(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    
+    # 1) Réinitialiser stats
+    save_stats({})
+    
+    # Ajouter jean-dan à 15 réas
+    stats = load_stats()
+    stats["jean-dan"] = 15
+    save_stats(stats)
+    
+    # Réinitialiser les heures de service de la semaine
+    svc_data_reset = load_services()
+    week_key = get_week_start()
+    if week_key in svc_data_reset:
+        del svc_data_reset[week_key]
+    save_services(svc_data_reset)
+    
+    # Réinitialiser les bonus de la semaine
+    bonuses_week_reset = load_bonuses_week()
+    week_start = get_week_start()
+    keys_to_delete = [k for k in bonuses_week_reset.keys() if k.endswith(f"_{week_start}")]
+    for k in keys_to_delete:
+        del bonuses_week_reset[k]
+    save_bonuses_week(bonuses_week_reset)
+    
+    # Mettre à jour les descriptions des channels à 🔴 0/100 (sans changer les noms)
+    for channel in guild.text_channels:
+        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+            try:
+                await channel.edit(topic="🔴 0/100")
+            except:
+                pass
+    
+    # Répondre avec un simple message de confirmation
+    embed_confirm = discord.Embed(
+        title="🚑 ✅ RESET SILENCIEUX EFFECTUÉ",
+        description="✅ Tous les compteurs remis à 0\n✅ Jean-dan: 15 réas\n✅ Heures remises à 0\n✅ Bonus remis à 0\n✅ Descriptions remises à 🔴 0/100",
+        color=EMS_RED
+    )
+    embed_confirm.set_footer(text="🚑 EMS System")
+    await interaction.followup.send(embed=embed_confirm)
+
 ## Commandes de couleur supprimées (sync_colors, update_color)
 
 # --- COMMANDE TAXI ---
