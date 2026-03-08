@@ -615,17 +615,23 @@ async def total(interaction: discord.Interaction):
     week = get_week_start()
     week_services = services.get(week, {})
     
-    # Ajouter un dernier embed avec le résumé
+    # Ajouter un dernier embed avec le résumé avec heures
     summary_text = f"**Total des réactions :** `{total_reactions}` 🎯\n**Total des primes :** `{total_all_bonuses}M` 💰"
     
     if week_services:
         summary_text += "\n\n**⏱️ Heures de service cette semaine :**\n"
         sorted_svc = sorted(week_services.items(), key=lambda x: x[1]['total_hours'], reverse=True)
+        total_week_hours = 0
         for emp_key, data in sorted_svc:
             h = int(data['total_hours'])
             m = int((data['total_hours'] - h) * 60)
             display = emp_key.replace('-', ' ').title()
-            summary_text += f"• **{display}** : {h}h{m:02d} ({data['total_reas']} réas / {data['sessions']} services)\n"
+            summary_text += f"• **{display}** : `{h}h{m:02d}` ({data['total_reas']} réas / {data['sessions']} services)\n"
+            total_week_hours += data['total_hours']
+        # Ajouter le total des heures
+        total_h = int(total_week_hours)
+        total_m = int((total_week_hours - total_h) * 60)
+        summary_text += f"\n**➕ TOTAL HEURES SEMAINE:** `{total_h}h{total_m:02d}`"
     
     # En service actuellement
     if active_services:
@@ -660,6 +666,53 @@ async def reset(interaction: discord.Interaction):
     )
     embed.set_footer(text="🚑 EMS System")
     await interaction.followup.send(embed=embed)
+
+@bot.tree.command(name="description", description="Met à jour la description du channel avec stats et primes")
+async def description_command(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    channel = interaction.channel
+    if not channel or not isinstance(channel, discord.TextChannel):
+        await interaction.followup.send("❌ Cette commande ne fonctionne que dans un channel texte")
+        return
+    
+    # Récupérer la clé employé du channel
+    employee_key = get_channel_employee_key(channel)
+    if not employee_key:
+        await interaction.followup.send("❌ Impossible de déterminer l'employé pour ce channel")
+        return
+    
+    # Charger les stats
+    stats = load_stats()
+    count = stats.get(employee_key, 0)
+    
+    # Charger les primes
+    total_bonuses = get_total_bonuses(employee_key)
+    
+    # Charger les heures de service
+    services = load_services()
+    week_key = get_week_start()
+    week_services = services.get(week_key, {})
+    week_data = week_services.get(employee_key, {})
+    hours = week_data.get('total_hours', 0)
+    h = int(hours)
+    m = int((hours - h) * 60)
+    
+    # Mettre à jour la description du channel (topic)
+    emoji = get_color_emoji(count)
+    description = f"{emoji} {count}/100 | {h}h{m:02d} | 💰 {total_bonuses}M"
+    
+    try:
+        await channel.edit(topic=description)
+        embed = discord.Embed(
+            title="✅ Description mise à jour",
+            description=f"**Employé:** {employee_key}\n**Stats:** {count}/100\n**Heures (semaine):** {h}h{m:02d}\n**Total primes:** {total_bonuses}M",
+            color=EMS_RED
+        )
+        embed.set_footer(text="🚑 EMS System")
+        await interaction.followup.send(embed=embed)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Erreur: {e}")
 
 @bot.tree.command(name="help", description="Affiche toutes les commandes disponibles")
 @app_commands.checks.has_permissions(administrator=True)
@@ -1440,13 +1493,25 @@ async def semaine(interaction: discord.Interaction):
         del svc_data_reset[week_key]
     save_services(svc_data_reset)
     
-    # Mettre tous les channels en 🔴 et garder la liste pour l'annonce
+    # Réinitialiser les bonus de la semaine
+    bonuses_week_reset = load_bonuses_week()
+    # Enlever tous les bonus de la semaine actuelle
+    week_start = get_week_start()
+    keys_to_delete = [k for k in bonuses_week_reset.keys() if k.endswith(f"_{week_start}")]
+    for k in keys_to_delete:
+        del bonuses_week_reset[k]
+    save_bonuses_week(bonuses_week_reset)
+    
+    # Mettre tous les channels en 🔴 et garder la liste pour l'annonce + reset descriptions
     announcement_channels = []
     for channel in guild.text_channels:
         if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
             new_name = f"🔴{channel.name[1:]}"
             try:
+                # Reset le nom avec 🔴
                 await channel.edit(name=new_name)
+                # Reset la description du channel (topic) à 🔴 0/100
+                await channel.edit(topic="🔴 0/100")
                 announcement_channels.append(channel)
             except:
                 pass
@@ -1501,7 +1566,7 @@ async def semaine(interaction: discord.Interaction):
     
     embed_confirm = discord.Embed(
         title="🚑 ✅ SEMAINE RÉINITIALISÉE",
-        description="✅ Tous les compteurs remis à 0\n✅ Tous les channels changés en 🔴\n✅ Message posté en logs\n\nC'est parti pour une nouvelle semaine ! 🚀",
+        description="✅ Tous les compteurs remis à 0\n✅ Toutes les heures remises à 0\n✅ Tous les bonus de la semaine remis à 0\n✅ Tous les channels changés en 🔴\n✅ Descriptions des channels remises à 🔴 0/100\n✅ Annonce postée en logs\n\nC'est parti pour une nouvelle semaine ! 🚀",
         color=EMS_RED
     )
     embed_confirm.set_footer(text="🚑 EMS System")
