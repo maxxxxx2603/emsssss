@@ -1572,9 +1572,9 @@ async def semaine(interaction: discord.Interaction):
     embed_confirm.set_footer(text="🚑 EMS System")
     await interaction.followup.send(embed=embed_confirm)
 
-@bot.tree.command(name="+reset", description="Reset silencieux - Remet tout à 0 sans message et jean-dan à 15 réas")
+@bot.tree.command(name="reset_silent", description="Reset silencieux - Remet tout à 0 sans message et jean-dan à 15 réas")
 @app_commands.checks.has_permissions(administrator=True)
-async def plus_reset(interaction: discord.Interaction):
+async def reset_silent(interaction: discord.Interaction):
     await interaction.response.defer()
     
     guild = interaction.guild
