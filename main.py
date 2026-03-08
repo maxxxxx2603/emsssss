@@ -6105,6 +6105,7 @@ async def auto_backup_stats():
         total_reas = sum(stats.values()) if stats else 0
         atomic_write_json(STATS_FILE, stats, make_backup=True)
         print(f"[{datetime.now().strftime('%H:%M:%S')}] 💾 Sauvegarde: {len(stats)} employés, {total_reas} réas")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) activées")
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde: {e}")
 
