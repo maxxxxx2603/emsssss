@@ -1619,6 +1619,33 @@ async def reset_silent(interaction: discord.Interaction):
     embed_confirm.set_footer(text="🚑 EMS System")
     await interaction.followup.send(embed=embed_confirm)
 
+@bot.tree.command(name="force_red", description="Force tous les channels à 🔴 (rouge)")
+@app_commands.checks.has_permissions(administrator=True)
+async def force_red(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    guild = interaction.guild
+    updated_count = 0
+    
+    # Parcourir tous les channels et remplacer l'emoji par 🔴
+    for channel in guild.text_channels:
+        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+            # Remplacer le premier emoji par 🔴
+            new_name = f"🔴{channel.name[1:]}"
+            try:
+                await channel.edit(name=new_name)
+                updated_count += 1
+            except Exception as e:
+                print(f"Erreur mise à jour {channel.name}: {e}")
+    
+    embed = discord.Embed(
+        title="🚑 ✅ TOUS LES CHANNELS EN ROUGE",
+        description=f"✅ {updated_count} channels remis à 🔴",
+        color=EMS_RED
+    )
+    embed.set_footer(text="🚑 EMS System")
+    await interaction.followup.send(embed=embed)
+
 ## Commandes de couleur supprimées (sync_colors, update_color)
 
 # --- COMMANDE TAXI ---
