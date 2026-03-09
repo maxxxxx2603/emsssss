@@ -5647,9 +5647,14 @@ def build_service_embed():
     embed.set_footer(text="🚑 EMS System | Prise de Service")
     return embed
 
+last_pds_update = datetime.min
+
 async def update_service_status():
     """Met à jour le message de prise de service avec le statut en temps réel"""
-    global service_status_message_id
+    global service_status_message_id, last_pds_update
+    # Cooldown de 30 secondes pour éviter les rate limits
+    if (datetime.now() - last_pds_update).total_seconds() < 30:
+        return
     try:
         channel = bot.get_channel(SERVICE_CHANNEL_ID)
         if not channel:
@@ -5659,6 +5664,7 @@ async def update_service_status():
             try:
                 msg = await channel.fetch_message(service_status_message_id)
                 await msg.edit(embed=build_service_embed())
+                last_pds_update = datetime.now()
                 return
             except discord.NotFound:
                 service_status_message_id = None
@@ -5705,11 +5711,12 @@ class ServiceView(discord.ui.View):
             return
         
         now = datetime.now()
+        clean_name = get_clean_name(interaction.user)
         active_services[user_id] = {
             "start": now.isoformat(),
             "last_rea": now.isoformat(),
             "employee_key": employee_key,
-            "display_name": interaction.user.display_name,
+            "display_name": clean_name,
             "reas_count": 0
         }
         
@@ -5934,9 +5941,7 @@ async def check_inactive_services():
         
         if to_remove:
             print(f"[{now.strftime('%H:%M:%S')}] ⏰ Fin de service auto: {len(to_remove)} employé(s)")
-        
-        # Toujours mettre à jour le statut en temps réel
-        await update_service_status()
+            await update_service_status()
     
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur check_inactive_services: {e}")
@@ -5946,12 +5951,16 @@ async def before_check_inactive():
     await bot.wait_until_ready()
 
 # --- TÂCHE AUTO REFRESH MESSAGE PDS ---
-@tasks.loop(minutes=1)
+@tasks.loop(minutes=5)
 async def refresh_service_message():
-    """Rafraîchit le message PDS toutes les minutes"""
-    global service_status_message_id
+    """Rafraîchit le message PDS toutes les 5 minutes (seulement si quelqu'un est en service)"""
+    global service_status_message_id, last_pds_update
     try:
         if not service_status_message_id:
+            return
+        
+        # Ne rafraîchir que s'il y a des gens en service
+        if not active_services:
             return
         
         channel = bot.get_channel(SERVICE_CHANNEL_ID)
@@ -5961,6 +5970,7 @@ async def refresh_service_message():
         try:
             msg = await channel.fetch_message(service_status_message_id)
             await msg.edit(embed=build_service_embed())
+            last_pds_update = datetime.now()
         except discord.NotFound:
             service_status_message_id = None
             save_service_message_id(None)
@@ -5970,7 +5980,7 @@ async def refresh_service_message():
 @refresh_service_message.before_loop
 async def before_refresh_service():
     await bot.wait_until_ready()
-    await asyncio.sleep(10)
+    await asyncio.sleep(30)
 
 # --- TÂCHE DE MISE À JOUR DES DESCRIPTIONS AVEC DÉLAI ---
 @tasks.loop(minutes=10)
@@ -6047,29 +6057,6 @@ async def before_update_descriptions():
 
 @bot.event
 async def on_ready():
-    # Force écriture des stats correctes sur le volume Railway
-    correct_stats = {
-        "max-ferdinand": 43,
-        "jean-dan": 15,
-        "jason-trigo": 3,
-        "balake-andrew": 2,
-        "walid-azdrid": 2
-    }
-    save_stats(correct_stats)
-    save_bonuses({})
-    save_bonuses_week({})
-    
-    # Force écriture des heures de service correctes
-    week_key = get_week_start()
-    correct_services = {
-        week_key: {
-            "max-ferdinand": {"total_hours": 3.82, "total_reas": 27, "sessions": 5},
-            "walid-azdrid": {"total_hours": 0.57, "total_reas": 2, "sessions": 2},
-            "ryan-cooper": {"total_hours": 0.35, "total_reas": 0, "sessions": 4}
-        }
-    }
-    save_services(correct_services)
-    
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
     
@@ -6096,7 +6083,7 @@ async def on_ready():
     if not refresh_service_message.is_running():
         refresh_service_message.start()
     
-    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) + Refresh PDS (1min) activées')
+    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) + Refresh PDS (5min) activées')
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
