@@ -26,13 +26,18 @@ else:
         "ROLE_DIRECTION_ID": int(os.environ.get("ROLE_DIRECTION_ID", 0))
     }
 
-STATS_FILE = 'stats.json'
-TAXI_STATS_FILE = 'taxi_stats.json'
-CHANNEL_MAP_FILE = 'channel_map.json'
-CATEGORIES_FILE = 'categories.json'
-BONUSES_WEEK_FILE = 'bonuses_week.json'
-SERVICE_FILE = 'services.json'
-SERVICE_MSG_FILE = 'service_message.json'
+# Répertoire de données persistant (volume Railway ou local)
+DATA_DIR = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", ".")
+if DATA_DIR != "." and not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+STATS_FILE = os.path.join(DATA_DIR, 'stats.json')
+TAXI_STATS_FILE = os.path.join(DATA_DIR, 'taxi_stats.json')
+CHANNEL_MAP_FILE = os.path.join(DATA_DIR, 'channel_map.json')
+CATEGORIES_FILE = os.path.join(DATA_DIR, 'categories.json')
+BONUSES_WEEK_FILE = os.path.join(DATA_DIR, 'bonuses_week.json')
+SERVICE_FILE = os.path.join(DATA_DIR, 'services.json')
+SERVICE_MSG_FILE = os.path.join(DATA_DIR, 'service_message.json')
 
 # Services actifs en mémoire: {user_id: {"start": datetime_iso, "last_rea": datetime_iso, "employee_key": str}}
 active_services = {}
@@ -56,7 +61,7 @@ ROLE_DIRECTION_TAXI_ID = 1311787019546136596
 # Configuration BurgerShot
 BURGERSHOT_CHANNEL_ID = 1462099226166165588
 BURGERSHOT_ROLE_ID = 1462097148995965041
-BURGERSHOT_STATS_FILE = 'burgershot_stats.json'
+BURGERSHOT_STATS_FILE = os.path.join(DATA_DIR, 'burgershot_stats.json')
 
 # Configuration Tickets
 ROLE_REQUEST_CHANNEL_ID = 1450938023033176247
@@ -417,12 +422,12 @@ def save_giveaways(giveaways):
 
 def load_bonuses():
     """Charge les bonus journaliers (format: {'employee-key_YYYY-MM-DD': 1})"""
-    data = robust_load_json("bonuses.json", {})
+    data = robust_load_json(os.path.join(DATA_DIR, "bonuses.json"), {})
     return data if data else {}
 
 def save_bonuses(bonuses):
     """Sauvegarde les bonus journaliers"""
-    atomic_write_json("bonuses.json", bonuses, make_backup=True)
+    atomic_write_json(os.path.join(DATA_DIR, "bonuses.json"), bonuses, make_backup=True)
 
 def get_today_bonus(employee_key: str) -> int:
     """Retourne le bonus total d'aujourd'hui pour cet employé (0 ou 1M)"""
@@ -6057,6 +6062,38 @@ async def before_update_descriptions():
 
 @bot.event
 async def on_ready():
+    print(f'📂 DATA_DIR = {DATA_DIR}')
+    
+    # Force écriture initiale dans le volume Railway (à supprimer après 1er démarrage)
+    correct_stats = {
+        "max-ferdinand": 52,
+        "vincent-bult": 17,
+        "jean-dan": 15,
+        "jason-trigo": 12,
+        "jean-martin": 9,
+        "farid-lamatraque": 3,
+        "balake-andrew": 2,
+        "walid-azdrid": 2,
+        "alvaro-benz": 1
+    }
+    save_stats(correct_stats)
+    save_bonuses({})
+    save_bonuses_week({})
+    
+    week_key = get_week_start()
+    correct_services = {
+        week_key: {
+            "max-ferdinand": {"total_hours": 3.82, "total_reas": 27, "sessions": 5},
+            "ryan-cooper": {"total_hours": 1.62, "total_reas": 9, "sessions": 8},
+            "jean-martin": {"total_hours": 0.70, "total_reas": 9, "sessions": 1},
+            "walid-azdrid": {"total_hours": 0.57, "total_reas": 2, "sessions": 2},
+            "farid-lamatraque": {"total_hours": 0.22, "total_reas": 3, "sessions": 1},
+            "vincent-bult": {"total_hours": 0.05, "total_reas": 2, "sessions": 1},
+            "alvaro-benz": {"total_hours": 0.02, "total_reas": 1, "sessions": 2}
+        }
+    }
+    save_services(correct_services)
+    
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
     
