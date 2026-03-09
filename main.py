@@ -6044,6 +6044,18 @@ async def before_update_descriptions():
 
 @bot.event
 async def on_ready():
+    # Force écriture des stats correctes sur le volume Railway
+    correct_stats = {
+        "max-ferdinand": 43,
+        "jean-dan": 15,
+        "jason-trigo": 3,
+        "balake-andrew": 2,
+        "walid-azdrid": 2
+    }
+    save_stats(correct_stats)
+    save_bonuses({})
+    save_bonuses_week({})
+    
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
     
