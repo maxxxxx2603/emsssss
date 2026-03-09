@@ -576,7 +576,8 @@ async def total(interaction: discord.Interaction):
         for uid, svc in active_services.items():
             start_t = datetime.fromisoformat(svc['start'])
             mins = int((datetime.now() - start_t).total_seconds() // 60)
-            summary_text += f"• **{svc['employee_key']}** - {mins} min ({svc.get('reas_count', 0)} réas)\n"
+            name = svc.get('display_name', svc['employee_key'])
+            summary_text += f"• **{name}** (<@{uid}>) - {mins} min ({svc.get('reas_count', 0)} réas)\n"
     
     summary_embed = discord.Embed(
         title="📊 RÉSUMÉ DE CETTE SEMAINE",
@@ -5613,7 +5614,8 @@ def build_status_embed():
             m = total_min % 60
             duree = f"{h}h{m:02d}" if h > 0 else f"{m} min"
             reas = svc.get('reas_count', 0)
-            lines.append(f"🟢 <@{uid}> — en service depuis **{duree}** ({reas} réas)")
+            name = svc.get('display_name', svc['employee_key'])
+            lines.append(f"🟢 **{name}** (<@{uid}>) — en service depuis **{duree}** ({reas} réas)")
         
         status_text = "\n".join(lines)
     else:
@@ -5707,6 +5709,7 @@ class ServiceView(discord.ui.View):
             "start": now.isoformat(),
             "last_rea": now.isoformat(),
             "employee_key": employee_key,
+            "display_name": interaction.user.display_name,
             "reas_count": 0
         }
         
