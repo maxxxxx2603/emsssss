@@ -5719,7 +5719,7 @@ class ServiceView(discord.ui.View):
             try:
                 embed = discord.Embed(
                     title="🟢 Prise de Service",
-                    description=f"**{interaction.user.mention}** ({employee_key}) a pris son service.",
+                    description=f"**{interaction.user.display_name}** ({interaction.user.mention}) a pris son service.",
                     color=discord.Color.green()
                 )
                 embed.set_footer(text=f"🚑 EMS System | {now.strftime('%H:%M')}")
@@ -5767,7 +5767,7 @@ class ServiceView(discord.ui.View):
             try:
                 embed = discord.Embed(
                     title="🔴 Fin de Service",
-                    description=f"**{interaction.user.mention}** ({employee_key}) a terminé son service.",
+                    description=f"**{interaction.user.display_name}** ({interaction.user.mention}) a terminé son service.",
                     color=discord.Color.red()
                 )
                 embed.add_field(name="⏱️ Durée", value=f"{minutes} min", inline=True)
