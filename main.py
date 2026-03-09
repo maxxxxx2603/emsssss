@@ -6059,6 +6059,17 @@ async def on_ready():
     save_bonuses({})
     save_bonuses_week({})
     
+    # Force écriture des heures de service correctes
+    week_key = get_week_start()
+    correct_services = {
+        week_key: {
+            "max-ferdinand": {"total_hours": 3.82, "total_reas": 27, "sessions": 5},
+            "walid-azdrid": {"total_hours": 0.57, "total_reas": 2, "sessions": 2},
+            "ryan-cooper": {"total_hours": 0.35, "total_reas": 0, "sessions": 4}
+        }
+    }
+    save_services(correct_services)
+    
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
     
