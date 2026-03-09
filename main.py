@@ -32,10 +32,20 @@ CHANNEL_MAP_FILE = 'channel_map.json'
 CATEGORIES_FILE = 'categories.json'
 BONUSES_WEEK_FILE = 'bonuses_week.json'
 SERVICE_FILE = 'services.json'
+SERVICE_MSG_FILE = 'service_message.json'
 
 # Services actifs en mémoire: {user_id: {"start": datetime_iso, "last_rea": datetime_iso, "employee_key": str}}
 active_services = {}
 service_status_message_id = None  # ID du message de statut en temps réel
+
+def load_service_message_id():
+    """Charge l'ID du message PDS depuis le fichier"""
+    data = robust_load_json(SERVICE_MSG_FILE, {})
+    return data.get("message_id") if data else None
+
+def save_service_message_id(msg_id):
+    """Sauvegarde l'ID du message PDS dans un fichier"""
+    atomic_write_json(SERVICE_MSG_FILE, {"message_id": msg_id})
 
 # Configuration Taxi
 TAXI_CHANNEL_ID = 1457304629456011264
@@ -5791,6 +5801,7 @@ async def prise_command(interaction: discord.Interaction):
     
     global service_status_message_id
     service_status_message_id = msg.id
+    save_service_message_id(msg.id)
     
     await interaction.followup.send("✅ Annonce de prise de service envoyée !", ephemeral=True)
 
@@ -5931,6 +5942,33 @@ async def check_inactive_services():
 async def before_check_inactive():
     await bot.wait_until_ready()
 
+# --- TÂCHE AUTO REFRESH MESSAGE PDS ---
+@tasks.loop(minutes=1)
+async def refresh_service_message():
+    """Rafraîchit le message PDS toutes les minutes"""
+    global service_status_message_id
+    try:
+        if not service_status_message_id:
+            return
+        
+        channel = bot.get_channel(SERVICE_CHANNEL_ID)
+        if not channel:
+            return
+        
+        try:
+            msg = await channel.fetch_message(service_status_message_id)
+            await msg.edit(embed=build_service_embed())
+        except discord.NotFound:
+            service_status_message_id = None
+            save_service_message_id(None)
+    except Exception as e:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur refresh PDS: {e}")
+
+@refresh_service_message.before_loop
+async def before_refresh_service():
+    await bot.wait_until_ready()
+    await asyncio.sleep(10)
+
 # --- TÂCHE DE MISE À JOUR DES DESCRIPTIONS AVEC DÉLAI ---
 @tasks.loop(minutes=10)
 async def update_descriptions_background():
@@ -6006,17 +6044,21 @@ async def before_update_descriptions():
 
 @bot.event
 async def on_ready():
-    # Force reset au démarrage: jean-dan 15 réas uniquement
-    forced_stats = {"jean-dan": 15}
-    save_stats(forced_stats)
-    save_bonuses({})
-    save_bonuses_week({})
-    
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
     
     print(f'✅ Bot connecté: {bot.user}')
     print(f'📊 {len(stats)} employés | {total_reas} réas totales')
+    
+    # Recharger l'ID du message PDS persistant
+    global service_status_message_id
+    saved_msg_id = load_service_message_id()
+    if saved_msg_id:
+        service_status_message_id = saved_msg_id
+        print(f'📡 Message PDS rechargé: {saved_msg_id}')
+    
+    # Enregistrer la vue persistante pour les boutons
+    bot.add_view(ServiceView())
     
     # Démarrer les tâches si pas déjà en cours
     if not auto_backup_stats.is_running():
@@ -6025,8 +6067,10 @@ async def on_ready():
         update_descriptions_background.start()
     if not check_inactive_services.is_running():
         check_inactive_services.start()
+    if not refresh_service_message.is_running():
+        refresh_service_message.start()
     
-    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) activées')
+    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) + Refresh PDS (1min) activées')
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
