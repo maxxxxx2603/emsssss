@@ -1914,7 +1914,19 @@ class CVButton(discord.ui.View):
             )
             q_embed.add_field(name="⏱️ Temps", value="Vous avez **10 minutes** pour répondre", inline=False)
             q_embed.set_footer(text="🚑 EMS System | Envoyez votre réponse ci-dessous")
-            await channel.send(embed=q_embed)
+            for attempt in range(3):
+                try:
+                    await channel.send(embed=q_embed)
+                    break
+                except discord.errors.DiscordServerError:
+                    if attempt < 2:
+                        await asyncio.sleep(3)
+                    else:
+                        try:
+                            await channel.send("⚠️ Discord rencontre des problèmes temporaires. Veuillez recliquer sur le bouton de candidature plus tard.")
+                        except:
+                            pass
+                        return
             
             def check(m):
                 return m.author == interaction.user and m.channel == channel
@@ -6063,36 +6075,6 @@ async def before_update_descriptions():
 @bot.event
 async def on_ready():
     print(f'📂 DATA_DIR = {DATA_DIR}')
-    
-    # Force écriture initiale dans le volume Railway (à supprimer après 1er démarrage)
-    correct_stats = {
-        "max-ferdinand": 52,
-        "vincent-bult": 17,
-        "jean-dan": 15,
-        "jason-trigo": 12,
-        "jean-martin": 9,
-        "farid-lamatraque": 3,
-        "balake-andrew": 2,
-        "walid-azdrid": 2,
-        "alvaro-benz": 1
-    }
-    save_stats(correct_stats)
-    save_bonuses({})
-    save_bonuses_week({})
-    
-    week_key = get_week_start()
-    correct_services = {
-        week_key: {
-            "max-ferdinand": {"total_hours": 3.82, "total_reas": 27, "sessions": 5},
-            "ryan-cooper": {"total_hours": 1.62, "total_reas": 9, "sessions": 8},
-            "jean-martin": {"total_hours": 0.70, "total_reas": 9, "sessions": 1},
-            "walid-azdrid": {"total_hours": 0.57, "total_reas": 2, "sessions": 2},
-            "farid-lamatraque": {"total_hours": 0.22, "total_reas": 3, "sessions": 1},
-            "vincent-bult": {"total_hours": 0.05, "total_reas": 2, "sessions": 1},
-            "alvaro-benz": {"total_hours": 0.02, "total_reas": 1, "sessions": 2}
-        }
-    }
-    save_services(correct_services)
     
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
