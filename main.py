@@ -4266,19 +4266,33 @@ async def reorganize(interaction: discord.Interaction):
     errors = []
     skipped = []
     
+    # IDs des rôles de grade
+    role_to_grade = {
+        895047492784238652: "emt",   # R_EMT
+        838102445095256069: "int",   # R_INT
+        1088116715998687273: "ads",  # R_ADS
+        894311352225656862: "inf",   # R_INF
+        840288242547818507: "med",   # R_MED
+        838102445095256071: "cds",   # R_CDS
+        1088570974603055195: "dir",  # R_DIR
+    }
+    
     # Scanner tous les channels texte
     for channel in guild.text_channels:
         # Vérifier si c'est un channel EMS (commence par un emoji)
         if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
-            # Extraire le grade du nom du channel
-            # Format attendu: 🔴emt-nom, 🟠int-nom, etc.
-            channel_name_lower = channel.name.lower()
+            # Trouver le membre correspondant au channel via son nom
+            ch_employee_key = get_channel_employee_key(channel)
             
             found_grade = None
-            for grade in grade_to_category.keys():
-                # Chercher le grade dans le nom (après l'emoji)
-                if f"{grade}-" in channel_name_lower or f"{grade} " in channel_name_lower:
-                    found_grade = grade
+            for member in guild.members:
+                member_key = normalize_employee_key(get_clean_name(member))
+                if member_key == ch_employee_key:
+                    # Trouver le grade via les rôles du membre
+                    for role in member.roles:
+                        if role.id in role_to_grade:
+                            found_grade = role_to_grade[role.id]
+                            break
                     break
             
             if found_grade:
