@@ -5681,7 +5681,7 @@ def build_service_embed():
     embed.set_footer(text="🚑 EMS System | Prise de Service")
     return embed
 
-last_pds_update = datetime.min
+last_pds_update = datetime.min.replace(tzinfo=PARIS_TZ)
 
 async def update_service_status(force=False):
     """Met à jour le message de prise de service avec le statut en temps réel"""
