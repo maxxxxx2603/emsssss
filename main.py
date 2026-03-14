@@ -5683,11 +5683,11 @@ def build_service_embed():
 
 last_pds_update = datetime.min
 
-async def update_service_status():
+async def update_service_status(force=False):
     """Met à jour le message de prise de service avec le statut en temps réel"""
     global service_status_message_id, last_pds_update
-    # Cooldown de 30 secondes pour éviter les rate limits
-    if (now_paris() - last_pds_update).total_seconds() < 30:
+    # Cooldown de 30 secondes pour éviter les rate limits (bypassé si force=True)
+    if not force and (now_paris() - last_pds_update).total_seconds() < 30:
         return
     try:
         channel = bot.get_channel(SERVICE_CHANNEL_ID)
@@ -5777,7 +5777,7 @@ class ServiceView(discord.ui.View):
         )
         
         # Mettre à jour le statut en temps réel
-        await update_service_status()
+        await update_service_status(force=True)
     
     @discord.ui.button(label="🔴 Fin de Service", style=discord.ButtonStyle.red, custom_id="fin_service")
     async def fin_service(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -5827,7 +5827,7 @@ class ServiceView(discord.ui.View):
         )
         
         # Mettre à jour le statut en temps réel
-        await update_service_status()
+        await update_service_status(force=True)
 
 @bot.tree.command(name="prise", description="Envoie l'annonce de prise de service avec boutons")
 @app_commands.checks.has_permissions(administrator=True)
@@ -5975,7 +5975,7 @@ async def check_inactive_services():
         
         if to_remove:
             print(f"[{now.strftime('%H:%M:%S')}] ⏰ Fin de service auto: {len(to_remove)} employé(s)")
-            await update_service_status()
+            await update_service_status(force=True)
     
     except Exception as e:
         print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur check_inactive_services: {e}")
