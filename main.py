@@ -4451,6 +4451,7 @@ async def synchronise(interaction: discord.Interaction):
 
 # --- COMMANDE STATS AVEC GRAPHIQUE ---
 @bot.tree.command(name="stats", description="Affiche les statistiques avec graphique ASCII")
+@app_commands.checks.has_permissions(administrator=True)
 async def stats_command(interaction: discord.Interaction):
     """Affiche les stats complètes des réas avec graphique"""
     await interaction.response.defer()
