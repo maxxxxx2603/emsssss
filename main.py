@@ -6,7 +6,12 @@ import os
 import asyncio
 import aiohttp
 import io
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+PARIS_TZ = timezone(timedelta(hours=1))
+
+def now_paris():
+    return datetime.now(PARIS_TZ)
 
 # --- CONFIGURATION ---
 # Support à la fois config.json (local) et variables d'environnement (Railway)
@@ -235,7 +240,7 @@ def add_service_hours(employee_key: str, hours: float, reas_count: int):
 # --- GESTION DES BONUSES CUMULATIFS PAR SEMAINE ---
 def get_week_start():
     """Retourne la date du lundi de cette semaine"""
-    today = datetime.now()
+    today = now_paris()
     monday = today - timedelta(days=today.weekday())
     return monday.strftime("%Y-%m-%d")
 
@@ -270,7 +275,7 @@ def award_bonus_week(employee_key):
     Ajoute un bonus pour aujourd'hui si entre 21h-23h
     Retourne le nombre total de jours avec bonus cette semaine
     """
-    now = datetime.now()
+    now = now_paris()
     
     # Vérifier que c'est entre 21h et 23h
     if not (21 <= now.hour < 23):
@@ -387,27 +392,27 @@ def get_color_emoji(count):
 
 # --- GESTION DES STATS TAXI ---
 def load_taxi_stats():
-    return robust_load_json(TAXI_STATS_FILE, {"count": 0, "week_start": datetime.now().isoformat()})
+    return robust_load_json(TAXI_STATS_FILE, {"count": 0, "week_start": now_paris().isoformat()})
 
 def save_taxi_stats(stats):
     atomic_write_json(TAXI_STATS_FILE, stats)
 
 def reset_taxi_week():
     """Réinitialise les stats taxi pour la nouvelle semaine"""
-    stats = {"count": 0, "week_start": datetime.now().isoformat()}
+    stats = {"count": 0, "week_start": now_paris().isoformat()}
     save_taxi_stats(stats)
     return stats
 
 # --- GESTION DES STATS BURGERSHOT ---
 def load_burgershot_stats():
-    return robust_load_json(BURGERSHOT_STATS_FILE, {"count": 0, "week_start": datetime.now().isoformat()})
+    return robust_load_json(BURGERSHOT_STATS_FILE, {"count": 0, "week_start": now_paris().isoformat()})
 
 def save_burgershot_stats(stats):
     atomic_write_json(BURGERSHOT_STATS_FILE, stats)
 
 def reset_burgershot_week():
     """Réinitialise les stats BurgerShot pour la nouvelle semaine"""
-    stats = {"count": 0, "week_start": datetime.now().isoformat()}
+    stats = {"count": 0, "week_start": now_paris().isoformat()}
     save_burgershot_stats(stats)
     return stats
 
@@ -432,7 +437,7 @@ def save_bonuses(bonuses):
 def get_today_bonus(employee_key: str) -> int:
     """Retourne le bonus total d'aujourd'hui pour cet employé (0 ou 1M)"""
     bonuses = load_bonuses()
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = now_paris().strftime("%Y-%m-%d")
     bonus_key = f"{employee_key}_{today}"
     # Retourne 1 si la clé existe, sinon 0
     return 1 if bonus_key in bonuses else 0
@@ -440,7 +445,7 @@ def get_today_bonus(employee_key: str) -> int:
 def award_bonus(employee_key: str) -> bool:
     """Attribue le bonus 1M de la soirée si pas déjà donné aujourd'hui"""
     bonuses = load_bonuses()
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = now_paris().strftime("%Y-%m-%d")
     bonus_key = f"{employee_key}_{today}"
     
     if bonus_key not in bonuses:
@@ -468,7 +473,7 @@ async def update_channel_description(channel: discord.TextChannel, count: int):
             return
         
         # Vérifier si c'est entre 21h et 23h pour la prime soirée
-        current_hour = datetime.now().hour
+        current_hour = now_paris().hour
         bonus_text = ""
         
         if 21 <= current_hour < 23:
@@ -580,7 +585,7 @@ async def total(interaction: discord.Interaction):
         summary_text += "\n**🟢 En service actuellement :**\n"
         for uid, svc in active_services.items():
             start_t = datetime.fromisoformat(svc['start'])
-            mins = int((datetime.now() - start_t).total_seconds() // 60)
+            mins = int((now_paris() - start_t).total_seconds() // 60)
             name = svc.get('display_name', svc['employee_key'])
             summary_text += f"• **{name}** (<@{uid}>) - {mins} min ({svc.get('reas_count', 0)} réas)\n"
     
@@ -1690,7 +1695,7 @@ class ReviewView(discord.ui.View):
             if role:
                 await member.add_roles(role)
         except Exception as e:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur ajout rôle CV: {e}")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur ajout rôle CV: {e}")
         
         # Désactiver les boutons
         self.disable_all_items()
@@ -1729,7 +1734,7 @@ class ReviewView(discord.ui.View):
             
             await member.send(embed=embed_accept, view=dispo_view)
         except Exception as e:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur DM CV accepté: {e}")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur DM CV accepté: {e}")
             pass
         
         # Envoyer les logs
@@ -2637,7 +2642,7 @@ async def giveaway(
         end_time = datetime(year, month, day, hour, minute)
         
         # Vérifier que la date est dans le futur
-        if end_time <= datetime.now():
+        if end_time <= now_paris():
             await interaction.followup.send("❌ La date de fin doit être dans le futur", ephemeral=True)
             return
         
@@ -2695,7 +2700,7 @@ async def check_giveaways():
     """Vérifie les giveaways actifs et termine ceux qui sont expirés"""
     try:
         giveaways = load_giveaways()
-        now = datetime.now()
+        now = now_paris()
         
         for msg_id, data in list(giveaways.items()):
             if data.get("ended", False):
@@ -3197,7 +3202,7 @@ async def on_error(event, *args, **kwargs):
 @tasks.loop(hours=1)
 async def weekly_taxi_announcement():
     """Vérifie si c'est samedi 19h et envoie l'annonce hebdomadaire"""
-    now = datetime.now()
+    now = now_paris()
     
     # Vérifier si c'est samedi (weekday() == 5) et qu'il est 19h
     if now.weekday() == 5 and now.hour == 19:
@@ -3254,7 +3259,7 @@ async def send_weekly_taxi_announcement():
     )
     
     embed.set_footer(text="🚕 Taxi Management System | Nouvelle semaine qui commence !")
-    embed.timestamp = datetime.now()
+    embed.timestamp = now_paris()
     
     # Ping les rôles de direction
     role_ems = guild.get_role(ROLE_DIRECTION_EMS_ID)
@@ -4022,7 +4027,7 @@ async def payes(interaction: discord.Interaction):
                 inline=False
             )
             chunk_embed.set_footer(text="🚑 EMS System | Bonne paie à tous !")
-            chunk_embed.timestamp = datetime.now()
+            chunk_embed.timestamp = now_paris()
         else:
             chunk_embed.set_footer(text=f"🚑 EMS System | Page {page_num}/{total_pages}")
         
@@ -4358,7 +4363,7 @@ async def synchronise(interaction: discord.Interaction):
             return
         
         # Calculer la date de hier 19h19
-        now = datetime.now()
+        now = now_paris()
         yesterday_19h19 = now.replace(hour=19, minute=19, second=0, microsecond=0) - timedelta(days=1)
         
         embed_progress = discord.Embed(
@@ -4507,11 +4512,11 @@ async def stats_command(interaction: discord.Interaction):
         en_svc = ""
         for uid, svc in active_services.items():
             start_t = datetime.fromisoformat(svc['start'])
-            mins = int((datetime.now() - start_t).total_seconds() // 60)
+            mins = int((now_paris() - start_t).total_seconds() // 60)
             en_svc += f"• **{svc['employee_key']}** - {mins} min\n"
         embed.add_field(name="🟢 En service", value=en_svc, inline=False)
     
-    embed.set_footer(text=f"Mise à jour: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    embed.set_footer(text=f"Mise à jour: {now_paris().strftime('%d/%m/%Y %H:%M')}")
     
     await interaction.followup.send(embed=embed)
 
@@ -4601,7 +4606,7 @@ async def leaderboard_command(interaction: discord.Interaction):
         else:
             await interaction.followup.send("❌ Canal ou rôle non trouvé")
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur leaderboard: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur leaderboard: {e}")
         await interaction.followup.send(f"❌ Erreur: {e}")
 
 # --- MODAL POUR LES AVIS ---
@@ -4662,7 +4667,7 @@ class AvisModal(discord.ui.Modal, title="📝 Donner un Avis"):
             embed.add_field(name="Note", value="⭐" * star_count, inline=True)
             embed.add_field(name="Raison", value=self.raison.value or "Aucune raison donnée", inline=False)
             embed.add_field(name="Auteur", value=interaction.user.mention, inline=True)
-            embed.set_footer(text=f"Avis soumis le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
+            embed.set_footer(text=f"Avis soumis le {now_paris().strftime('%d/%m/%Y à %H:%M')}")
             
             # Envoyer dans le channel des avis
             avis_channel = bot.get_channel(AVIS_CHANNEL_ID)
@@ -4674,7 +4679,7 @@ class AvisModal(discord.ui.Modal, title="📝 Donner un Avis"):
                 ephemeral=True
             )
         except Exception as e:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur avis: {e}")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur avis: {e}")
             await interaction.response.send_message(
                 f"❌ Erreur: {e}",
                 ephemeral=True
@@ -4736,7 +4741,7 @@ async def avis_command(interaction: discord.Interaction):
             await interaction.followup.send("❌ Channel des avis non trouvé")
         
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur avis command: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur avis command: {e}")
         await interaction.followup.send(f"❌ Erreur: {e}")
 
 # --- MODAL POUR LES DISPONIBILITÉS (CV) ---
@@ -4783,7 +4788,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
             embed.add_field(name="Disponibilités", value=self.disponibilites.value, inline=False)
             if self.notes.value:
                 embed.add_field(name="Notes", value=self.notes.value, inline=False)
-            embed.set_footer(text=f"Reçu le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
+            embed.set_footer(text=f"Reçu le {now_paris().strftime('%d/%m/%Y à %H:%M')}")
             
             # Envoyer dans le channel de demande avec boutons de confirmation pour la direction
             request_channel = bot.get_channel(DISPO_REQUEST_CHANNEL_ID)
@@ -4911,7 +4916,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                         )
                                         await new_channel.send(f"{member.mention}", embed=embed_channel)
                                     except Exception as e:
-                                        print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur création channel: {e}")
+                                        print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur création channel: {e}")
                                     
                                     # Message de confirmation
                                     embed_recrute = discord.Embed(
@@ -4943,7 +4948,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     if hasattr(interaction_recrutement.message, 'add_reaction'):
                                         await interaction_recrutement.message.add_reaction("✅")
                             except Exception as e:
-                                print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur recrutement: {e}")
+                                print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur recrutement: {e}")
                                 await interaction_recrutement.followup.send(f"❌ Erreur: {e}", ephemeral=True)
                         
                         async def refuser_recrutement_callback(interaction_refus: discord.Interaction):
@@ -5007,7 +5012,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     if hasattr(interaction_refus.message, 'add_reaction'):
                                         await interaction_refus.message.add_reaction("❌")
                             except Exception as e:
-                                print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur refus recrutement: {e}")
+                                print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur refus recrutement: {e}")
                                 await interaction_refus.followup.send(f"❌ Erreur: {e}", ephemeral=True)
                         
                         recruter_btn.callback = recruter_callback
@@ -5093,7 +5098,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                 ephemeral=True
             )
         except Exception as e:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur dispo CV: {e}")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur dispo CV: {e}")
             await interaction.response.send_message(
                 f"❌ Erreur: {e}",
                 ephemeral=True
@@ -5139,7 +5144,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
             embed.add_field(name="Disponibilités", value=self.disponibilites.value, inline=False)
             if self.notes.value:
                 embed.add_field(name="Notes", value=self.notes.value, inline=False)
-            embed.set_footer(text=f"Reçu le {datetime.now().strftime('%d/%m/%Y à %H:%M')}")
+            embed.set_footer(text=f"Reçu le {now_paris().strftime('%d/%m/%Y à %H:%M')}")
             
             # Envoyer dans le channel de demande avec boutons de confirmation pour la direction
             request_channel = bot.get_channel(DISPO_REQUEST_CHANNEL_ID)
@@ -5275,7 +5280,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                         )
                                         await new_channel.send(embed=embed_channel)
                                     except Exception as e:
-                                        print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur création channel: {e}")
+                                        print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur création channel: {e}")
                                     
                                     # Message de confirmation
                                     embed_recrute = discord.Embed(
@@ -5307,7 +5312,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     if hasattr(interaction_recrutement.message, 'add_reaction'):
                                         await interaction_recrutement.message.add_reaction("✅")
                             except Exception as e:
-                                print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur recrutement: {e}")
+                                print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur recrutement: {e}")
                                 await interaction_recrutement.followup.send(f"❌ Erreur: {e}", ephemeral=True)
                         
                         async def refuser_recrutement_callback(interaction_refus: discord.Interaction):
@@ -5371,7 +5376,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     if hasattr(interaction_refus.message, 'add_reaction'):
                                         await interaction_refus.message.add_reaction("❌")
                             except Exception as e:
-                                print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur refus recrutement: {e}")
+                                print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur refus recrutement: {e}")
                                 await interaction_refus.followup.send(f"❌ Erreur: {e}", ephemeral=True)
                         
                         recruter_btn.callback = recruter_callback
@@ -5434,7 +5439,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                 ephemeral=True
             )
         except Exception as e:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur dispo: {e}")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur dispo: {e}")
             await interaction.response.send_message(
                 f"❌ Erreur: {e}",
                 ephemeral=True
@@ -5484,7 +5489,7 @@ async def dispo_command(interaction: discord.Interaction):
             await interaction.followup.send("❌ Channel non trouvé")
         
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur dispo command: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur dispo command: {e}")
         await interaction.followup.send(f"❌ Erreur: {e}")
 
 @bot.event
@@ -5555,7 +5560,7 @@ async def on_message(message):
             return
         
         # Mettre à jour la dernière réa et le compteur de service
-        active_services[user_id]["last_rea"] = datetime.now().isoformat()
+        active_services[user_id]["last_rea"] = now_paris().isoformat()
         active_services[user_id]["reas_count"] = active_services[user_id].get("reas_count", 0) + 1
         
         # Charger les stats
@@ -5637,7 +5642,7 @@ def build_status_embed():
         lines = []
         for uid, svc in active_services.items():
             start_t = datetime.fromisoformat(svc['start'])
-            delta = datetime.now() - start_t
+            delta = now_paris() - start_t
             total_min = int(delta.total_seconds() // 60)
             h = total_min // 60
             m = total_min % 60
@@ -5669,7 +5674,7 @@ def build_service_embed():
             "• La direction peut consulter les heures avec `/services`\n\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             f"📡 **EMPLOYÉS EN SERVICE :**\n{status_text}\n\n"
-            f"*Dernière mise à jour : {datetime.now().strftime('%H:%M:%S')}*"
+            f"*Dernière mise à jour : {now_paris().strftime('%H:%M:%S')}*"
         ),
         color=EMS_RED
     )
@@ -5682,7 +5687,7 @@ async def update_service_status():
     """Met à jour le message de prise de service avec le statut en temps réel"""
     global service_status_message_id, last_pds_update
     # Cooldown de 30 secondes pour éviter les rate limits
-    if (datetime.now() - last_pds_update).total_seconds() < 30:
+    if (now_paris() - last_pds_update).total_seconds() < 30:
         return
     try:
         channel = bot.get_channel(SERVICE_CHANNEL_ID)
@@ -5693,12 +5698,12 @@ async def update_service_status():
             try:
                 msg = await channel.fetch_message(service_status_message_id)
                 await msg.edit(embed=build_service_embed())
-                last_pds_update = datetime.now()
+                last_pds_update = now_paris()
                 return
             except discord.NotFound:
                 service_status_message_id = None
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur update_service_status: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur update_service_status: {e}")
 
 class ServiceView(discord.ui.View):
     """Vue persistante avec boutons Prise / Fin de service"""
@@ -5712,7 +5717,7 @@ class ServiceView(discord.ui.View):
         # Déjà en service ?
         if user_id in active_services:
             start = datetime.fromisoformat(active_services[user_id]["start"])
-            minutes = int((datetime.now() - start).total_seconds() // 60)
+            minutes = int((now_paris() - start).total_seconds() // 60)
             await interaction.response.send_message(
                 f"⚠️ Tu es déjà en service depuis **{minutes} min** !\n"
                 f"Clique sur **🔴 Fin de Service** pour terminer.",
@@ -5739,7 +5744,7 @@ class ServiceView(discord.ui.View):
             )
             return
         
-        now = datetime.now()
+        now = now_paris()
         clean_name = get_clean_name(interaction.user)
         active_services[user_id] = {
             "start": now.isoformat(),
@@ -5787,7 +5792,7 @@ class ServiceView(discord.ui.View):
         
         service = active_services.pop(user_id)
         start = datetime.fromisoformat(service["start"])
-        end = datetime.now()
+        end = now_paris()
         duree = end - start
         hours = round(duree.total_seconds() / 3600, 2)
         minutes = int(duree.total_seconds() // 60)
@@ -5895,7 +5900,7 @@ async def services_command(interaction: discord.Interaction):
     en_service = []
     for uid, svc in active_services.items():
         start = datetime.fromisoformat(svc["start"])
-        minutes = int((datetime.now() - start).total_seconds() // 60)
+        minutes = int((now_paris() - start).total_seconds() // 60)
         en_service.append(f"• **{svc['employee_key']}** - {minutes} min (🚑 {svc.get('reas_count', 0)} réas)")
     
     if en_service:
@@ -5916,7 +5921,7 @@ async def services_command(interaction: discord.Interaction):
 async def check_inactive_services():
     """Vérifie toutes les 2 min si un employé n'a pas envoyé de réa depuis 20 min"""
     try:
-        now = datetime.now()
+        now = now_paris()
         to_remove = []
         
         for user_id, service in active_services.items():
@@ -5973,7 +5978,7 @@ async def check_inactive_services():
             await update_service_status()
     
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur check_inactive_services: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur check_inactive_services: {e}")
 
 @check_inactive_services.before_loop
 async def before_check_inactive():
@@ -5999,12 +6004,12 @@ async def refresh_service_message():
         try:
             msg = await channel.fetch_message(service_status_message_id)
             await msg.edit(embed=build_service_embed())
-            last_pds_update = datetime.now()
+            last_pds_update = now_paris()
         except discord.NotFound:
             service_status_message_id = None
             save_service_message_id(None)
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur refresh PDS: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur refresh PDS: {e}")
 
 @refresh_service_message.before_loop
 async def before_refresh_service():
@@ -6070,14 +6075,14 @@ async def update_descriptions_background():
                 await asyncio.sleep(20)
                 
             except Exception as e:
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Erreur update {key}: {e}")
+                print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur update {key}: {e}")
                 await asyncio.sleep(30)  # Délai plus long en cas d'erreur
         
         if updated_count > 0:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔄 Descriptions: {updated_count} modifiés, {skipped_count} inchangés")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] 🔄 Descriptions: {updated_count} modifiés, {skipped_count} inchangés")
         
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur descriptions: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur descriptions: {e}")
 
 @update_descriptions_background.before_loop
 async def before_update_descriptions():
@@ -6135,7 +6140,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         except:
             pass
     else:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur commande /{interaction.command.name if interaction.command else '?'}: {error}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur commande /{interaction.command.name if interaction.command else '?'}: {error}")
         try:
             if not interaction.response.is_done():
                 await interaction.response.send_message("❌ Une erreur est survenue.", ephemeral=True)
@@ -6152,9 +6157,9 @@ async def auto_backup_stats():
         stats = load_stats()
         total_reas = sum(stats.values()) if stats else 0
         atomic_write_json(STATS_FILE, stats, make_backup=True)
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] 💾 Sauvegarde: {len(stats)} employés, {total_reas} réas")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] 💾 Sauvegarde: {len(stats)} employés, {total_reas} réas")
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde: {e}")
 
 @auto_backup_stats.before_loop
 async def before_auto_backup():
