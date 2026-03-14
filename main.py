@@ -3522,8 +3522,7 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
         await membre.remove_roles(role_to_remove)
 
     # 3. Création du Channel dans la catégorie EMT (sans préfixe de grade, juste emoji + nom)
-    # Forcer la catégorie à 1460041009453858826
-    category = guild.get_channel(1460041009453858826)
+    category = guild.get_channel(CATEGORY_EMT_ID)
     channel_name = f"🔴{clean_name.lower().replace(' ', '-')}"
 
     if category:
@@ -3539,7 +3538,7 @@ async def employer(interaction: discord.Interaction, membre: discord.Member):
 
         await interaction.followup.send(f"✅ **{membre.mention}** a été employé avec succès !\n📛 Renommé en `{new_nickname}`\n📂 Dossier créé : {new_channel.mention}")
     else:
-        await interaction.followup.send(f"⚠️ Catégorie EMT (1460041009453858826) introuvable, rôles et pseudo mis à jour mais pas le channel.")
+        await interaction.followup.send(f"⚠️ Catégorie EMT introuvable, rôles et pseudo mis à jour mais pas le channel.")
 
 @bot.tree.command(name="reset_names", description="Applique les tags de grade selon les rôles Discord")
 @app_commands.describe(membre="Le membre dont mettre à jour le tag (optionnel, sinon tous)")
@@ -4885,8 +4884,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     
                                     # Créer le channel privé avec emoji + nom dans la catégorie
                                     try:
-                                        category_id = 1460041009453858826
-                                        category = guild.get_channel(category_id)
+                                        category = guild.get_channel(CATEGORY_EMT_ID)
                                         
                                         channel_name = f"🔴{user_name.lower().replace(' ', '-')}"
                                         
@@ -5250,8 +5248,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     
                                     # Créer le channel privé avec emoji + nom dans la catégorie
                                     try:
-                                        category_id = 1460041009453858826
-                                        category = guild.get_channel(category_id)
+                                        category = guild.get_channel(CATEGORY_EMT_ID)
                                         
                                         channel_name = f"🔴{user_name.lower().replace(' ', '-')}"
                                         
