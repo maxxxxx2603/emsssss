@@ -6090,6 +6090,13 @@ async def before_update_descriptions():
 async def on_ready():
     print(f'📂 DATA_DIR = {DATA_DIR}')
     
+    # Fix catégorie EMT
+    global CATEGORY_EMT_ID
+    cats = load_categories()
+    cats["CATEGORY_EMT_ID"] = 1482044597822689388
+    save_categories(cats)
+    CATEGORY_EMT_ID = 1482044597822689388
+    
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
     
