@@ -137,6 +137,22 @@ def atomic_write_json(path: str, data: dict, make_backup: bool = True, max_retri
                 time.sleep(0.5 * attempt)
     raise last_exc
 
+async def async_atomic_write_json(path: str, data: dict, make_backup: bool = True, max_retries: int = 3):
+    """Version asynchrone non-bloquante de atomic_write_json - utilise un thread pour ne pas bloquer l'event loop"""
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, lambda: atomic_write_json(path, data, make_backup, max_retries))
+
+async def _save_async(coro, label: str = ""):
+    """Wrapper pour les tâches de sauvegarde fire-and-forget: logue les erreurs sans crasher"""
+    try:
+        await coro
+    except Exception as e:
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde{' ' + label if label else ''}: {e}")
+
+# --- CACHES MÉMOIRE (évite les lectures disque répétées) ---
+_stats_cache = None
+_channel_map_cache = None
+
 def robust_load_json(path: str, default):
     if not os.path.exists(path):
         return default
@@ -222,12 +238,23 @@ RECONNECT_WINDOW_SECONDS = 3600  # Fenêtre glissante en secondes (1 heure)
 
 # --- GESTION DES STATS ---
 def load_stats():
-    # Retourner juste ce qui est dans le fichier, sans valeurs par défaut
+    global _stats_cache
+    if _stats_cache is not None:
+        return dict(_stats_cache)
     data = robust_load_json(STATS_FILE, {})
-    return data if data else {}
+    _stats_cache = data if data else {}
+    return dict(_stats_cache)
 
 def save_stats(stats):
+    global _stats_cache
+    _stats_cache = dict(stats)
     atomic_write_json(STATS_FILE, stats)
+
+async def async_save_stats(stats):
+    """Sauvegarde les stats de façon non-bloquante (met à jour le cache immédiatement)"""
+    global _stats_cache
+    _stats_cache = dict(stats)
+    await async_atomic_write_json(STATS_FILE, stats)
 
 # --- GESTION DES SERVICES ---
 def load_services():
@@ -237,8 +264,8 @@ def load_services():
 def save_services(data):
     atomic_write_json(SERVICE_FILE, data)
 
-def add_service_hours(employee_key: str, hours: float, reas_count: int):
-    """Ajoute des heures de service pour un employé"""
+async def add_service_hours(employee_key: str, hours: float, reas_count: int):
+    """Ajoute des heures de service pour un employé (async pour ne pas bloquer l'event loop)"""
     services = load_services()
     week = get_week_start()
     if week not in services:
@@ -248,7 +275,7 @@ def add_service_hours(employee_key: str, hours: float, reas_count: int):
     services[week][employee_key]["total_hours"] = round(services[week][employee_key]["total_hours"] + hours, 2)
     services[week][employee_key]["total_reas"] += reas_count
     services[week][employee_key]["sessions"] += 1
-    save_services(services)
+    await async_atomic_write_json(SERVICE_FILE, services)
 
 # --- GESTION DES BONUSES CUMULATIFS PAR SEMAINE ---
 def get_week_start():
@@ -360,9 +387,16 @@ def normalize_employee_key(name: str) -> str:
     return s
 
 def load_channel_map():
-    return robust_load_json(CHANNEL_MAP_FILE, {})
+    global _channel_map_cache
+    if _channel_map_cache is not None:
+        return dict(_channel_map_cache)
+    data = robust_load_json(CHANNEL_MAP_FILE, {})
+    _channel_map_cache = data if data else {}
+    return dict(_channel_map_cache)
 
 def save_channel_map(mapping: dict):
+    global _channel_map_cache
+    _channel_map_cache = dict(mapping)
     atomic_write_json(CHANNEL_MAP_FILE, mapping)
 
 def get_channel_employee_key(channel: discord.abc.GuildChannel) -> str:
@@ -3319,9 +3353,16 @@ async def send_weekly_taxi_announcement():
 
 # --- GESTION DES CANAUX UTILISATEURS ---
 def load_channel_map():
-    return robust_load_json(CHANNEL_MAP_FILE, {})
+    global _channel_map_cache
+    if _channel_map_cache is not None:
+        return dict(_channel_map_cache)
+    data = robust_load_json(CHANNEL_MAP_FILE, {})
+    _channel_map_cache = data if data else {}
+    return dict(_channel_map_cache)
 
 def save_channel_map(data):
+    global _channel_map_cache
+    _channel_map_cache = dict(data)
     atomic_write_json(CHANNEL_MAP_FILE, data)
 
 def get_clean_name(member):
@@ -5543,7 +5584,7 @@ async def on_message(message):
                 pass
             taxi_stats = load_taxi_stats()
             taxi_stats["count"] += 1
-            save_taxi_stats(taxi_stats)
+            asyncio.create_task(_save_async(async_atomic_write_json(TAXI_STATS_FILE, taxi_stats), "taxi_stats"))
     
     # --- COMPTAGE BURGERSHOT ---
     if message.channel.id == BURGERSHOT_CHANNEL_ID:
@@ -5554,7 +5595,7 @@ async def on_message(message):
                 pass
             burgershot_stats = load_burgershot_stats()
             burgershot_stats["count"] += 1
-            save_burgershot_stats(burgershot_stats)
+            asyncio.create_task(_save_async(async_atomic_write_json(BURGERSHOT_STATS_FILE, burgershot_stats), "burgershot_stats"))
     
     # Ignorer les messages sans pièces jointes pour le reste
     if not message.attachments:
@@ -5609,8 +5650,8 @@ async def on_message(message):
         stats[employee_key] += 1
         current_count = stats[employee_key]
         
-        # Sauvegarder les stats IMMÉDIATEMENT
-        save_stats(stats)
+        # Sauvegarder les stats de façon non-bloquante (le cache est mis à jour immédiatement)
+        asyncio.create_task(_save_async(async_save_stats(stats), "stats"))
         
         # Ajouter réaction ✅
         try:
@@ -5835,7 +5876,7 @@ class ServiceView(discord.ui.View):
         employee_key = service["employee_key"]
         
         # Enregistrer les heures
-        add_service_hours(employee_key, hours, reas)
+        await add_service_hours(employee_key, hours, reas)
         
         # Log
         log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
@@ -5975,7 +6016,7 @@ async def check_inactive_services():
             employee_key = service["employee_key"]
             
             # Enregistrer les heures
-            add_service_hours(employee_key, hours, reas)
+            await add_service_hours(employee_key, hours, reas)
             
             # Log dans le channel de logs
             log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
@@ -6188,11 +6229,11 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 # --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
 @tasks.loop(minutes=5)
 async def auto_backup_stats():
-    """Sauvegarde automatique des stats toutes les 5 minutes"""
+    """Sauvegarde automatique des stats toutes les 5 minutes (non-bloquante)"""
     try:
         stats = load_stats()
         total_reas = sum(stats.values()) if stats else 0
-        atomic_write_json(STATS_FILE, stats, make_backup=True)
+        await async_atomic_write_json(STATS_FILE, stats, make_backup=True)
         print(f"[{now_paris().strftime('%H:%M:%S')}] 💾 Sauvegarde: {len(stats)} employés, {total_reas} réas")
     except Exception as e:
         print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde: {e}")
