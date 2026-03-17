@@ -1,0 +1,5 @@
+# Trigger File for Railway Redeployment
+
+This file was created to force Railway redeployment.
+
+Timestamp: 2026-03-17 09:06:54 (UTC)
