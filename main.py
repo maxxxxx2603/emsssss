@@ -6,6 +6,7 @@ import os
 import asyncio
 import aiohttp
 import io
+import time
 from datetime import datetime, timedelta, timezone
 
 PARIS_TZ = timezone(timedelta(hours=1))
@@ -106,29 +107,35 @@ GIVEAWAY_PING_ROLE_ID = 838102445095256068  # Rôle à ping pour les giveaways
 GIVEAWAY_FILE = 'giveaways.json'
 
 # --- FONCTIONS UTILITAIRES JSON ---
-def atomic_write_json(path: str, data: dict, make_backup: bool = True):
+def atomic_write_json(path: str, data: dict, make_backup: bool = True, max_retries: int = 3):
     tmp_path = f"{path}.tmp"
-    try:
-        with open(tmp_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-            f.flush()
-            os.fsync(f.fileno())
-        # Ecrire/mettre à jour une sauvegarde simple
-        if make_backup:
-            try:
-                with open(f"{path}.bak", 'w', encoding='utf-8') as bf:
-                    json.dump(data, bf, ensure_ascii=False, indent=2)
-            except:
-                pass
-        os.replace(tmp_path, path)
-    except Exception:
-        # Nettoyage tmp si besoin
+    last_exc = Exception("atomic_write_json: aucune tentative effectuée")
+    for attempt in range(1, max_retries + 1):
         try:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-        except:
-            pass
-        raise
+            with open(tmp_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            # Ecrire/mettre à jour une sauvegarde simple
+            if make_backup:
+                try:
+                    with open(f"{path}.bak", 'w', encoding='utf-8') as bf:
+                        json.dump(data, bf, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
+            os.replace(tmp_path, path)
+            return  # Succès
+        except Exception as e:
+            last_exc = e
+            # Nettoyage tmp si besoin
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except Exception:
+                pass
+            if attempt < max_retries:
+                time.sleep(0.5 * attempt)
+    raise last_exc
 
 def robust_load_json(path: str, default):
     if not os.path.exists(path):
@@ -206,6 +213,12 @@ class EMSBot(commands.Bot):
         check_giveaways.start()
 
 bot = EMSBot()
+
+# --- SUIVI DES RECONNEXIONS ---
+reconnect_count = 0
+reconnect_timestamps = []  # Timestamps des reconnexions récentes (fenêtre glissante 1h)
+RECONNECT_ALERT_THRESHOLD = 5   # Alerter si plus de 5 reconnexions en 1 heure
+RECONNECT_WINDOW_SECONDS = 3600  # Fenêtre glissante en secondes (1 heure)
 
 # --- GESTION DES STATS ---
 def load_stats():
@@ -3190,11 +3203,33 @@ async def setup_appointment(interaction: discord.Interaction):
 
 @bot.event
 async def on_error(event, *args, **kwargs):
-    """Gestionnaire d'erreurs global"""
+    """Gestionnaire d'erreurs global amélioré"""
     import sys
     import traceback
-    print(f"❌ Erreur dans {event}:", file=sys.stderr)
-    traceback.print_exc()
+    ts = now_paris().strftime('%Y-%m-%d %H:%M:%S')
+    print(f"[{ts}] ❌ Erreur dans l'événement '{event}':", file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+
+@bot.event
+async def on_disconnect():
+    """Logge les déconnexions du bot"""
+    ts = now_paris().strftime('%Y-%m-%d %H:%M:%S')
+    print(f"[{ts}] ⚠️ Bot déconnecté de Discord")
+
+@bot.event
+async def on_resumed():
+    """Logge les reconnexions et alerte en cas de reconnexions excessives"""
+    global reconnect_count, reconnect_timestamps
+    ts = now_paris().strftime('%Y-%m-%d %H:%M:%S')
+    now = now_paris()
+    reconnect_count += 1
+    reconnect_timestamps.append(now)
+    # Purger les timestamps hors de la fenêtre glissante
+    reconnect_timestamps = [t for t in reconnect_timestamps if (now - t).total_seconds() < RECONNECT_WINDOW_SECONDS]
+    recent_count = len(reconnect_timestamps)
+    print(f"[{ts}] 🔄 Session reprise (reconnexion #{reconnect_count}, {recent_count} en 1h)")
+    if recent_count >= RECONNECT_ALERT_THRESHOLD:
+        print(f"[{ts}] 🚨 ALERTE: {recent_count} reconnexions en moins d'1 heure - problème de stabilité détecté")
 
 # (2e on_message + 1er on_ready supprimés - fusionnés dans les handlers principaux)
 
@@ -6091,7 +6126,8 @@ async def before_update_descriptions():
 
 @bot.event
 async def on_ready():
-    print(f'📂 DATA_DIR = {DATA_DIR}')
+    ts = now_paris().strftime('%Y-%m-%d %H:%M:%S')
+    print(f'[{ts}] 📂 DATA_DIR = {DATA_DIR}')
     
     # Fix catégorie EMT
     global CATEGORY_EMT_ID
@@ -6103,8 +6139,8 @@ async def on_ready():
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
     
-    print(f'✅ Bot connecté: {bot.user}')
-    print(f'📊 {len(stats)} employés | {total_reas} réas totales')
+    print(f'[{ts}] ✅ Bot connecté: {bot.user}')
+    print(f'[{ts}] 📊 {len(stats)} employés | {total_reas} réas totales')
     
     # Recharger l'ID du message PDS persistant
     global service_status_message_id
