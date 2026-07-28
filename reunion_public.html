@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prépa Réunion — Los Santos EMS</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#141416;
+    --bg1:#1e1e22;
+    --bg2:#28282e;
+    --bg3:#32323a;
+    --border:rgba(255,255,255,0.08);
+    --border2:rgba(255,255,255,0.14);
+    --red:#ff3b30;
+    --green:#30d158;
+    --orange:#ff9f0a;
+    --t1:#fff;
+    --t2:rgba(255,255,255,.75);
+    --t3:rgba(255,255,255,.42);
+    --t4:rgba(255,255,255,.2);
+    --r:16px;--r2:12px;--r3:10px;
+    --shadow:0 4px 24px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.05) inset;
+    --t:0.18s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  html,body{
+    min-height:100vh;
+    background:var(--bg);
+    background-image:radial-gradient(ellipse 80% 50% at 50% -5%,rgba(255,59,48,.07) 0%,transparent 65%);
+    color:var(--t1);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    overflow-x:hidden;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
+
+  /* Topbar */
+  .topbar{
+    position:fixed;top:0;left:0;right:0;z-index:100;height:54px;
+    background:rgba(20,20,22,.88);
+    backdrop-filter:blur(20px) saturate(180%);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+    border-bottom:.5px solid rgba(255,255,255,.07);
+    display:flex;align-items:center;padding:0 20px;gap:14px;
+  }
+  .topbar::after{
+    content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,59,48,.3) 40%,rgba(255,59,48,.3) 60%,transparent);
+  }
+  .logo{
+    width:30px;height:30px;border-radius:9px;
+    background:linear-gradient(135deg,#ff3b30,#c0281e);
+    box-shadow:0 0 12px rgba(255,59,48,.4);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .brand{
+    font-weight:800;font-size:.95rem;letter-spacing:-.01em;
+    background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.7) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .badge-anon{
+    margin-left:auto;
+    background:rgba(10,132,255,.12);border:.5px solid rgba(10,132,255,.25);
+    color:#0a84ff;font-size:.68rem;font-weight:700;
+    padding:4px 10px;border-radius:9px;letter-spacing:.03em;
+  }
+
+  /* Layout */
+  .wrap{max-width:820px;margin:0 auto;padding:74px 16px 40px}
+
+  /* Hero */
+  .hero{text-align:center;margin-bottom:36px;padding-top:8px}
+  .hero h1{font-size:1.6rem;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+  .hero p{font-size:.84rem;color:var(--t3);max-width:440px;margin:0 auto;line-height:1.6}
+
+  /* Counter badge */
+  .counter{
+    display:inline-flex;gap:16px;background:var(--bg2);
+    border:.5px solid var(--border2);border-radius:12px;
+    padding:8px 18px;margin-top:14px;
+  }
+  .counter-item{font-size:.78rem;font-weight:700}
+  .cnt-pos{color:var(--green)}
+  .cnt-neg{color:var(--red)}
+
+  /* Grille 2 colonnes */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  @media(max-width:600px){.grid{grid-template-columns:1fr}}
+
+  /* Card */
+  .card{
+    background:linear-gradient(145deg,var(--bg1) 0%,rgba(28,28,34,.95) 100%);
+    border:.5px solid var(--border);border-radius:var(--r);
+    padding:18px 20px;
+    box-shadow:var(--shadow);
+    transition:border-color var(--t);
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .card:hover{border-color:var(--border2)}
+
+  .card-title{
+    font-size:.62rem;font-weight:800;text-transform:uppercase;
+    letter-spacing:1.2px;display:flex;align-items:center;gap:7px;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+  /* Liste de points */
+  .points-list{display:flex;flex-direction:column;gap:7px;min-height:32px}
+
+  .point-item{
+    display:flex;align-items:flex-start;gap:9px;
+    padding:9px 12px;border-radius:10px;
+    font-size:.8rem;line-height:1.45;
+    animation:fadeSlide .22s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .point-pos{background:rgba(48,209,88,.07);border:.5px solid rgba(48,209,88,.18)}
+  .point-neg{background:rgba(255,59,48,.07);border:.5px solid rgba(255,59,48,.18)}
+
+  .point-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:6px}
+  .point-pos .point-dot{background:var(--green);box-shadow:0 0 5px rgba(48,209,88,.5)}
+  .point-neg .point-dot{background:var(--red);box-shadow:0 0 5px rgba(255,59,48,.5)}
+  .point-text{flex:1;color:var(--t2)}
+
+  .empty{font-size:.76rem;color:var(--t4);padding:8px 0;text-align:center}
+
+  /* Input zone */
+  .input-row{display:flex;gap:8px}
+  .fi{
+    flex:1;
+    background:rgba(255,255,255,.05);
+    border:.5px solid rgba(255,255,255,.1);
+    border-radius:10px;
+    padding:11px 13px;
+    color:var(--t1);
+    font-size:.82rem;font-weight:500;
+    outline:none;
+    transition:border-color var(--t),background var(--t);
+    font-family:inherit;
+  }
+  .fi:focus{border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.07)}
+  .fi::placeholder{color:var(--t4)}
+
+  .btn-add{
+    border:none;border-radius:10px;
+    width:40px;height:40px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:1.1rem;font-weight:800;
+    transition:all .18s cubic-bezier(.4,0,.2,1);
+    flex-shrink:0;
+  }
+  .btn-add:active{transform:scale(.92)}
+  .btn-pos{background:rgba(48,209,88,.15);color:var(--green)}
+  .btn-pos:hover{background:rgba(48,209,88,.25)}
+  .btn-neg{background:rgba(255,59,48,.15);color:var(--red)}
+  .btn-neg:hover{background:rgba(255,59,48,.25)}
+
+  /* Toast */
+  .toast{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:var(--bg2);border:.5px solid var(--border2);border-radius:12px;
+    padding:11px 20px;font-size:.8rem;font-weight:600;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:999;
+    transition:transform .28s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+    opacity:0;white-space:nowrap;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+  /* Footer */
+  .footer{
+    text-align:center;margin-top:40px;
+    font-size:.72rem;color:var(--t4);line-height:1.8;
+  }
+
+  /* Pulse indicator */
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .live-dot{
+    width:6px;height:6px;border-radius:50%;background:var(--green);
+    animation:pulse 2s infinite;
+    display:inline-block;margin-right:5px;vertical-align:middle;
+  }
+
+  /* Compteur de caractères */
+  .char-count{font-size:.65rem;color:var(--t4);text-align:right;margin-top:-8px}
+  .char-warn{color:var(--orange)}
+  .char-err{color:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+      <path d="M4.5 13.5h15M12 4.5v15"/>
+    </svg>
+  </div>
+  <span class="brand">Los Santos EMS</span>
+  <span class="badge-anon">🔒 Anonyme</span>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1>📋 Préparation de réunion</h1>
+    <p>Dépose tes points positifs et négatifs avant la réunion. C'est <strong>100% anonyme</strong> — personne ne sait qui a écrit quoi.</p>
+    <div class="counter">
+      <span class="counter-item cnt-pos" id="cnt-pos">✅ 0 positif</span>
+      <span style="color:var(--t4)">·</span>
+      <span class="counter-item cnt-neg" id="cnt-neg">❌ 0 négatif</span>
+      <span style="color:var(--t4)">·</span>
+      <span style="font-size:.75rem;color:var(--t3)"><span class="live-dot"></span>En direct</span>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- Positifs -->
+    <div class="card">
+      <div class="card-title" style="color:var(--green)">
+        <div class="dot" style="background:var(--green);box-shadow:0 0 6px rgba(48,209,88,.5)"></div>
+        Points positifs
+      </div>
+      <div class="points-list" id="pos-list">
+        <div class="empty">Aucun point positif pour l'instant</div>
+      </div>
+      <div>
+        <div class="input-row">
+          <input class="fi" id="pos-in" maxlength="300" placeholder="Ce qui s'est bien passé…" onkeydown="if(event.key==='Enter')submit('pos')" oninput="charCount('pos-in','pos-cc')">
+          <button class="btn-add btn-pos" onclick="submit('pos')" title="Ajouter">+</button>
+        </div>
+        <div class="char-count" id="pos-cc"></div>
+      </div>
+    </div>
+
+    <!-- Négatifs -->
+    <div class="card">
+      <div class="card-title" style="color:var(--red)">
+        <div class="dot" style="background:var(--red);box-shadow:0 0 6px rgba(255,59,48,.5)"></div>
+        Points négatifs
+      </div>
+      <div class="points-list" id="neg-list">
+        <div class="empty">Aucun point négatif pour l'instant</div>
+      </div>
+      <div>
+        <div class="input-row">
+          <input class="fi" id="neg-in" maxlength="300" placeholder="Ce qui peut être amélioré…" onkeydown="if(event.key==='Enter')submit('neg')" oninput="charCount('neg-in','neg-cc')">
+          <button class="btn-add btn-neg" onclick="submit('neg')" title="Ajouter">+</button>
+        </div>
+        <div class="char-count" id="neg-cc"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Toutes les soumissions sont anonymes — aucune donnée personnelle n'est collectée.</p>
+    <p>Los Santos EMS · Système de préparation de réunion</p>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+let _data = {pos:[], neg:[]};
+let _pollInterval = null;
+
+// ── Récupérer les données depuis l'API ─────────────────────────
+async function load(){
+  try{
+    const r = await fetch('/api/reunion_public');
+    const d = await r.json();
+    _data.pos = d.pos || [];
+    _data.neg = d.neg || [];
+    render();
+  } catch(e){
+    console.error('Erreur chargement:', e);
+  }
+}
+
+// ── Rendu ──────────────────────────────────────────────────────
+function render(){
+  renderList('pos-list', _data.pos, 'pos');
+  renderList('neg-list', _data.neg, 'neg');
+  document.getElementById('cnt-pos').textContent = `✅ ${_data.pos.length} positif${_data.pos.length>1?'s':''}`;
+  document.getElementById('cnt-neg').textContent = `❌ ${_data.neg.length} négatif${_data.neg.length>1?'s':''}`;
+}
+
+function renderList(id, arr, type){
+  const el = document.getElementById(id);
+  if(!arr.length){
+    el.innerHTML = `<div class="empty">${type==='pos'?'Aucun point positif pour l\'instant':'Aucun point négatif pour l\'instant'}</div>`;
+    return;
+  }
+  el.innerHTML = arr.map(t =>
+    `<div class="point-item point-${type}">
+      <div class="point-dot"></div>
+      <div class="point-text">${escHtml(t)}</div>
+    </div>`
+  ).join('');
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Soumission d'un point ──────────────────────────────────────
+let _submitting = false;
+async function submit(type){
+  if(_submitting) return;
+  const inp = document.getElementById(type+'-in');
+  const text = inp.value.trim();
+  if(!text){inp.focus();return;}
+  if(text.length > 300){toast('❌ Trop long (max 300 caractères)', 'var(--red)');return;}
+
+  _submitting = true;
+  try{
+    const r = await fetch('/api/reunion_public',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type, text})
+    });
+    const d = await r.json();
+    if(d.ok){
+      inp.value = '';
+      document.getElementById(type+'-cc').textContent = '';
+      await load();
+      toast(type==='pos'?'✅ Point positif ajouté !':'❌ Point négatif ajouté !', type==='pos'?'var(--green)':'var(--red)');
+    } else {
+      toast('Erreur : '+(d.error||'inconnue'), 'var(--orange)');
+    }
+  } catch(e){
+    toast('Erreur réseau', 'var(--orange)');
+  } finally{
+    _submitting = false;
+  }
+}
+
+// ── Compteur de caractères ─────────────────────────────────────
+function charCount(inputId, countId){
+  const len = document.getElementById(inputId).value.length;
+  const el = document.getElementById(countId);
+  if(len === 0){el.textContent='';return;}
+  el.textContent = `${len}/300`;
+  el.className = 'char-count' + (len>280?' char-err':len>230?' char-warn':'');
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+let _toastTimer = null;
+function toast(msg, color='var(--green)'){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.color = color;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>el.classList.remove('show'), 2800);
+}
+
+// ── Polling toutes les 5s ──────────────────────────────────────
+load();
+_pollInterval = setInterval(load, 5000);
+
+// Pause quand l'onglet est en arrière-plan
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    clearInterval(_pollInterval);
+  } else {
+    load();
+    _pollInterval = setInterval(load, 5000);
+  }
+});
+</script>
+</body>
+</html>

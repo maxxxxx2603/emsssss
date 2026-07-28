@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bilan d'Aptitude — Los Santos EMS</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#141416; --bg1:#1e1e22; --bg2:#28282e; --bg3:#32323a;
+    --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.14);
+    --red:#ff3b30; --green:#30d158; --orange:#ff9f0a; --blue:#0a84ff;
+    --t1:#fff; --t2:rgba(255,255,255,.75); --t3:rgba(255,255,255,.42); --t4:rgba(255,255,255,.2);
+    --r:16px;--r2:12px;--r3:10px;
+    --shadow:0 4px 24px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.05) inset;
+    --t:0.18s cubic-bezier(0.4,0,0.2,1);
+  }
+  html,body{min-height:100vh;background:var(--bg);background-image:radial-gradient(ellipse 80% 50% at 50% -5%,rgba(255,59,48,.07) 0%,transparent 65%);color:var(--t1);font-family:'Inter',system-ui,-apple-system,sans-serif;overflow-x:hidden}
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
+
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:100;height:54px;background:rgba(20,20,22,.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:.5px solid rgba(255,255,255,.07);display:flex;align-items:center;padding:0 20px;gap:14px}
+  .topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,59,48,.3) 40%,rgba(255,59,48,.3) 60%,transparent)}
+  .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#ff3b30,#c0281e);box-shadow:0 0 12px rgba(255,59,48,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .brand{font-weight:800;font-size:.95rem;letter-spacing:-.01em;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.7) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .badge-med{margin-left:auto;background:rgba(48,209,88,.12);border:.5px solid rgba(48,209,88,.25);color:var(--green);font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:9px;letter-spacing:.03em}
+
+  .wrap{max-width:640px;margin:0 auto;padding:74px 16px 60px}
+  .hero{text-align:center;margin-bottom:28px}
+  .hero h1{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+  .hero p{font-size:.82rem;color:var(--t3)}
+
+  .step{display:none;animation:fadeIn .25s ease}
+  .step.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .card{background:linear-gradient(145deg,var(--bg1) 0%,rgba(28,28,34,.95) 100%);border:.5px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:var(--shadow)}
+
+  .org-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+  .org-btn{background:var(--bg2);border:1.5px solid var(--border2);border-radius:16px;padding:28px 16px;text-align:center;cursor:pointer;transition:all var(--t);display:flex;flex-direction:column;align-items:center;gap:10px}
+  .org-btn:hover{border-color:rgba(255,255,255,.25);transform:translateY(-2px)}
+  .org-btn.selected{border-color:var(--red);background:rgba(255,59,48,.08)}
+  .org-icon{width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:900}
+  .org-lspd .org-icon{background:linear-gradient(135deg,#0a84ff,#0058b0);color:#fff}
+  .org-bcso .org-icon{background:linear-gradient(135deg,#8a6d3b,#5c481f);color:#fff}
+  .org-name{font-weight:800;font-size:.95rem}
+  .org-sub{font-size:.68rem;color:var(--t3)}
+
+  .field-label{font-size:.7rem;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:block;font-weight:700}
+  .field-input,.field-textarea{width:100%;background:rgba(255,255,255,.05);border:.5px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 13px;color:var(--t1);font-size:.84rem;font-weight:500;outline:none;transition:border-color var(--t);font-family:inherit;margin-bottom:14px}
+  .field-input:focus,.field-textarea:focus{border-color:rgba(255,59,48,.35);background:rgba(255,255,255,.07)}
+
+  .upload-zone{border:1.5px dashed rgba(255,255,255,.15);border-radius:14px;padding:20px;text-align:center;cursor:pointer;transition:all var(--t);background:rgba(255,255,255,.03);margin-bottom:14px;position:relative;overflow:hidden}
+  .upload-zone:hover{border-color:rgba(255,59,48,.3);background:rgba(255,59,48,.03)}
+  .upload-zone img{max-width:100%;max-height:180px;border-radius:10px;object-fit:cover}
+  .upload-zone .upload-placeholder{font-size:.78rem;color:var(--t3)}
+
+  .apte-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+  .apte-btn{border-radius:14px;padding:22px 14px;text-align:center;cursor:pointer;transition:all var(--t);border:1.5px solid var(--border2);background:var(--bg2)}
+  .apte-btn:hover{transform:translateY(-2px)}
+  .apte-btn.selected.apte-yes{border-color:var(--green);background:rgba(48,209,88,.1)}
+  .apte-btn.selected.apte-no{border-color:var(--red);background:rgba(255,59,48,.1)}
+  .apte-emoji{font-size:1.8rem;margin-bottom:6px}
+  .apte-label{font-weight:800;font-size:.85rem}
+
+  .btn{border:none;border-radius:14px;padding:14px 20px;cursor:pointer;font-size:.88rem;font-weight:800;transition:all var(--t);width:100%}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:linear-gradient(145deg,#ff4035,#e0281c);color:#fff;box-shadow:0 2px 16px rgba(255,59,48,.4)}
+  .btn-soft{background:rgba(255,255,255,.06);color:var(--t2);border:.5px solid var(--border2);margin-top:10px}
+
+  .back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--t3);font-size:.8rem;font-weight:600;cursor:pointer;margin-bottom:16px;transition:color var(--t)}
+  .back-btn:hover{color:var(--t1)}
+
+  .progress-dots{display:flex;justify-content:center;gap:8px;margin-bottom:24px}
+  .pdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);transition:all var(--t)}
+  .pdot.active{background:var(--red);width:22px;border-radius:5px}
+
+  .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg2);border:.5px solid var(--border2);border-radius:12px;padding:11px 20px;font-size:.8rem;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:999;transition:transform .28s cubic-bezier(.34,1.56,.64,1),opacity .2s;opacity:0;white-space:nowrap}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M4.5 13.5h15M12 4.5v15"/></svg></div>
+  <span class="brand">Los Santos EMS</span>
+  <span class="badge-med">🩺 Bilan d'Aptitude</span>
+</div>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>📋 Bilan d'Aptitude</h1>
+    <p>Évaluation psychologique et médicale pour LSPD / BCSO</p>
+  </div>
+
+  <div class="progress-dots">
+    <div class="pdot active" id="dot-1"></div>
+    <div class="pdot" id="dot-2"></div>
+    <div class="pdot" id="dot-3"></div>
+    <div class="pdot" id="dot-4"></div>
+  </div>
+
+  <!-- ETAPE 1 : Organisation -->
+  <div class="step active" id="step-1">
+    <div class="card">
+      <div class="field-label" style="margin-bottom:14px">Choisir l'organisation</div>
+      <div class="org-grid">
+        <div class="org-btn org-lspd" id="org-lspd" onclick="selectOrg('LSPD')">
+          <div class="org-icon">👮</div>
+          <div class="org-name">LSPD</div>
+          <div class="org-sub">Los Santos Police Dept.</div>
+        </div>
+        <div class="org-btn org-bcso" id="org-bcso" onclick="selectOrg('BCSO')">
+          <div class="org-icon">🤠</div>
+          <div class="org-name">BCSO</div>
+          <div class="org-sub">Blaine County Sheriff</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:20px" onclick="goToStep(2)" id="btn-step1-next" disabled>Continuer</button>
+    </div>
+  </div>
+
+  <!-- ETAPE 2 : Officier -->
+  <div class="step" id="step-2">
+    <button class="back-btn" onclick="goToStep(1)">← Retour</button>
+    <div class="card">
+      <div class="field-label">Matricule</div>
+      <input class="field-input" id="apt-matricule" placeholder="Ex: 4521">
+
+      <div class="field-label">Nom de l'officier</div>
+      <input class="field-input" id="apt-nom" placeholder="Ex: Mafioso">
+
+      <div class="field-label">Civilité</div>
+      <select class="field-input" id="apt-civilite">
+        <option value="m">Monsieur</option>
+        <option value="mme">Madame</option>
+      </select>
+
+      <div class="field-label">Carte d'identité</div>
+      <div class="upload-zone" id="apt-upload-zone" onclick="document.getElementById('apt-photo-input').click()">
+        <div class="upload-placeholder" id="apt-upload-placeholder">📷 Cliquer pour ajouter une photo</div>
+        <img id="apt-upload-preview" style="display:none">
+      </div>
+      <input type="file" id="apt-photo-input" accept="image/*" style="display:none" onchange="handleAptPhotoUpload(event)">
+
+      <button class="btn btn-primary" onclick="goToStep(3)">Continuer</button>
+    </div>
+  </div>
+
+  <!-- ETAPE 3 : Aptitude -->
+  <div class="step" id="step-3">
+    <button class="back-btn" onclick="goToStep(2)">← Retour</button>
+    <div class="card">
+      <div class="field-label" style="margin-bottom:14px">L'officier est-il apte à exercer ?</div>
+      <div class="apte-grid">
+        <div class="apte-btn apte-yes" id="apte-yes" onclick="selectApte(true)">
+          <div class="apte-emoji">✅</div>
+          <div class="apte-label">APTE</div>
+        </div>
+        <div class="apte-btn apte-no" id="apte-no" onclick="selectApte(false)">
+          <div class="apte-emoji">⛔</div>
+          <div class="apte-label">NON APTE</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="goToStep(4)" id="btn-step3-next" disabled>Continuer</button>
+    </div>
+  </div>
+
+  <!-- ETAPE 4 : Praticien EMS -->
+  <div class="step" id="step-4">
+    <button class="back-btn" onclick="goToStep(3)">← Retour</button>
+    <div class="card">
+      <div class="field-label">Votre nom (praticien EMS)</div>
+      <input class="field-input" id="apt-praticien-nom" placeholder="Ex: Mike Taris">
+
+      <div class="field-label">Votre grade</div>
+      <input class="field-input" id="apt-praticien-grade" placeholder="Ex: Chef Adjoint EMS">
+
+      <div style="font-size:.74rem;color:var(--t3);margin-bottom:14px">Le bilan sera envoyé automatiquement dans le salon Discord de l'organisation sélectionnée.</div>
+
+      <button class="btn btn-primary" onclick="submitAptitude()" id="btn-submit">📋 Générer et envoyer le bilan</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let _selectedOrg=null;
+let _selectedApte=null;
+let _aptPhoto='';
+
+function updateDots(step){
+  for(let i=1;i<=4;i++){
+    document.getElementById('dot-'+i).classList.toggle('active', i<=step);
+  }
+}
+
+function goToStep(n){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step-'+n).classList.add('active');
+  updateDots(n);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function selectOrg(org){
+  _selectedOrg=org;
+  document.getElementById('org-lspd').classList.toggle('selected', org==='LSPD');
+  document.getElementById('org-bcso').classList.toggle('selected', org==='BCSO');
+  document.getElementById('btn-step1-next').disabled=false;
+}
+
+function selectApte(val){
+  _selectedApte=val;
+  document.getElementById('apte-yes').classList.toggle('selected', val===true);
+  document.getElementById('apte-no').classList.toggle('selected', val===false);
+  document.getElementById('btn-step3-next').disabled=false;
+}
+
+function handleAptPhotoUpload(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  if(file.size>3*1024*1024){toast('Image trop lourde (max 3 Mo)','var(--orange)');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _aptPhoto=e.target.result;
+    const preview=document.getElementById('apt-upload-preview');
+    preview.src=_aptPhoto;
+    preview.style.display='block';
+    document.getElementById('apt-upload-placeholder').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitAptitude(){
+  const matricule=document.getElementById('apt-matricule').value.trim();
+  const nom_officier=document.getElementById('apt-nom').value.trim();
+  const civilite=document.getElementById('apt-civilite').value;
+  const praticien_nom=document.getElementById('apt-praticien-nom').value.trim();
+  const praticien_grade=document.getElementById('apt-praticien-grade').value.trim();
+
+  if(!_selectedOrg){toast('Choisis une organisation','var(--orange)');goToStep(1);return;}
+  if(!matricule||!nom_officier){toast('Matricule et nom requis','var(--orange)');goToStep(2);return;}
+  if(_selectedApte===null){toast('Indique si l\'officier est apte','var(--orange)');goToStep(3);return;}
+  if(!praticien_nom||!praticien_grade){toast('Ton nom et grade sont requis','var(--orange)');return;}
+
+  const btn=document.getElementById('btn-submit');
+  btn.disabled=true;btn.textContent='⏳ Génération en cours...';
+
+  try{
+    const r=await fetch('/api/aptitude/generate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        org:_selectedOrg, matricule, nom_officier, civilite,
+        apte:_selectedApte, praticien_nom, praticien_grade,
+        photo:_aptPhoto
+      })
+    });
+    const d=await r.json();
+    if(d.ok){
+      toast(d.sent_to_discord?'✅ Bilan envoyé sur Discord !':'⚠️ Généré mais channel introuvable','var(--green)');
+      setTimeout(()=>{
+        // Reset complet pour un nouveau bilan
+        _selectedOrg=null;_selectedApte=null;_aptPhoto='';
+        document.getElementById('apt-matricule').value='';
+        document.getElementById('apt-nom').value='';
+        document.getElementById('apt-upload-preview').style.display='none';
+        document.getElementById('apt-upload-placeholder').style.display='';
+        document.getElementById('org-lspd').classList.remove('selected');
+        document.getElementById('org-bcso').classList.remove('selected');
+        document.getElementById('apte-yes').classList.remove('selected');
+        document.getElementById('apte-no').classList.remove('selected');
+        document.getElementById('btn-step1-next').disabled=true;
+        document.getElementById('btn-step3-next').disabled=true;
+        goToStep(1);
+      }, 1500);
+    }else{
+      toast('Erreur : '+(d.error||'inconnue'),'var(--red)');
+    }
+  }catch(e){
+    toast('Erreur réseau : '+e.message,'var(--orange)');
+  }finally{
+    btn.disabled=false;btn.textContent="📋 Générer et envoyer le bilan";
+  }
+}
+
+let _toastTimer=null;
+function toast(msg,color='var(--green)'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.color=color;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+}
+</script>
+</body>
+</html>

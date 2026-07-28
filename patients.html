@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dossiers Patients — Los Santos EMS</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#141416;
+    --bg1:#1e1e22;
+    --bg2:#28282e;
+    --bg3:#32323a;
+    --border:rgba(255,255,255,0.08);
+    --border2:rgba(255,255,255,0.14);
+    --red:#ff3b30;
+    --green:#30d158;
+    --orange:#ff9f0a;
+    --blue:#0a84ff;
+    --t1:#fff;
+    --t2:rgba(255,255,255,.75);
+    --t3:rgba(255,255,255,.42);
+    --t4:rgba(255,255,255,.2);
+    --r:16px;--r2:12px;--r3:10px;
+    --shadow:0 4px 24px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.05) inset;
+    --t:0.18s cubic-bezier(0.4,0,0.2,1);
+  }
+  html,body{
+    min-height:100vh;
+    background:var(--bg);
+    background-image:radial-gradient(ellipse 80% 50% at 50% -5%,rgba(255,59,48,.07) 0%,transparent 65%);
+    color:var(--t1);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    overflow-x:hidden;
+  }
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
+
+  .topbar{
+    position:fixed;top:0;left:0;right:0;z-index:100;height:54px;
+    background:rgba(20,20,22,.88);
+    backdrop-filter:blur(20px) saturate(180%);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+    border-bottom:.5px solid rgba(255,255,255,.07);
+    display:flex;align-items:center;padding:0 20px;gap:14px;
+  }
+  .topbar::after{
+    content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,59,48,.3) 40%,rgba(255,59,48,.3) 60%,transparent);
+  }
+  .logo{
+    width:30px;height:30px;border-radius:9px;
+    background:linear-gradient(135deg,#ff3b30,#c0281e);
+    box-shadow:0 0 12px rgba(255,59,48,.4);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .brand{
+    font-weight:800;font-size:.95rem;letter-spacing:-.01em;
+    background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.7) 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .badge-med{
+    margin-left:auto;
+    background:rgba(48,209,88,.12);border:.5px solid rgba(48,209,88,.25);
+    color:var(--green);font-size:.68rem;font-weight:700;
+    padding:4px 10px;border-radius:9px;letter-spacing:.03em;
+  }
+
+  .wrap{max-width:1100px;margin:0 auto;padding:74px 16px 40px}
+
+  .hero{text-align:center;margin-bottom:28px;padding-top:8px}
+  .hero h1{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+  .hero p{font-size:.82rem;color:var(--t3)}
+
+  .toolbar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+  .search-input{
+    flex:1;min-width:220px;
+    background:rgba(255,255,255,.05);
+    border:.5px solid rgba(255,255,255,.1);
+    border-radius:12px;
+    padding:12px 16px;
+    color:var(--t1);
+    font-size:.86rem;font-weight:500;
+    outline:none;
+    transition:border-color var(--t),background var(--t);
+    font-family:inherit;
+  }
+  .search-input:focus{border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.07)}
+  .search-input::placeholder{color:var(--t4)}
+
+  .btn{
+    border:none;border-radius:12px;
+    padding:12px 20px;
+    cursor:pointer;font-size:.84rem;font-weight:700;
+    transition:all .18s cubic-bezier(.4,0,.2,1);
+    white-space:nowrap;
+  }
+  .btn:active{transform:scale(.96)}
+  .btn-primary{background:linear-gradient(145deg,#ff4035,#e0281c);color:#fff;box-shadow:0 2px 16px rgba(255,59,48,.4)}
+  .btn-primary:hover{box-shadow:0 4px 20px rgba(255,59,48,.5)}
+  .btn-soft{background:rgba(255,255,255,.06);color:var(--t2);border:.5px solid var(--border2)}
+  .btn-soft:hover{background:rgba(255,255,255,.1)}
+  .btn-green{background:linear-gradient(145deg,#34dc60,#28b84e);color:#fff;box-shadow:0 2px 16px rgba(48,209,88,.35)}
+
+  /* Grille patients */
+  .patients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .patient-card{
+    background:linear-gradient(145deg,var(--bg1) 0%,rgba(28,28,34,.95) 100%);
+    border:.5px solid var(--border);border-radius:var(--r);
+    padding:16px;
+    box-shadow:var(--shadow);
+    cursor:pointer;
+    transition:all var(--t);
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .patient-card:hover{border-color:rgba(255,59,48,.3);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+  .patient-card .p-name{font-weight:700;font-size:.92rem}
+  .patient-card .p-meta{font-size:.68rem;color:var(--t3)}
+  .patient-card .p-count{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:.68rem;color:var(--blue);font-weight:700;
+    background:rgba(10,132,255,.1);border-radius:8px;padding:3px 9px;
+    width:fit-content;
+  }
+
+  .empty{font-size:.82rem;color:var(--t4);padding:40px 0;text-align:center;grid-column:1/-1}
+
+  /* Modal */
+  .modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+    backdrop-filter:blur(4px);z-index:1000;
+    align-items:center;justify-content:center;padding:20px;
+    animation:fadeIn .18s ease;
+  }
+  .modal-overlay.active{display:flex}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal{
+    background:var(--bg1);border-radius:20px;border:.5px solid var(--border2);
+    max-width:640px;width:100%;max-height:88vh;overflow:hidden;
+    display:flex;flex-direction:column;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+    animation:slideUp .22s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes slideUp{from{transform:translateY(24px) scale(.97);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+  .modal-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:16px 20px;border-bottom:.5px solid var(--border2);flex-shrink:0;
+  }
+  .modal-head h2{font-size:.95rem;font-weight:700}
+  .modal-body{padding:20px;overflow-y:auto;flex:1}
+
+  .field-label{
+    font-size:.68rem;color:var(--t3);text-transform:uppercase;
+    letter-spacing:.06em;margin-bottom:6px;display:block;font-weight:700;
+  }
+  .field-input,.field-textarea{
+    width:100%;
+    background:rgba(255,255,255,.05);
+    border:.5px solid rgba(255,255,255,.1);
+    border-radius:10px;
+    padding:11px 13px;
+    color:var(--t1);
+    font-size:.84rem;font-weight:500;
+    outline:none;
+    transition:border-color var(--t);
+    font-family:inherit;
+    margin-bottom:14px;
+  }
+  .field-textarea{resize:vertical;min-height:70px}
+  .field-input:focus,.field-textarea:focus{border-color:rgba(255,59,48,.35);background:rgba(255,255,255,.07)}
+
+  /* Upload zone */
+  .upload-zone{
+    border:1.5px dashed rgba(255,255,255,.15);
+    border-radius:14px;
+    padding:20px;
+    text-align:center;
+    cursor:pointer;
+    transition:all var(--t);
+    background:rgba(255,255,255,.03);
+    margin-bottom:14px;
+    position:relative;
+    overflow:hidden;
+  }
+  .upload-zone:hover{border-color:rgba(255,59,48,.3);background:rgba(255,59,48,.03)}
+  .upload-zone img{max-width:100%;max-height:180px;border-radius:10px;object-fit:cover}
+  .upload-zone .upload-placeholder{font-size:.78rem;color:var(--t3)}
+  .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+  /* Détail patient */
+  .patient-detail{display:flex;flex-direction:column;gap:20px}
+  .patient-header{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .patient-photo{
+    width:100px;height:100px;border-radius:14px;object-fit:cover;
+    border:.5px solid var(--border2);box-shadow:var(--shadow);flex-shrink:0;
+    background:var(--bg2);
+  }
+  .patient-photo-placeholder{
+    width:100px;height:100px;border-radius:14px;
+    background:var(--bg2);border:.5px solid var(--border2);
+    display:flex;align-items:center;justify-content:center;
+    font-size:2rem;color:var(--t4);flex-shrink:0;
+  }
+  .patient-info h2{font-size:1.2rem;font-weight:800;margin-bottom:4px}
+  .patient-info .p-sub{font-size:.76rem;color:var(--t3)}
+
+  .dossier-item{
+    background:var(--bg2);border-radius:14px;padding:16px;
+    border-left:3px solid var(--red);
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .dossier-date{font-size:.68rem;color:var(--t3);font-weight:600}
+  .dossier-field{display:flex;flex-direction:column;gap:2px}
+  .dossier-field-label{font-size:.62rem;color:var(--orange);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+  .dossier-field-value{font-size:.82rem;color:var(--t2);line-height:1.5}
+
+  .section-title{
+    font-size:.64rem;font-weight:800;text-transform:uppercase;
+    letter-spacing:1.2px;color:rgba(255,255,255,.35);margin-bottom:12px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+
+  .toast{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:var(--bg2);border:.5px solid var(--border2);border-radius:12px;
+    padding:11px 20px;font-size:.8rem;font-weight:600;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:1100;
+    transition:transform .28s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+    opacity:0;white-space:nowrap;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+  .back-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    background:none;border:none;color:var(--t3);
+    font-size:.8rem;font-weight:600;cursor:pointer;
+    margin-bottom:16px;transition:color var(--t);
+  }
+  .back-btn:hover{color:var(--t1)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+      <path d="M4.5 13.5h15M12 4.5v15"/>
+    </svg>
+  </div>
+  <span class="brand">Los Santos EMS</span>
+  <span class="badge-med">🩺 Dossiers Médicaux</span>
+</div>
+
+<div class="wrap">
+
+  <!-- VUE LISTE -->
+  <div id="view-list">
+    <div class="hero">
+      <h1>📋 Dossiers Patients</h1>
+      <p>Recherche un patient existant ou crée un nouveau dossier.</p>
+    </div>
+
+    <div class="toolbar">
+      <input class="search-input" id="search-input" placeholder="🔍 Rechercher un patient (nom ou prénom)…" oninput="searchPatients()">
+      <button class="btn btn-primary" onclick="openCreateModal()">+ Nouveau patient</button>
+    </div>
+
+    <div class="patients-grid" id="patients-grid">
+      <div class="empty">Chargement…</div>
+    </div>
+  </div>
+
+  <!-- VUE DETAIL -->
+  <div id="view-detail" style="display:none">
+    <button class="back-btn" onclick="showListView()">← Retour à la liste</button>
+    <div class="patient-detail" id="patient-detail-content"></div>
+  </div>
+
+</div>
+
+<!-- MODAL CREATION PATIENT -->
+<div class="modal-overlay" id="create-modal-overlay" onclick="if(event.target===this)closeCreateModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2>+ Nouveau patient</h2>
+      <button class="btn btn-soft" onclick="closeCreateModal()" style="padding:6px 12px">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Photo carte d'identité (optionnel)</label>
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-placeholder" id="upload-placeholder">📷 Cliquer pour ajouter une photo</div>
+        <img id="upload-preview" style="display:none">
+        <input type="file" accept="image/*" onchange="handlePhotoUpload(event)">
+      </div>
+
+      <label class="field-label">Prénom</label>
+      <input class="field-input" id="create-prenom" placeholder="Prénom du patient">
+
+      <label class="field-label">Nom</label>
+      <input class="field-input" id="create-nom" placeholder="Nom du patient">
+
+      <label class="field-label">Date de naissance (optionnel)</label>
+      <input class="field-input" id="create-date-naissance" placeholder="JJ/MM/AAAA">
+
+      <button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="createPatient()">Créer le dossier</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AJOUT DOSSIER -->
+<div class="modal-overlay" id="dossier-modal-overlay" onclick="if(event.target===this)closeDossierModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2>+ Nouvelle entrée médicale</h2>
+      <button class="btn btn-soft" onclick="closeDossierModal()" style="padding:6px 12px">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Type de visite</label>
+      <select class="field-input" id="dossier-type">
+        <option value="RDV">📅 Rendez-vous</option>
+        <option value="Test d'aptitude">🏃 Test d'aptitude</option>
+        <option value="Chirurgie">🔪 Chirurgie</option>
+        <option value="Autre">📋 Autre</option>
+      </select>
+
+      <label class="field-label">Symptôme</label>
+      <input class="field-input" id="dossier-symptome" placeholder="Ex: douleur thoracique, fracture ouverte...">
+
+      <label class="field-label">Description des douleurs</label>
+      <textarea class="field-textarea" id="dossier-description" placeholder="Détails sur la douleur ressentie par le patient..."></textarea>
+
+      <label class="field-label">Examens et diagnostic</label>
+      <textarea class="field-textarea" id="dossier-examens" placeholder="Examens réalisés, diagnostic établi..."></textarea>
+
+      <label class="field-label">Opérations</label>
+      <textarea class="field-textarea" id="dossier-operations" placeholder="Opération(s) réalisée(s), si applicable..."></textarea>
+
+      <label class="field-label">Antécédents</label>
+      <textarea class="field-textarea" id="dossier-antecedents" placeholder="Antécédents médicaux pertinents..."></textarea>
+
+      <label class="field-label">Conseils</label>
+      <textarea class="field-textarea" id="dossier-conseils" placeholder="Conseils donnés au patient, traitement à suivre..."></textarea>
+
+      <button class="btn btn-green" style="width:100%;margin-top:6px" onclick="addDossier()">Enregistrer l'entrée</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ATTESTATION MEDICALE -->
+<div class="modal-overlay" id="attestation-modal-overlay" onclick="if(event.target===this)closeAttestationModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2>📄 Générer une attestation médicale</h2>
+      <button class="btn btn-soft" onclick="closeAttestationModal()" style="padding:6px 12px">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:.76rem;color:var(--t3);margin-bottom:14px">L'image générée sera envoyée automatiquement dans le salon Discord dédié.</div>
+
+      <label class="field-label">Carte d'identité (jointe au document)</label>
+      <div class="upload-zone" id="att-upload-zone" onclick="document.getElementById('att-photo-input').click()">
+        <div class="upload-placeholder" id="att-upload-placeholder">📷 Cliquer pour joindre la carte d'identité</div>
+        <img id="att-upload-preview" style="display:none">
+      </div>
+      <input type="file" id="att-photo-input" accept="image/*" style="display:none" onchange="handleAttestationPhotoUpload(event)">
+
+      <label class="field-label">Lieu de l'incident</label>
+      <input class="field-input" id="att-lieu" placeholder="Ex: Burger Shot, Pillbox Hill...">
+
+      <label class="field-label">Heure de prise en charge</label>
+      <input class="field-input" id="att-heure" placeholder="Ex: Entre 04h30 et 04h50">
+
+      <label class="field-label">Motif d'intervention</label>
+      <textarea class="field-textarea" id="att-motif" placeholder="Ex: Traumatisme crânien suite à un accident sur son lieu de travail..."></textarea>
+
+      <label class="field-label">Disposition</label>
+      <select class="field-input" id="att-disposition-type">
+        <option value="repos">😴 Repos médical</option>
+        <option value="inapte">⛔ Inapte au travail</option>
+        <option value="apte">✅ Apte à reprendre le travail</option>
+      </select>
+
+      <label class="field-label">Durée / précision (optionnel)</label>
+      <input class="field-input" id="att-duree" placeholder="Ex: pour la journée du 28/07/2026, pour 3 jours...">
+
+      <label class="field-label">Destinataire (optionnel)</label>
+      <input class="field-input" id="att-destinataire" placeholder="Ex: Direction du Burger Shot">
+
+      <label class="field-label">Note complémentaire (optionnel)</label>
+      <textarea class="field-textarea" id="att-note" placeholder="Ex: Toute reprise prématurée risquerait d'aggraver son état..."></textarea>
+
+      <label class="field-label">Votre nom (praticien)</label>
+      <input class="field-input" id="att-praticien-nom" placeholder="Ex: Mike Taris">
+
+      <label class="field-label">Votre grade</label>
+      <input class="field-input" id="att-praticien-grade" placeholder="Ex: Chef Adjoint EMS">
+
+      <button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="submitAttestation()">📄 Générer et envoyer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let _currentPatientId=null;
+let _uploadedPhoto='';
+
+// ── Chargement liste ─────────────────────────────────────────
+async function loadPatients(q=''){
+  try{
+    const url='/api/patients/list'+(q?`?q=${encodeURIComponent(q)}`:'');
+    const r=await fetch(url);
+    if(!r.ok){
+      document.getElementById('patients-grid').innerHTML=`<div class="empty">Erreur serveur (HTTP ${r.status}) — réessaie dans quelques secondes</div>`;
+      return;
+    }
+    const d=await r.json();
+    if(!d.ok){renderPatientsGrid([]);return;}
+    renderPatientsGrid(d.patients);
+  }catch(e){
+    document.getElementById('patients-grid').innerHTML=`<div class="empty">Erreur de connexion : ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderPatientsGrid(patients){
+  const el=document.getElementById('patients-grid');
+  if(!patients.length){
+    el.innerHTML='<div class="empty">Aucun patient trouvé</div>';
+    return;
+  }
+  el.innerHTML=patients.map(p=>{
+    const date=p.created?new Date(p.created).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
+    return`<div class="patient-card" onclick="openPatientDetail('${p.id}')">
+      <div class="p-name">${escHtml(p.prenom)} ${escHtml(p.nom)}</div>
+      <div class="p-meta">Créé le ${date}</div>
+      <div class="p-count">📋 ${p.dossiers_count} entrée${p.dossiers_count>1?'s':''}</div>
+    </div>`;
+  }).join('');
+}
+
+let _searchTimer=null;
+function searchPatients(){
+  clearTimeout(_searchTimer);
+  const q=document.getElementById('search-input').value.trim();
+  _searchTimer=setTimeout(()=>loadPatients(q),250);
+}
+
+function escHtml(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Vue détail patient ───────────────────────────────────────
+function showListView(){
+  document.getElementById('view-list').style.display='';
+  document.getElementById('view-detail').style.display='none';
+  _currentPatientId=null;
+  loadPatients();
+}
+
+async function openPatientDetail(pid){
+  try{
+    const r=await fetch('/api/patients/'+encodeURIComponent(pid));
+    const d=await r.json();
+    if(!d.ok){toast('Erreur : '+d.error,'var(--red)');return;}
+    _currentPatientId=pid;
+    renderPatientDetail(d.patient);
+    document.getElementById('view-list').style.display='none';
+    document.getElementById('view-detail').style.display='';
+  }catch(e){
+    toast('Erreur réseau','var(--orange)');
+  }
+}
+
+function renderPatientDetail(p){
+  const photoHtml=p.photo_url
+    ?`<img class="patient-photo" src="${p.photo_url}">`
+    :`<div class="patient-photo-placeholder">👤</div>`;
+
+  const dossiers=(p.dossiers||[]).slice().reverse();
+  const dossiersHtml=dossiers.map(d=>{
+    const date=d.date?new Date(d.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    let fields='';
+    if(d.symptome) fields+=`<div class="dossier-field"><span class="dossier-field-label">🩺 Symptôme</span><span class="dossier-field-value">${escHtml(d.symptome)}</span></div>`;
+    if(d.description) fields+=`<div class="dossier-field"><span class="dossier-field-label">😣 Description des douleurs</span><span class="dossier-field-value">${escHtml(d.description)}</span></div>`;
+    if(d.examens) fields+=`<div class="dossier-field"><span class="dossier-field-label">🔬 Examens et diagnostic</span><span class="dossier-field-value">${escHtml(d.examens)}</span></div>`;
+    if(d.conseils) fields+=`<div class="dossier-field"><span class="dossier-field-label">💊 Conseils</span><span class="dossier-field-value">${escHtml(d.conseils)}</span></div>`;
+    return`<div class="dossier-item">
+      <div class="dossier-date">📅 ${date}</div>
+      ${fields}
+    </div>`;
+  }).join('')||'<div class="empty" style="padding:20px 0">Aucune entrée médicale pour ce patient</div>';
+
+  document.getElementById('patient-detail-content').innerHTML=`
+    <div class="patient-header">
+      ${photoHtml}
+      <div class="patient-info">
+        <h2>${escHtml(p.prenom)} ${escHtml(p.nom)}</h2>
+        <div class="p-sub">Dossier créé le ${p.created?new Date(p.created).toLocaleDateString('fr-FR'):''}${p.date_naissance?' · Né(e) le '+escHtml(p.date_naissance):''}</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
+        <button class="btn btn-soft" onclick="openAttestationModal()">📄 Attestation</button>
+        <button class="btn btn-primary" onclick="openDossierModal()">+ Ajouter une entrée</button>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">Historique médical (${dossiers.length})</div>
+      <div style="display:flex;flex-direction:column;gap:12px">${dossiersHtml}</div>
+    </div>
+  `;
+  _currentPatientPhotoUrl=p.photo_url||'';
+}
+
+// ── Attestation médicale ────────────────────────────────────
+let _currentPatientPhotoUrl='';
+let _attUploadedPhoto='';
+
+function openAttestationModal(){
+  document.getElementById('att-lieu').value='';
+  document.getElementById('att-heure').value='';
+  document.getElementById('att-motif').value='';
+  document.getElementById('att-disposition-type').value='repos';
+  document.getElementById('att-duree').value='';
+  document.getElementById('att-destinataire').value='';
+  document.getElementById('att-note').value='';
+  document.getElementById('att-praticien-nom').value='';
+  document.getElementById('att-praticien-grade').value='';
+  _attUploadedPhoto='';
+  // Pré-remplir avec la photo déjà enregistrée du patient, si elle existe
+  const preview=document.getElementById('att-upload-preview');
+  const placeholder=document.getElementById('att-upload-placeholder');
+  if(_currentPatientPhotoUrl){
+    preview.src=_currentPatientPhotoUrl;
+    preview.style.display='block';
+    placeholder.style.display='none';
+  }else{
+    preview.style.display='none';
+    placeholder.style.display='';
+  }
+  document.getElementById('attestation-modal-overlay').classList.add('active');
+}
+function closeAttestationModal(){
+  document.getElementById('attestation-modal-overlay').classList.remove('active');
+}
+
+function handleAttestationPhotoUpload(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  if(file.size>3*1024*1024){toast('Image trop lourde (max 3 Mo)','var(--orange)');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _attUploadedPhoto=e.target.result;
+    const preview=document.getElementById('att-upload-preview');
+    preview.src=_attUploadedPhoto;
+    preview.style.display='block';
+    document.getElementById('att-upload-placeholder').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitAttestation(){
+  if(!_currentPatientId)return;
+  const motif=document.getElementById('att-motif').value.trim();
+  const praticien_nom=document.getElementById('att-praticien-nom').value.trim();
+  if(!motif||!praticien_nom){
+    toast('Motif et nom du praticien requis','var(--orange)');
+    return;
+  }
+  const payload={
+    lieu:document.getElementById('att-lieu').value.trim(),
+    heure:document.getElementById('att-heure').value.trim(),
+    motif,
+    disposition_type:document.getElementById('att-disposition-type').value,
+    duree:document.getElementById('att-duree').value.trim(),
+    destinataire:document.getElementById('att-destinataire').value.trim(),
+    note:document.getElementById('att-note').value.trim(),
+    praticien_nom,
+    praticien_grade:document.getElementById('att-praticien-grade').value.trim(),
+    photo:_attUploadedPhoto,// nouvelle photo uploadée pour ce document (vide si non changée -> backend réutilise celle du patient)
+  };
+  try{
+    const r=await fetch(`/api/patients/${encodeURIComponent(_currentPatientId)}/attestation`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+    });
+    const d=await r.json();
+    if(d.ok){
+      closeAttestationModal();
+      toast(d.sent_to_discord?'✅ Attestation envoyée sur Discord !':'⚠️ Attestation générée mais pas envoyée (channel introuvable)','var(--green)');
+      openPatientDetail(_currentPatientId);
+    }else{
+      toast('Erreur : '+(d.error||'inconnue'),'var(--red)');
+    }
+  }catch(e){
+    toast('Erreur réseau : '+e.message,'var(--orange)');
+  }
+}
+
+// ── Création patient ─────────────────────────────────────────
+function openCreateModal(){
+  document.getElementById('create-modal-overlay').classList.add('active');
+  document.getElementById('create-nom').value='';
+  document.getElementById('create-prenom').value='';
+  document.getElementById('create-date-naissance').value='';
+  document.getElementById('upload-preview').style.display='none';
+  document.getElementById('upload-placeholder').style.display='';
+  _uploadedPhoto='';
+}
+function closeCreateModal(){
+  document.getElementById('create-modal-overlay').classList.remove('active');
+}
+
+function handlePhotoUpload(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  if(file.size>3*1024*1024){
+    toast('Image trop lourde (max 3 Mo)','var(--orange)');
+    return;
+  }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _uploadedPhoto=e.target.result;
+    const preview=document.getElementById('upload-preview');
+    preview.src=_uploadedPhoto;
+    preview.style.display='block';
+    document.getElementById('upload-placeholder').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function createPatient(){
+  const nom=document.getElementById('create-nom').value.trim();
+  const prenom=document.getElementById('create-prenom').value.trim();
+  const date_naissance=document.getElementById('create-date-naissance').value.trim();
+  if(!nom||!prenom){toast('Nom et prénom requis','var(--orange)');return;}
+
+  try{
+    const r=await fetch('/api/patients/create',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({nom,prenom,date_naissance,photo:_uploadedPhoto})
+    });
+    const d=await r.json();
+    if(d.ok){
+      closeCreateModal();
+      toast('✅ Dossier patient créé','var(--green)');
+      loadPatients();
+    }else{
+      toast('Erreur : '+d.error,'var(--red)');
+    }
+  }catch(e){
+    toast('Erreur réseau','var(--orange)');
+  }
+}
+
+// ── Ajout d'une entrée médicale ──────────────────────────────
+function openDossierModal(){
+  document.getElementById('dossier-symptome').value='';
+  document.getElementById('dossier-description').value='';
+  document.getElementById('dossier-examens').value='';
+  document.getElementById('dossier-conseils').value='';
+  document.getElementById('dossier-modal-overlay').classList.add('active');
+}
+function closeDossierModal(){
+  document.getElementById('dossier-modal-overlay').classList.remove('active');
+}
+
+async function addDossier(){
+  if(!_currentPatientId)return;
+  const symptome=document.getElementById('dossier-symptome').value.trim();
+  const description=document.getElementById('dossier-description').value.trim();
+  const examens=document.getElementById('dossier-examens').value.trim();
+  const conseils=document.getElementById('dossier-conseils').value.trim();
+
+  if(!symptome&&!description&&!examens&&!conseils){
+    toast('Remplis au moins un champ','var(--orange)');
+    return;
+  }
+
+  try{
+    const r=await fetch(`/api/patients/${encodeURIComponent(_currentPatientId)}/dossier`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({symptome,description,examens,conseils})
+    });
+    const d=await r.json();
+    if(d.ok){
+      closeDossierModal();
+      toast('✅ Entrée ajoutée au dossier','var(--green)');
+      openPatientDetail(_currentPatientId);
+    }else{
+      toast('Erreur : '+d.error,'var(--red)');
+    }
+  }catch(e){
+    toast('Erreur réseau','var(--orange)');
+  }
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+let _toastTimer=null;
+function toast(msg,color='var(--green)'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.color=color;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// Init
+loadPatients();
+</script>
+</body>
+</html>

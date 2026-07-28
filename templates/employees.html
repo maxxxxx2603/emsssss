@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👔 Gestion des Employés</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%); color:#ecf0f1; padding:20px; min-height:100vh; }
+        .container { max-width:1400px; margin:0 auto; }
+        header { text-align:center; margin-bottom:30px; padding:20px; background:rgba(255,255,255,0.05); border-radius:10px; border-bottom:3px solid #3498db; }
+        h1 { font-size:2em; color:#3498db; margin-bottom:8px; }
+        .back-link { display:inline-block; margin-bottom:20px; padding:10px 20px; background:#95a5a6; color:#fff; text-decoration:none; border-radius:5px; }
+        .search-bar { display:flex; gap:10px; margin-bottom:20px; }
+        .search-bar input { flex:1; padding:12px 16px; background:rgba(255,255,255,0.08); border:1px solid #3498db; border-radius:8px; color:#ecf0f1; font-size:1em; }
+        .search-bar input::placeholder { color:#7f8c8d; }
+        .section { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:20px; margin-bottom:25px; }
+        .section h2 { color:#3498db; margin-bottom:15px; font-size:1.5em; border-bottom:2px solid #3498db; padding-bottom:8px; }
+        table { width:100%; border-collapse:collapse; }
+        th { background:rgba(52,152,219,0.2); color:#ecf0f1; padding:12px; text-align:left; border-bottom:2px solid #3498db; font-size:0.9em; }
+        td { padding:11px 12px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.9em; }
+        tr:hover { background:rgba(52,152,219,0.07); }
+        tr.hidden-row { display:none; }
+        .badge { display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.8em; font-weight:bold; }
+        .badge.present { background:#27ae60; color:#fff; }
+        .badge.absent { background:#e74c3c; color:#fff; }
+        .badge.quota-ok { background:#2ecc71; color:#fff; }
+        .badge.quota-low { background:#f39c12; color:#fff; }
+        .badge.quota-critical { background:#c0392b; color:#fff; }
+        .absence-tag { display:inline-block; background:rgba(231,76,60,0.2); padding:2px 7px; border-radius:3px; margin:2px; border:1px solid #e74c3c; font-size:0.8em; }
+        button { padding:7px 13px; border:none; border-radius:5px; background:#3498db; color:#fff; cursor:pointer; font-size:0.85em; transition:all .2s; }
+        button:hover { background:#2980b9; }
+        button.danger { background:#e74c3c; }
+        button.danger:hover { background:#c0392b; }
+        .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7); }
+        .modal.show { display:flex; align-items:center; justify-content:center; }
+        .modal-content { background:#16213e; border:2px solid #3498db; border-radius:10px; padding:25px; max-width:480px; width:90%; }
+        .modal-content h3 { color:#3498db; margin-bottom:15px; }
+        .modal-content input, .modal-content select { width:100%; padding:9px; margin-bottom:12px; background:rgba(255,255,255,0.1); border:1px solid #3498db; border-radius:5px; color:#ecf0f1; }
+        .modal-buttons { display:flex; gap:10px; }
+        .modal-buttons button { flex:1; }
+        .success { background:rgba(39,174,96,0.2); border:1px solid #27ae60; color:#2ecc71; padding:12px; border-radius:5px; margin-bottom:15px; }
+        .error { background:rgba(231,76,60,0.2); border:1px solid #e74c3c; color:#ecf0f1; padding:12px; border-radius:5px; margin-bottom:15px; }
+        .count-label { color:#7f8c8d; font-size:0.85em; margin-bottom:10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="/" class="back-link">← Dashboard</a>
+    <header>
+        <h1>👔 Gestion des Employés</h1>
+        <p>Absences · Statuts · Quotas</p>
+    </header>
+
+    <div id="message"></div>
+
+    <div class="section">
+        <h2>🔍 Rechercher un employé</h2>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Nom, grade, statut…" oninput="filterEmployees()">
+        </div>
+        <p class="count-label" id="countLabel"></p>
+    </div>
+
+    <div class="section">
+        <h2>📋 Liste des Employés</h2>
+        <table id="empTable">
+            <thead>
+                <tr>
+                    <th>Employé</th>
+                    <th>Réanimations</th>
+                    <th>Statut</th>
+                    <th>Quota</th>
+                    <th>Absences récentes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr class="emp-row" data-name="{{ emp.name|lower }}" data-absent="{{ 'absent' if emp.absent_today else 'present' }}">
+                    <td><strong>{{ emp.name }}</strong></td>
+                    <td>{{ emp.reas }}</td>
+                    <td>
+                        {% if emp.absent_today %}
+                        <span class="badge absent">❌ Absent</span>
+                        {% else %}
+                        <span class="badge present">✅ Présent</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if emp.reas >= 100 %}
+                        <span class="badge quota-ok">✓ OK ({{ emp.reas }}/100)</span>
+                        {% elif emp.reas >= 75 %}
+                        <span class="badge quota-low">⚠ Faible ({{ emp.reas }}/100)</span>
+                        {% else %}
+                        <span class="badge quota-critical">✗ Critique ({{ emp.reas }}/100)</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if emp.recent_absences|length > 0 %}
+                            {% for ab in emp.recent_absences %}
+                            <span class="absence-tag">
+                                📅 {{ ab.date_debut }}{% if ab.date_retour %} → {{ ab.date_retour }}{% endif %}
+                                {% if ab.raison %}<br><small>{{ ab.raison }}</small>{% endif %}
+                            </span>
+                            {% endfor %}
+                        {% else %}
+                        <span style="color:#7f8c8d;font-size:.85em;">Aucune</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button onclick="openModal('{{ emp.key }}','{{ emp.name }}')">
+                            {% if emp.absent_today %}Retirer abs.{% else %}Ajouter abs.{% endif %}
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal absence -->
+<div id="absenceModal" class="modal">
+    <div class="modal-content">
+        <h3>📅 Déclarer une absence</h3>
+        <input type="hidden" id="empKey">
+        <label>Date de début (jj/mm)</label>
+        <input type="text" id="absenceDate" placeholder="ex: 15/07">
+        <label>Date de retour (optionnel)</label>
+        <input type="text" id="returnDate" placeholder="ex: 20/07">
+        <label>Raison</label>
+        <input type="text" id="absenceReason" placeholder="Maladie, Congé…">
+        <div class="modal-buttons">
+            <button style="background:#95a5a6" onclick="closeModal()">Annuler</button>
+            <button onclick="submitAbsence()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterEmployees() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('.emp-row');
+    let visible = 0;
+    rows.forEach(r => {
+        const name = r.dataset.name || '';
+        const absent = r.dataset.absent || '';
+        const match = name.includes(q) || absent.includes(q) || q === '';
+        r.classList.toggle('hidden-row', !match);
+        if (match) visible++;
+    });
+    document.getElementById('countLabel').textContent = `${visible} employé(s) affiché(s)`;
+}
+filterEmployees();
+
+function openModal(key, name) {
+    document.getElementById('empKey').value = key;
+    document.getElementById('absenceModal').classList.add('show');
+}
+function closeModal() {
+    document.getElementById('absenceModal').classList.remove('show');
+    ['absenceDate','returnDate','absenceReason'].forEach(id => document.getElementById(id).value = '');
+}
+async function submitAbsence() {
+    const key = document.getElementById('empKey').value;
+    const dateDebut = document.getElementById('absenceDate').value;
+    const dateRetour = document.getElementById('returnDate').value;
+    const raison = document.getElementById('absenceReason').value;
+    if (!key || !dateDebut) { showMsg('Date de début requise', 'error'); return; }
+    try {
+        const resp = await fetch('/api/absence/add', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ employee:key, date_debut:dateDebut, date_retour:dateRetour||null, reason:raison })
+        });
+        const result = await resp.json();
+        if (resp.ok) { showMsg('✅ Absence enregistrée', 'success'); closeModal(); setTimeout(() => location.reload(), 1500); }
+        else showMsg(result.error || 'Erreur', 'error');
+    } catch(e) { showMsg('Erreur réseau', 'error'); }
+}
+function showMsg(msg, type) {
+    const d = document.getElementById('message');
+    d.innerHTML = `<div class="${type}">${msg}</div>`;
+    if (type === 'success') setTimeout(() => d.innerHTML = '', 3000);
+}
+document.getElementById('absenceModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+</script>
+</body>
+</html>

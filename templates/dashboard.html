@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚑 Dashboard EMS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#ecf0f1;padding:20px;min-height:100vh}
+        .container{max-width:1400px;margin:0 auto}
+        header{text-align:center;margin-bottom:25px;padding:20px;background:rgba(255,255,255,.05);border-radius:10px;border-bottom:3px solid #e74c3c}
+        h1{font-size:2.2em;color:#e74c3c;margin-bottom:6px}
+        .nav-tabs{display:flex;gap:8px;margin-bottom:25px;flex-wrap:wrap}
+        .nav-tab{padding:10px 20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);border-radius:8px;cursor:pointer;font-size:.95em;transition:all .2s;user-select:none}
+        .nav-tab.active,.nav-tab:hover{background:rgba(231,76,60,.2);border-color:#e74c3c;color:#e74c3c}
+        .tab-content{display:none}
+        .tab-content.active{display:block}
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:25px}
+        .stat-box{background:rgba(231,76,60,.1);border:2px solid #e74c3c;border-radius:8px;padding:14px;text-align:center}
+        .stat-box h3{color:#bdc3c7;font-size:.8em;margin-bottom:6px;text-transform:uppercase}
+        .stat-box .value{font-size:1.8em;color:#e74c3c;font-weight:bold}
+        .section{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:20px;margin-bottom:20px}
+        .section h2{color:#e74c3c;margin-bottom:14px;font-size:1.4em;border-bottom:2px solid #e74c3c;padding-bottom:7px}
+        table{width:100%;border-collapse:collapse}
+        th{background:rgba(231,76,60,.15);color:#ecf0f1;padding:10px 12px;text-align:left;border-bottom:2px solid #e74c3c;font-size:.85em}
+        td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.05);font-size:.88em}
+        tr:hover{background:rgba(231,76,60,.05)}
+        .bar{height:14px;border-radius:4px;background:#e74c3c;transition:width .4s}
+        .bar-wrap{background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;width:200px;display:inline-block}
+        .quota-ok{color:#2ecc71;font-weight:bold}
+        .quota-low{color:#f39c12;font-weight:bold}
+        .quota-crit{color:#e74c3c;font-weight:bold}
+        .absence-pill{display:inline-block;padding:2px 8px;border-radius:12px;background:rgba(231,76,60,.25);border:1px solid #e74c3c;font-size:.8em;margin:2px}
+        .absent-today{background:rgba(231,76,60,.15);border-left:3px solid #e74c3c}
+        .btn{padding:7px 14px;border:none;border-radius:6px;background:#e74c3c;color:#fff;cursor:pointer;font-size:.85em;margin:2px;transition:all .2s}
+        .btn:hover{background:#c0392b}
+        .btn-blue{background:#3498db}.btn-blue:hover{background:#2980b9}
+        .btn-green{background:#27ae60}.btn-green:hover{background:#229954}
+        .search-bar{margin-bottom:15px}
+        .search-bar input{width:100%;padding:10px 14px;background:rgba(255,255,255,.08);border:1px solid #e74c3c;border-radius:8px;color:#ecf0f1;font-size:.95em}
+        .search-bar input::placeholder{color:#7f8c8d}
+        .chart-container{position:relative;height:380px;margin-bottom:10px}
+        .employee-chart-container{position:relative;height:300px}
+        .tag-grade{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.78em;font-weight:bold;margin-left:5px}
+        .tag-DIR{background:#8e44ad;color:#fff}
+        .tag-CDS{background:#2980b9;color:#fff}
+        .tag-MED{background:#27ae60;color:#fff}
+        .tag-PSY{background:#e67e22;color:#fff}
+        .tag-INF{background:#16a085;color:#fff}
+        .tag-ADS{background:#7f8c8d;color:#fff}
+        .tag-STG,.tag-INT{background:#95a5a6;color:#fff}
+        .tag-EMT{background:#c0392b;color:#fff}
+        .rh-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:14px;margin-bottom:12px}
+        .rh-card h4{color:#3498db;margin-bottom:10px;font-size:1em}
+        .rh-timeline-item{border-left:2px solid #e74c3c;padding-left:12px;margin-bottom:8px;font-size:.88em}
+        .rh-timeline-item .date{color:#7f8c8d;font-size:.8em}
+        .rh-timeline-item .event{color:#ecf0f1}
+        .avert-warn{color:#f39c12}.avert-grave{color:#e74c3c}
+        .export-buttons{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+        .reunion-box{background:linear-gradient(135deg,rgba(231,76,60,.12),rgba(241,196,15,.1));border-left:4px solid #e74c3c;border-radius:8px;padding:16px;margin-bottom:20px;border:1px solid rgba(231,76,60,.3)}
+        .reunion-box h2{color:#e74c3c;margin-bottom:8px;font-size:1.15em}
+        #empChartFilter{width:100%;padding:9px;background:rgba(255,255,255,.08);border:1px solid #e74c3c;border-radius:6px;color:#ecf0f1;margin-bottom:12px}
+        .clickable-row{cursor:pointer}
+        .clickable-row:hover td{background:rgba(231,76,60,.1)!important}
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🚑 Tableau de Bord EMS</h1>
+        <p id="lastUpdate">Mise à jour automatique toutes les 30s</p>
+    </header>
+
+    <div id="reunion-container"></div>
+
+    <div class="stats-grid">
+        <div class="stat-box"><h3>Employés</h3><div class="value" id="s-emp">—</div></div>
+        <div class="stat-box"><h3>Total Réas</h3><div class="value" id="s-reas">—</div></div>
+        <div class="stat-box"><h3>Moyenne</h3><div class="value" id="s-avg">—</div></div>
+        <div class="stat-box"><h3>Absents</h3><div class="value" id="s-absent">—</div></div>
+        <div class="stat-box"><h3>En service</h3><div class="value" id="s-service">—</div></div>
+    </div>
+
+    <div class="nav-tabs">
+        <div class="nav-tab active" onclick="showTab('tab-rea')">📊 Réanimations</div>
+        <div class="nav-tab" onclick="showTab('tab-absences')">📋 Absences</div>
+        <div class="nav-tab" onclick="showTab('tab-rh')">🗂️ Page RH</div>
+        <div class="nav-tab" onclick="showTab('tab-graph-emp')">📈 Graphique Employé</div>
+        <div class="nav-tab" onclick="showTab('tab-export')">📤 Export</div>
+        <a href="/employees" style="text-decoration:none"><div class="nav-tab">👔 Gestion Employés</div></a>
+    </div>
+
+    <!-- ===== TAB : RÉANIMATIONS ===== -->
+    <div id="tab-rea" class="tab-content active">
+        <div class="section">
+            <h2>📊 Réanimations par Employé <small style="font-size:.7em;color:#7f8c8d">(cliquer pour voir l'évolution)</small></h2>
+            <div class="chart-container">
+                <canvas id="chartRea"></canvas>
+            </div>
+            <table id="tbl-rea">
+                <thead><tr><th>#</th><th>Employé</th><th>Grade</th><th>Réanimations</th><th>Progression</th><th>Quota</th></tr></thead>
+                <tbody><tr><td colspan="6" style="text-align:center;color:#7f8c8d">Chargement…</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ===== TAB : ABSENCES ===== -->
+    <div id="tab-absences" class="tab-content">
+        <div class="section">
+            <h2>📋 Vue complète des absences</h2>
+            <div class="search-bar"><input type="text" id="absSearch" placeholder="Rechercher un employé…" oninput="filterAbsTable()"></div>
+            <table id="tbl-abs">
+                <thead><tr><th>Employé</th><th>Grade</th><th>Statut aujourd'hui</th><th>Nb absences</th><th>Dernières absences</th></tr></thead>
+                <tbody><tr><td colspan="5" style="text-align:center;color:#7f8c8d">Chargement…</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ===== TAB : PAGE RH ===== -->
+    <div id="tab-rh" class="tab-content">
+        <div class="section">
+            <h2>🗂️ Historique RH des Employés</h2>
+            <div class="search-bar"><input type="text" id="rhSearch" placeholder="Rechercher…" oninput="filterRhCards()"></div>
+            <div id="rh-cards">
+                <div style="text-align:center;color:#7f8c8d;padding:20px">Chargement…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TAB : GRAPHIQUE EMPLOYÉ ===== -->
+    <div id="tab-graph-emp" class="tab-content">
+        <div class="section">
+            <h2>📈 Évolution d'un employé semaine par semaine</h2>
+            <select id="empChartFilter" onchange="loadEmployeeChart()">
+                <option value="">— Sélectionner un employé —</option>
+            </select>
+            <div class="employee-chart-container">
+                <canvas id="chartEmployee"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TAB : EXPORT ===== -->
+    <div id="tab-export" class="tab-content">
+        <div class="section">
+            <h2>📤 Export des données</h2>
+            <div class="export-buttons">
+                <button class="btn" onclick="exportCSV()">📊 Export CSV (paye)</button>
+                <button class="btn btn-green" onclick="exportJSON()">🗄️ Export JSON complet</button>
+            </div>
+            <table id="tbl-export">
+                <thead><tr><th>Employé</th><th>Grade</th><th>Matricule</th><th>Réanimations</th><th>Salaire estimé</th><th>Absences</th></tr></thead>
+                <tbody><tr><td colspan="6" style="text-align:center;color:#7f8c8d">Chargement…</td></tr></tbody>
+            </table>
+            <p style="font-size:.8em;color:#7f8c8d;margin-top:10px">* Salaire basé sur le taux par grade × nombre de réas.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// ─── Données globales ───────────────────────────────────────────────────────
+let G = { stats:{}, services:{}, absences:{}, employee_info:{}, avertissements:{}, active_services:{}, formations:{}, shared:{} };
+let chartRea = null, chartEmployee = null;
+
+const GRADE_RATE = { DIR:55000, CDS:50000, MED:45000, PSY:42000, INF:40000, ADS:40000, STG:35000, INT:35000, EMT:30000 };
+const GRADE_LABEL = { DIR:'Directeur Médical', CDS:'Chef Adjoint', MED:'Médecin', PSY:'Psychologue', INF:'Infirmier', ADS:'Aide-Soignant', STG:'Stagiaire', INT:'Stagiaire', EMT:'EMT' };
+
+// ─── Navigation tabs ────────────────────────────────────────────────────────
+function showTab(id) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const tabs = ['tab-rea','tab-absences','tab-rh','tab-graph-emp','tab-export'];
+    const idx = tabs.indexOf(id);
+    document.querySelectorAll('.nav-tab')[idx]?.classList.add('active');
+    if (id === 'tab-graph-emp') populateEmpSelect();
+    if (id === 'tab-export') renderExport();
+    if (id === 'tab-rh') renderRH();
+}
+
+// ─── Chargement données ──────────────────────────────────────────────────────
+async function loadData() {
+    try {
+        const [dataR, sharedR] = await Promise.all([
+            fetch('/api/data').then(r => r.json()),
+            fetch('/api/shared').then(r => r.json()).catch(() => ({}))
+        ]);
+        G.stats = dataR.stats || {};
+        G.services = dataR.services || {};
+        G.absences = dataR.absences || {};
+        G.employee_info = dataR.employee_info || {};
+        G.avertissements = dataR.avertissements || {};
+        G.active_services = dataR.active_services || {};
+        G.formations = dataR.formations || {};
+        G.shared = sharedR || {};
+
+        renderHeader();
+        renderRea();
+        renderAbsences();
+        renderReunion();
+        document.getElementById('lastUpdate').textContent = '🔄 Mis à jour à ' + new Date().toLocaleTimeString('fr-FR');
+    } catch(e) {
+        console.error('Erreur chargement:', e);
+    }
+}
+
+// ─── Header stats ─────────────────────────────────────────────────────────
+function renderHeader() {
+    const totalReas = Object.values(G.stats).reduce((a,b) => a+b, 0);
+    const totalEmps = Object.keys(G.stats).length;
+    const avg = totalEmps > 0 ? Math.round(totalReas / totalEmps) : 0;
+    const today = new Date().toISOString().split('T')[0];
+    let absent = 0;
+    for (const [emp, d] of Object.entries(G.absences)) {
+        if (typeof d === 'object' && !Array.isArray(d) && d[today]) absent++;
+    }
+    const inService = Object.keys(G.active_services).length;
+    document.getElementById('s-emp').textContent = totalEmps;
+    document.getElementById('s-reas').textContent = totalReas;
+    document.getElementById('s-avg').textContent = avg;
+    document.getElementById('s-absent').textContent = absent;
+    document.getElementById('s-service').textContent = inService;
+}
+
+// ─── Réunion ──────────────────────────────────────────────────────────────
+function renderReunion() {
+    const c = document.getElementById('reunion-container');
+    const r = G.shared?.reunion;
+    if (r?.jour && r?.heure) {
+        c.innerHTML = `<div class="reunion-box"><h2>📅 Annonce Réunion</h2><p>${r.jour} à ${r.heure}</p></div>`;
+    } else c.innerHTML = '';
+}
+
+// ─── Réanimations ─────────────────────────────────────────────────────────
+function getGrade(key) {
+    return (G.employee_info[key]?.grade || '').toUpperCase();
+}
+function gradeTag(grade) {
+    const g = grade || 'EMT';
+    return `<span class="tag-grade tag-${g}">${GRADE_LABEL[g] || g}</span>`;
+}
+
+function renderRea() {
+    const sorted = Object.entries(G.stats).sort((a,b) => b[1]-a[1]);
+    const maxVal = sorted.length ? sorted[0][1] : 1;
+    const tbody = document.querySelector('#tbl-rea tbody');
+    tbody.innerHTML = '';
+    const labels = [], data = [], bgs = [];
+    sorted.forEach(([key, count], i) => {
+        const grade = getGrade(key);
+        const name = key.replace(/-/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+        let qClass = 'quota-crit', qTxt = '✗ Critique';
+        if (count >= 100) { qClass='quota-ok'; qTxt='✓ Atteint'; }
+        else if (count >= 75) { qClass='quota-low'; qTxt='⚠ Faible'; }
+        const pct = Math.min(100, Math.round(count/maxVal*100));
+        const color = count >= 100 ? '#2ecc71' : count >= 75 ? '#f39c12' : '#e74c3c';
+        tbody.innerHTML += `<tr class="clickable-row" onclick="jumpToEmployee('${key}')">
+            <td>${i+1}</td>
+            <td>${name}</td>
+            <td>${gradeTag(grade)}</td>
+            <td><strong>${count}</strong></td>
+            <td><div class="bar-wrap"><div class="bar" style="width:${pct}%;background:${color}"></div></div></td>
+            <td class="${qClass}">${qTxt}</td>
+        </tr>`;
+        labels.push(name);
+        data.push(count);
+        bgs.push(color);
+    });
+
+    // Chart horizontal bars
+    if (chartRea) chartRea.destroy();
+    const ctx = document.getElementById('chartRea').getContext('2d');
+    chartRea = new Chart(ctx, {
+        type:'bar',
+        data:{ labels, datasets:[{ label:'Réanimations', data, backgroundColor:bgs, borderRadius:4 }] },
+        options:{
+            indexAxis:'y', responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false}, tooltip:{callbacks:{label: c => ` ${c.raw} réas`}} },
+            scales:{
+                x:{ grid:{color:'rgba(255,255,255,.06)'}, ticks:{color:'#ecf0f1'},
+                    afterDataLimits: s => s.max = Math.max(s.max, 100) },
+                y:{ grid:{display:false}, ticks:{color:'#ecf0f1',font:{size:11}} }
+            }
+        }
+    });
+}
+
+function jumpToEmployee(key) {
+    showTab('tab-graph-emp');
+    setTimeout(() => {
+        const sel = document.getElementById('empChartFilter');
+        sel.value = key;
+        loadEmployeeChart();
+    }, 100);
+}
+
+// ─── Absences ──────────────────────────────────────────────────────────────
+function renderAbsences() {
+    const today = new Date().toISOString().split('T')[0];
+    const allEmps = new Set([...Object.keys(G.stats), ...Object.keys(G.absences)]);
+    const tbody = document.querySelector('#tbl-abs tbody');
+    tbody.innerHTML = '';
+    for (const key of [...allEmps].sort()) {
+        const grade = getGrade(key);
+        const name = key.replace(/-/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+        const absData = G.absences[key] || {};
+        const absList = typeof absData === 'object' && !Array.isArray(absData) ? Object.entries(absData) : [];
+        const isAbsent = absData[today] ? true : false;
+        const nbAbs = absList.length;
+        const recent = absList.sort((a,b) => b[0].localeCompare(a[0])).slice(0,3)
+            .map(([d, v]) => `<span class="absence-pill">📅 ${d}${v?.date_retour ? ' → '+v.date_retour : ''}${v?.raison ? ' ('+v.raison+')' : ''}</span>`).join('');
+        tbody.innerHTML += `<tr class="${isAbsent?'absent-today':''}" data-name="${name.toLowerCase()}">
+            <td>${name}</td>
+            <td>${gradeTag(grade)}</td>
+            <td>${isAbsent ? '<strong style="color:#e74c3c">❌ Absent</strong>' : '<span style="color:#2ecc71">✅ Présent</span>'}</td>
+            <td>${nbAbs}</td>
+            <td>${recent || '<span style="color:#7f8c8d">Aucune</span>'}</td>
+        </tr>`;
+    }
+}
+
+function filterAbsTable() {
+    const q = document.getElementById('absSearch').value.toLowerCase();
+    document.querySelectorAll('#tbl-abs tbody tr').forEach(r => {
+        r.style.display = (r.dataset.name||'').includes(q) ? '' : 'none';
+    });
+}
+
+// ─── Page RH ──────────────────────────────────────────────────────────────
+function renderRH() {
+    const allEmps = new Set([...Object.keys(G.stats), ...Object.keys(G.employee_info)]);
+    const cards = document.getElementById('rh-cards');
+    cards.innerHTML = '';
+    for (const key of [...allEmps].sort()) {
+        const info = G.employee_info[key] || {};
+        const grade = (info.grade || 'EMT').toUpperCase();
+        const name = (info.display_name || key).replace(/-/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+        const mat = info.matricule || '—';
+        const reas = G.stats[key] || 0;
+        const averts = G.avertissements[key] || [];
+        const fmts = G.formations[key] || [];
+        const absData = G.absences[key] || {};
+        const absCount = typeof absData === 'object' && !Array.isArray(absData) ? Object.keys(absData).length : 0;
+
+        // Timeline RH (promotions simulées à partir du grade actuel, averts, formations)
+        let timelineHTML = '';
+        if (averts.length) {
+            averts.slice(-3).forEach(a => {
+                const cls = a.type === 'grave' ? 'avert-grave' : 'avert-warn';
+                timelineHTML += `<div class="rh-timeline-item"><div class="date">${a.date||'—'}</div><div class="event ${cls}">⚠️ Avertissement — ${a.raison||'—'}</div></div>`;
+            });
+        }
+        if (fmts.length) {
+            fmts.forEach(f => {
+                timelineHTML += `<div class="rh-timeline-item"><div class="date">—</div><div class="event">🎓 Formation : ${f}</div></div>`;
+            });
+        }
+        if (!timelineHTML) timelineHTML = '<div style="color:#7f8c8d;font-size:.85em">Aucun historique disponible</div>';
+
+        cards.innerHTML += `<div class="rh-card" data-name="${name.toLowerCase()}">
+            <h4>${name} ${gradeTag(grade)} <span style="color:#7f8c8d;font-size:.85em">Mat. ${mat}</span></h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px;font-size:.88em">
+                <div>🚑 <strong>${reas}</strong> réas</div>
+                <div>📋 <strong>${absCount}</strong> absences</div>
+                <div>⚠️ <strong>${averts.length}</strong> avert.</div>
+                <div>🎓 <strong>${fmts.length}</strong> formations</div>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:10px">
+                <div style="font-size:.82em;color:#7f8c8d;margin-bottom:6px">HISTORIQUE</div>
+                ${timelineHTML}
+            </div>
+        </div>`;
+    }
+}
+
+function filterRhCards() {
+    const q = document.getElementById('rhSearch').value.toLowerCase();
+    document.querySelectorAll('.rh-card').forEach(c => {
+        c.style.display = (c.dataset.name||'').includes(q) ? '' : 'none';
+    });
+}
+
+// ─── Graphique Employé ─────────────────────────────────────────────────────
+function populateEmpSelect() {
+    const sel = document.getElementById('empChartFilter');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Sélectionner un employé —</option>';
+    Object.keys(G.stats).sort().forEach(key => {
+        const name = key.replace(/-/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+        sel.innerHTML += `<option value="${key}" ${key===current?'selected':''}>${name}</option>`;
+    });
+}
+
+function loadEmployeeChart() {
+    const key = document.getElementById('empChartFilter').value;
+    if (!key) return;
+    const totalReas = G.stats[key] || 0;
+    const weeklyData = buildWeeklyData(key, totalReas);
+
+    if (chartEmployee) chartEmployee.destroy();
+    const ctx = document.getElementById('chartEmployee').getContext('2d');
+    chartEmployee = new Chart(ctx, {
+        type:'line',
+        data:{
+            labels: weeklyData.map(w => w.label),
+            datasets:[{
+                label:'Réanimations cumulées',
+                data: weeklyData.map(w => w.value),
+                borderColor:'#e74c3c',
+                backgroundColor:'rgba(231,76,60,.15)',
+                fill:true,
+                tension:.35,
+                pointRadius:5,
+                pointBackgroundColor:'#e74c3c'
+            }]
+        },
+        options:{
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{labels:{color:'#ecf0f1'}}, tooltip:{callbacks:{label: c => ` ${c.raw} réas cumulées`}} },
+            scales:{
+                x:{ grid:{color:'rgba(255,255,255,.06)'}, ticks:{color:'#ecf0f1'} },
+                y:{ grid:{color:'rgba(255,255,255,.06)'}, ticks:{color:'#ecf0f1'}, beginAtZero:true }
+            }
+        }
+    });
+}
+
+function buildWeeklyData(key, totalReas) {
+    // On reconstruit l'évolution hebdomadaire depuis services.json si dispo, sinon on estime
+    const weeks = [];
+    const svcData = G.services;
+    const weekKeys = Object.keys(svcData).sort();
+
+    if (weekKeys.length) {
+        let cumul = 0;
+        weekKeys.forEach(wk => {
+            const wData = svcData[wk] || {};
+            const empData = wData[key] || {};
+            const reas = empData.total_reas || 0;
+            cumul += reas;
+            weeks.push({ label: wk, value: cumul });
+        });
+        // Si cumul < totalReas, ajouter semaine actuelle
+        if (cumul < totalReas) {
+            const now = new Date();
+            weeks.push({ label:'Semaine actuelle', value: totalReas });
+        }
+    } else {
+        // Pas de données historiques — afficher seulement le total actuel
+        const now = new Date();
+        weeks.push({ label: 'Total actuel', value: totalReas });
+    }
+    return weeks.length ? weeks : [{ label:'Aucune donnée', value:0 }];
+}
+
+// ─── Export ────────────────────────────────────────────────────────────────
+function renderExport() {
+    const tbody = document.querySelector('#tbl-export tbody');
+    tbody.innerHTML = '';
+    const rows = [];
+    for (const [key, reas] of Object.entries(G.stats)) {
+        const info = G.employee_info[key] || {};
+        const grade = (info.grade || 'EMT').toUpperCase();
+        const mat = info.matricule || '—';
+        const rate = GRADE_RATE[grade] || 30000;
+        const salary = reas * rate;
+        const absData = G.absences[key] || {};
+        const absCount = typeof absData === 'object' && !Array.isArray(absData) ? Object.keys(absData).length : 0;
+        const name = (info.display_name || key).replace(/-/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+        rows.push({ key, name, grade, mat, reas, salary, absCount });
+    }
+    rows.sort((a,b) => b.reas - a.reas);
+    rows.forEach(r => {
+        tbody.innerHTML += `<tr>
+            <td>${r.name}</td>
+            <td>${gradeTag(r.grade)}</td>
+            <td>${r.mat}</td>
+            <td>${r.reas}</td>
+            <td>$${r.salary.toLocaleString('fr-FR')}</td>
+            <td>${r.absCount}</td>
+        </tr>`;
+    });
+}
+
+function exportCSV() {
+    const rows = [['Employé','Grade','Matricule','Réanimations','Salaire estimé','Absences']];
+    for (const [key, reas] of Object.entries(G.stats)) {
+        const info = G.employee_info[key] || {};
+        const grade = (info.grade || 'EMT').toUpperCase();
+        const mat = info.matricule || '—';
+        const rate = GRADE_RATE[grade] || 30000;
+        const salary = reas * rate;
+        const absData = G.absences[key] || {};
+        const absCount = typeof absData === 'object' && !Array.isArray(absData) ? Object.keys(absData).length : 0;
+        const name = (info.display_name || key).replace(/-/g,' ').replace(/\b\w/g, c=>c.toUpperCase());
+        rows.push([name, GRADE_LABEL[grade]||grade, mat, reas, salary, absCount]);
+    }
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='ems_paye.csv'; a.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportJSON() {
+    const data = { stats:G.stats, absences:G.absences, employee_info:G.employee_info, exported_at: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='ems_data.json'; a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────
+loadData();
+setInterval(loadData, 30000);
+</script>
+</body>
+</html>
