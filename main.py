@@ -12340,6 +12340,48 @@ La direction des EMS"""
         save_json(_wt_rea, rea_data)
         return jsonify({'status': 'success', 'reas': total})
 
+    @web_app.route('/api/test/import-stats', methods=['POST'])
+    def api_test_import_stats():
+        """Importe les réas actuelles depuis stats.json vers test_rea.json.
+        Écrase uniquement les joueurs déjà présents dans stats.json.
+        Conserve les entrées manuelles existantes sans stats correspondantes."""
+        stats = load_json(STATS_FILE, {})  # {nom_key: count}
+        if not stats:
+            return jsonify({'error': 'stats.json vide ou introuvable'}), 404
+        lmap = load_json(_wt_map, {})
+        # Index inverse : nom_key → license (depuis le license map)
+        name_to_lic = {}
+        for lic, info in lmap.items():
+            nom_k = (info.get('employee') or info.get('joueur') or '').lower().replace(' ', '-')
+            if nom_k:
+                name_to_lic[nom_k] = lic
+            joueur_k = (info.get('joueur') or '').lower().replace(' ', '-')
+            if joueur_k:
+                name_to_lic[joueur_k] = lic
+
+        rea_data = load_json(_wt_rea, {})
+        ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        imported = 0
+        for nom_key, count in stats.items():
+            nom_display = nom_key.replace('-', ' ').title()
+            lic = name_to_lic.get(nom_key, '')
+            key = lic or nom_key
+            ancien = rea_data.get(key, {}).get('reas', 0)
+            rea_data[key] = {
+                'nom': nom_display,
+                'license': lic,
+                'reas': int(count),
+                'history': [{
+                    'action': 'import',
+                    'amount': int(count),
+                    'note': f'Import stats.json (ancien: {ancien})',
+                    'timestamp': ts,
+                }] + rea_data.get(key, {}).get('history', []),
+            }
+            imported += 1
+        save_json(_wt_rea, rea_data)
+        return jsonify({'status': 'success', 'imported': imported, 'total_joueurs': len(rea_data)})
+
     @web_app.route('/api/test/reset-week', methods=['POST'])
     def api_test_reset_week():
         """Marque un reset hebdomadaire : archive les réas et repart à zéro."""

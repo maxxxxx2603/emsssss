@@ -265,6 +265,7 @@ body{background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSyst
   <div class="sbi" style="min-width:130px"><div class="sbi-val" style="font-size:11px;color:var(--t2)" id="sv-reset">—</div><div class="sbi-lbl">Dernier reset</div></div>
   <div class="sb-actions">
     <button class="btn-pill btn-reset" onclick="resetWeek()">&#8635; Reset semaine</button>
+    <button class="btn-pill" style="background:rgba(10,132,255,.12);color:var(--blue)" onclick="importStats()" title="Importer les r&eacute;as actuelles depuis le syst&egrave;me principal">&#8659; Importer stats</button>
     <button class="btn-pill btn-clear" onclick="clearAll()">&#128465;</button>
   </div>
 </div>
@@ -471,6 +472,13 @@ async function resetWeek(){
   if(!confirm('Reset semaine ?\nLes r\u00e9as seront archiv\u00e9es et remises \u00e0 z\u00e9ro.'))return;
   var r=await fetch('/api/test/reset-week',{method:'POST',headers:{'Content-Type':'application/json'}});
   if(r.ok){toast('Reset \u2713','ok');loadAll();}else toast('Erreur','err');
+}
+async function importStats(){
+  if(!confirm('Importer les r\u00e9as depuis le syst\u00e8me principal ?\nTout le monde sera mis \u00e0 jour automatiquement avec leur total actuel.'))return;
+  var r=await fetch('/api/test/import-stats',{method:'POST',headers:{'Content-Type':'application/json'}});
+  var d=await r.json();
+  if(r.ok){toast('Import \u2713 — '+d.imported+' joueurs mis \u00e0 jour','ok');loadAll();}
+  else toast(d.error||'Erreur','err');
 }
 async function clearAll(){
   if(!confirm('Vider TOUT (logs, erreurs, r\u00e9as, map) ?'))return;
