@@ -8001,6 +8001,7 @@ _test_lock = __import__('threading').Lock()
 _ESX_TITLE_MAP = {
     "vente": "vente",
     "vente importante": "vente_importante",
+    "ventes (récap)": "vente",   # récap de plusieurs ventes = on compte chaque 100k
     "prise de service": "prise_service",
     "fin de service": "fin_service",
 }
@@ -8156,28 +8157,8 @@ async def _handle_esx_society_message(message):
                 _test_write(_TEST_MAP_FILE, lmap)
             print(f"[ESX] License map MAJ: {license_key} → {lmap[license_key]['nom']}")
 
-        # ── Vérification du rôle Discord ──
-        guild = message.guild
-        role_ok = False
-        if guild:
-            ems_role = guild.get_role(ESX_SOCIETY_ROLE_ID)
-            if ems_role:
-                joueur_lower = parsed["joueur"].lower()
-                for member in ems_role.members:
-                    if member.display_name.lower() == joueur_lower or member.name.lower() == joueur_lower:
-                        role_ok = True
-                        break
-        parsed["role_ok"] = role_ok
-
-        if not role_ok:
-            _ingest_log("/api/test/errors/ingest", {
-                "reason": f"Rôle EMS non trouvé pour '{parsed['joueur']}' ({license_key})",
-                "raw_title": embed.title or "",
-                "raw_fields": raw_fields,
-                "joueur": parsed["joueur"],
-                "license": license_key,
-                "timestamp": ts,
-            })
+        # Rôle OK par défaut : le canal est déjà réservé EMS, pas besoin de vérifier
+        parsed["role_ok"] = True
 
         # Stocker le nom réel depuis le mapping dans la log
         with _test_lock:
@@ -8189,28 +8170,28 @@ async def _handle_esx_society_message(message):
 
         _ingest_log("/api/test/logs/ingest", parsed)
 
-        # ── Auto-comptage réas : vente 100k = +1 réa ──
-        if parsed.get("type") in ("vente", "vente_importante") and parsed.get("montant", 0) == 100000 and license_key:
+        # ── Auto-comptage réas : chaque 100k = +1 réa (récap = montant/100k) ──
+        montant = parsed.get("montant", 0)
+        nb_reas = montant // 100000  # 100k=1, 200k=2, etc.
+        if parsed.get("type") in ("vente", "vente_importante") and nb_reas >= 1 and license_key:
             with _test_lock:
                 lmap2 = _test_read(_TEST_MAP_FILE, {})
                 nom = lmap2.get(license_key, {}).get("nom") or parsed.get("joueur", license_key)
                 rea_data = _test_read(_TEST_REA_FILE, {})
-                # Clé = license pour unicité
                 if license_key not in rea_data:
                     rea_data[license_key] = {"nom": nom, "license": license_key, "reas": 0, "history": []}
                 else:
-                    # Mettre à jour le nom si on l'a maintenant
                     if nom:
                         rea_data[license_key]["nom"] = nom
-                rea_data[license_key]["reas"] += 1
+                rea_data[license_key]["reas"] += nb_reas
                 rea_data[license_key]["history"].insert(0, {
                     "action": "add",
-                    "amount": 1,
-                    "note": f"Auto — {parsed.get('type')} {parsed.get('raw_title','')}",
+                    "amount": nb_reas,
+                    "note": f"Auto — {parsed.get('raw_title','')} ({montant:,}$)",
                     "timestamp": ts,
                 })
                 _test_write(_TEST_REA_FILE, rea_data)
-            print(f"[ESX] +1 réa pour {nom} ({license_key})")
+            print(f"[ESX] +{nb_reas} réa(s) pour {nom} ({license_key})")
 
 
 @bot.event
