@@ -8004,10 +8004,13 @@ _ESX_TITLE_MAP = {
 
 def _parse_esx_embed(embed):
     """Parse un embed esx_society et retourne un dict de données ou None."""
+    # Le titre peut avoir un emoji avant le texte : '🟢 Prise de service'
     title = (embed.title or "").strip().lower()
+    # Supprimer tout caractère non-ascii devant le titre (emojis, etc.)
+    title_clean = title.encode('ascii', 'ignore').decode('ascii').strip()
     log_type = None
     for key, val in _ESX_TITLE_MAP.items():
-        if title.startswith(key):
+        if key in title_clean or key in title:
             log_type = val
             break
     if log_type is None:
