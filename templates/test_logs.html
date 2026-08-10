@@ -24,6 +24,8 @@
         @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
         .tb-back { color: var(--t3); text-decoration: none; font-size: 12px; }
         .tb-back:hover { color: var(--t1); }
+
+        /* STATS BAR */
         .statsbar { position: fixed; top: 54px; left: 0; right: 0; z-index: 190; background: var(--bg1); border-bottom: 1px solid var(--bdr); display: flex; overflow-x: auto; }
         .stat-item { display: flex; flex-direction: column; align-items: center; padding: 8px 22px; border-right: 1px solid var(--bdr); min-width: 100px; flex-shrink: 0; }
         .stat-val { font-size: 20px; font-weight: 700; }
@@ -32,6 +34,8 @@
         .stat-val.orange { color: var(--orange); }
         .stat-val.red { color: var(--red); }
         .stat-val.purple { color: var(--purple); }
+
+        /* LAYOUT */
         .page-wrap { margin-top: 106px; display: grid; grid-template-columns: 1fr 380px 320px; height: calc(100vh - 106px); }
         .panel { display: flex; flex-direction: column; border-right: 1px solid var(--bdr); overflow: hidden; }
         .panel:last-child { border-right: none; }
@@ -39,36 +43,56 @@
         .panel-head h2 { font-size: 13px; font-weight: 700; flex: 1; text-transform: uppercase; letter-spacing: .5px; }
         .panel-count { font-size: 11px; color: var(--t3); background: var(--bg2); border-radius: 10px; padding: 2px 8px; }
         .panel-body { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-        .filters { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 18px; border-bottom: 1px solid var(--bdr); flex-shrink: 0; }
-        .flt { padding: 5px 11px; border-radius: 20px; border: 1px solid var(--bdr); background: var(--bg2); color: var(--t2); font-size: 11px; cursor: pointer; transition: all .15s; }
-        .flt:hover { background: var(--bg3); }
-        .flt.active { background: var(--red); border-color: var(--red); color: #fff; }
-        .log-card { background: var(--bg1); border: 1px solid var(--bdr); border-left: 3px solid var(--blue); border-radius: 10px; padding: 12px 14px; flex-shrink: 0; }
-        .log-card.vente { border-left-color: var(--green); }
-        .log-card.vente_importante { border-left-color: var(--orange); }
-        .log-card.prise_service { border-left-color: var(--blue); }
-        .log-card.fin_service { border-left-color: var(--red); }
-        .lc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
-        .lc-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; }
-        .vente .lc-badge { background: rgba(48,209,88,.15); color: var(--green); }
-        .vente_importante .lc-badge { background: rgba(255,159,10,.15); color: var(--orange); }
-        .prise_service .lc-badge { background: rgba(10,132,255,.15); color: var(--blue); }
-        .fin_service .lc-badge { background: rgba(255,59,48,.15); color: var(--red); }
-        .lc-time { font-size: 11px; color: var(--t3); flex: 1; }
-        .lc-role { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+
+        /* TABS (col 2) */
+        .tabs { display: flex; border-bottom: 1px solid var(--bdr); flex-shrink: 0; }
+        .tab { padding: 10px 18px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--t3); border-bottom: 2px solid transparent; transition: all .15s; }
+        .tab.active { color: var(--t1); border-bottom-color: var(--red); }
+
+        /* REA CARD (col 1) */
+        .rea-joueur-card { background: var(--bg1); border: 1px solid var(--bdr); border-left: 3px solid var(--green); border-radius: 12px; overflow: hidden; flex-shrink: 0; }
+        .rjc-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; transition: background .15s; user-select: none; }
+        .rjc-head:hover { background: var(--bg2); }
+        .rjc-name { font-weight: 700; font-size: 14px; flex: 1; }
+        .rjc-license { font-size: 10px; color: var(--t3); font-family: monospace; }
+        .rjc-total { font-size: 28px; font-weight: 800; color: var(--green); min-width: 44px; text-align: right; line-height: 1; }
+        .rjc-lbl { font-size: 10px; color: var(--t3); text-align: right; }
+        .rjc-arrow { color: var(--t3); font-size: 12px; transition: transform .2s; margin-left: 6px; }
+        .rjc-head.open .rjc-arrow { transform: rotate(90deg); }
+        .rjc-role { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
         .role-yes { background: rgba(48,209,88,.15); color: var(--green); }
         .role-no  { background: rgba(255,59,48,.15); color: var(--red); }
+
+        .rjc-logs { display: none; border-top: 1px solid var(--bdr); padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+        .rjc-logs.open { display: flex; }
+        .rjl-item { background: var(--bg2); border-radius: 8px; padding: 8px 12px; display: grid; grid-template-columns: auto 1fr auto; gap: 6px 12px; align-items: center; font-size: 12px; }
+        .rjl-time { color: var(--t3); font-size: 11px; white-space: nowrap; }
+        .rjl-type { }
+        .rjl-money { color: var(--green); font-weight: 700; }
+
+        /* LOG CARD (services) */
+        .log-card { background: var(--bg1); border: 1px solid var(--bdr); border-radius: 10px; padding: 12px 14px; flex-shrink: 0; }
+        .log-card.prise_service { border-left: 3px solid var(--blue); }
+        .log-card.fin_service   { border-left: 3px solid var(--red); }
+        .lc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+        .lc-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 7px; border-radius: 5px; }
+        .prise_service .lc-badge { background: rgba(10,132,255,.15); color: var(--blue); }
+        .fin_service   .lc-badge { background: rgba(255,59,48,.15); color: var(--red); }
+        .lc-time { font-size: 11px; color: var(--t3); flex: 1; }
         .lc-del { background: none; border: none; color: var(--t3); cursor: pointer; font-size: 16px; padding: 0 2px; transition: color .15s; }
         .lc-del:hover { color: var(--red); }
         .lc-row { display: grid; grid-template-columns: 80px 1fr; gap: 4px 10px; font-size: 12px; margin-bottom: 3px; }
-        .lc-lbl { color: var(--t3); font-weight: 600; text-transform: uppercase; font-size: 10px; padding-top: 1px; }
+        .lc-lbl { color: var(--t3); font-weight: 600; text-transform: uppercase; font-size: 10px; }
         .lc-val { color: var(--t2); word-break: break-all; }
-        .lc-val.mono { font-family: 'Courier New', monospace; font-size: 11px; background: var(--bg2); padding: 1px 5px; border-radius: 4px; }
-        .lc-val.money { color: var(--green); font-weight: 700; }
+        .lc-val.mono { font-family: monospace; font-size: 11px; background: var(--bg2); padding: 1px 5px; border-radius: 4px; }
+
+        /* ERROR CARD */
         .err-card { background: var(--bg1); border: 1px solid rgba(255,59,48,.2); border-left: 3px solid var(--red); border-radius: 10px; padding: 12px 14px; flex-shrink: 0; }
         .err-reason { font-size: 12px; color: var(--red); font-weight: 600; margin-bottom: 6px; }
         .err-time { font-size: 11px; color: var(--t3); margin-bottom: 5px; }
         .err-raw { font-size: 11px; color: var(--t3); font-family: monospace; background: var(--bg2); padding: 8px; border-radius: 6px; white-space: pre-wrap; word-break: break-all; max-height: 80px; overflow-y: auto; }
+
+        /* REA FORM (col 3) */
         .rea-form { padding: 14px 18px; border-bottom: 1px solid var(--bdr); flex-shrink: 0; }
         .rf-row { display: flex; gap: 6px; margin-bottom: 8px; }
         .rf-input { flex: 1; background: var(--bg2); border: 1px solid var(--bdr); border-radius: 8px; padding: 8px 10px; color: var(--t1); font-size: 12px; font-family: inherit; outline: none; }
@@ -86,6 +110,7 @@
         .rea-count { font-size: 22px; font-weight: 800; color: var(--green); min-width: 36px; text-align: right; }
         .rea-del { background: none; border: none; color: var(--t3); cursor: pointer; font-size: 16px; transition: color .15s; }
         .rea-del:hover { color: var(--red); }
+
         .icon-btn { background: var(--bg2); border: 1px solid var(--bdr); border-radius: 7px; padding: 5px 9px; color: var(--t2); cursor: pointer; font-size: 12px; transition: all .15s; }
         .icon-btn:hover { background: var(--bg3); }
         .icon-btn.danger:hover { background: rgba(255,59,48,.2); color: var(--red); border-color: rgba(255,59,48,.4); }
@@ -105,17 +130,16 @@
 <body>
 <div class="topbar">
     <div class="tb-logo">T</div>
-    <div class="tb-title">&#129514; Test Logs &mdash; esx_society</div>
+    <div class="tb-title">&#129514; Test Logs &mdash; EMS</div>
     <div class="tb-badge"><span class="dot"></span> Live</div>
     <a href="/" class="tb-back">&larr; Retour</a>
 </div>
 <div class="statsbar">
-    <div class="stat-item"><div class="stat-val green" id="sv-ventes">&mdash;</div><div class="stat-lbl">Ventes</div></div>
-    <div class="stat-item"><div class="stat-val orange" id="sv-services-in">&mdash;</div><div class="stat-lbl">Prises service</div></div>
-    <div class="stat-item"><div class="stat-val red" id="sv-services-out">&mdash;</div><div class="stat-lbl">Fins service</div></div>
-    <div class="stat-item"><div class="stat-val green" id="sv-montant">&mdash;</div><div class="stat-lbl">Montant total</div></div>
-    <div class="stat-item"><div class="stat-val red" id="sv-errors">&mdash;</div><div class="stat-lbl">Erreurs</div></div>
-    <div class="stat-item"><div class="stat-val purple" id="sv-reas">&mdash;</div><div class="stat-lbl">R&eacute;as manuelles</div></div>
+    <div class="stat-item"><div class="stat-val green" id="sv-reas">--</div><div class="stat-lbl">R&eacute;as totales</div></div>
+    <div class="stat-item"><div class="stat-val green" id="sv-joueurs">--</div><div class="stat-lbl">Joueurs</div></div>
+    <div class="stat-item"><div class="stat-val orange" id="sv-services-in">--</div><div class="stat-lbl">Prises service</div></div>
+    <div class="stat-item"><div class="stat-val red" id="sv-services-out">--</div><div class="stat-lbl">Fins service</div></div>
+    <div class="stat-item"><div class="stat-val red" id="sv-errors">--</div><div class="stat-lbl">Erreurs</div></div>
     <div class="stat-item" style="margin-left:auto;border-left:1px solid var(--bdr);border-right:none">
         <div style="display:flex;gap:6px;align-items:center;height:100%">
             <button class="icon-btn" onclick="clearTarget('logs')">&#128465; Logs</button>
@@ -125,35 +149,28 @@
     </div>
 </div>
 <div class="page-wrap">
-    <!-- COL 1 LOGS -->
+    <!-- COL 1 : REAS PAR JOUEUR -->
     <div class="panel">
         <div class="panel-head">
-            <h2>&#128203; Logs esx_society</h2>
-            <span class="panel-count" id="pc-logs">0</span>
+            <h2>&#128137; R&eacute;as par joueur</h2>
+            <span class="panel-count" id="pc-joueurs">0</span>
+            <span style="font-size:11px;color:var(--t3);margin-left:4px">cliquer pour d&eacute;tailler</span>
         </div>
-        <div class="filters">
-            <button class="flt active" data-f="all">Tous</button>
-            <button class="flt" data-f="vente">Ventes</button>
-            <button class="flt" data-f="vente_importante">Ventes importantes</button>
-            <button class="flt" data-f="prise_service">Prise service</button>
-            <button class="flt" data-f="fin_service">Fin service</button>
-            <button class="flt" data-f="no_role">Sans r&ocirc;le &#9888;</button>
-        </div>
-        <div class="panel-body" id="logs-list"><div class="empty"><div class="empty-icon">&#128205;</div>Aucune log re&ccedil;ue</div></div>
+        <div class="panel-body" id="reas-list"><div class="empty"><div class="empty-icon">&#128137;</div>Aucune r&eacute;a enregistr&eacute;e</div></div>
     </div>
-    <!-- COL 2 ERREURS -->
+    <!-- COL 2 : SERVICES + ERREURS -->
     <div class="panel">
-        <div class="panel-head">
-            <h2>&#128680; Erreurs / Rejets</h2>
-            <span class="panel-count" id="pc-errors">0</span>
-            <div style="display:flex;gap:6px"><button class="icon-btn danger" onclick="clearTarget('errors')">Vider</button></div>
+        <div class="tabs">
+            <div class="tab active" data-tab="services" onclick="switchTab('services')">&#128197; Services <span id="tc-services" style="font-size:10px;color:var(--t3)"></span></div>
+            <div class="tab" data-tab="errors" onclick="switchTab('errors')">&#128680; Erreurs <span id="tc-errors" style="font-size:10px;color:var(--t3)"></span></div>
         </div>
-        <div class="panel-body" id="errors-list"><div class="empty"><div class="empty-icon">&#9989;</div>Aucune erreur</div></div>
+        <div class="panel-body" id="services-list" data-panel="services"></div>
+        <div class="panel-body" id="errors-list" data-panel="errors" style="display:none"></div>
     </div>
-    <!-- COL 3 REAS -->
+    <!-- COL 3 : REAS MANUELLES -->
     <div class="panel">
         <div class="panel-head">
-            <h2>&#128137; R&eacute;as manuelles</h2>
+            <h2>&#43; R&eacute;as manuelles</h2>
             <span class="panel-count" id="pc-reas">0</span>
         </div>
         <div class="rea-form">
@@ -168,86 +185,146 @@
                 <button class="rf-btn rem" onclick="reaAction('remove')">&minus; Retirer</button>
             </div>
         </div>
-        <div class="panel-body" id="rea-list"><div class="empty"><div class="empty-icon">&#128137;</div>Aucune r&eacute;a enregistr&eacute;e</div></div>
+        <div class="panel-body" id="rea-list"><div class="empty"><div class="empty-icon">&#128137;</div>Aucune r&eacute;a manuelle</div></div>
     </div>
 </div>
 <div id="toast"></div>
 <script>
-var allLogs=[], allErrors=[], allRea={}, currentFilter='all';
+var allLogs=[], allErrors=[], allRea={}, currentTab='services';
 loadAll();
 setInterval(loadAll, 5000);
-document.querySelectorAll('.flt').forEach(function(btn){
-    btn.addEventListener('click',function(e){
-        document.querySelectorAll('.flt').forEach(function(b){b.classList.remove('active');});
-        e.target.classList.add('active');
-        currentFilter=e.target.dataset.f;
-        renderLogs();
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t.dataset.tab===tab); });
+    document.getElementById('services-list').style.display = tab==='services'?'flex':'none';
+    document.getElementById('errors-list').style.display = tab==='errors'?'flex':'none';
+}
+
+async function loadAll(){ await Promise.all([loadLogs(), loadErrors(), loadRea(), loadStats()]); }
+
+async function loadLogs(){
+    try{ var r=await fetch('/api/test/logs'); var d=await r.json(); allLogs=d.logs||[]; renderReasByPlayer(); renderServices(); }catch(e){}
+}
+async function loadErrors(){
+    try{ var r=await fetch('/api/test/errors'); var d=await r.json(); allErrors=d.errors||[]; renderErrors(); }catch(e){}
+}
+async function loadRea(){
+    try{ var r=await fetch('/api/test/rea'); var d=await r.json(); allRea=d.rea||{}; renderReaManual(); }catch(e){}
+}
+async function loadStats(){
+    try{
+        var r=await fetch('/api/test/stats'); var d=await r.json();
+        document.getElementById('sv-reas').textContent=d.total_reas_manual??'--';
+        document.getElementById('sv-joueurs').textContent=d.joueurs_rea??'--';
+        document.getElementById('sv-services-in').textContent=d.total_services_in??'--';
+        document.getElementById('sv-services-out').textContent=d.total_services_out??'--';
+        document.getElementById('sv-errors').textContent=d.total_errors??'--';
+    }catch(e){}
+}
+
+/* ── COL 1 : Réas groupées par joueur (depuis test_rea.json) ── */
+function renderReasByPlayer(){
+    var c=document.getElementById('reas-list');
+    var entries=Object.values(allRea).sort(function(a,b){return b.reas-a.reas;});
+    document.getElementById('pc-joueurs').textContent=entries.length;
+    if(!entries.length){ c.innerHTML='<div class="empty"><div class="empty-icon">&#128137;</div>Aucune r&eacute;a enregistr&eacute;e</div>'; return; }
+
+    // Pour chaque joueur, trouver ses logs de vente
+    var logsByJoueur={};
+    allLogs.filter(function(l){return l.type==='vente'||l.type==='vente_importante';}).forEach(function(l){
+        var key=(l.joueur||'').toLowerCase();
+        if(!logsByJoueur[key]) logsByJoueur[key]=[];
+        logsByJoueur[key].push(l);
     });
-});
-async function loadAll(){ await Promise.all([loadLogs(),loadErrors(),loadRea(),loadStats()]); }
-async function loadLogs(){ try{ var r=await fetch('/api/test/logs'); var d=await r.json(); allLogs=d.logs||[]; renderLogs(); }catch(e){} }
-async function loadErrors(){ try{ var r=await fetch('/api/test/errors'); var d=await r.json(); allErrors=d.errors||[]; renderErrors(); }catch(e){} }
-async function loadRea(){ try{ var r=await fetch('/api/test/rea'); var d=await r.json(); allRea=d.rea||{}; renderRea(); }catch(e){} }
-async function loadStats(){ try{
-    var r=await fetch('/api/test/stats'); var d=await r.json();
-    document.getElementById('sv-ventes').textContent=d.total_ventes??'--';
-    document.getElementById('sv-services-in').textContent=d.total_services_in??'--';
-    document.getElementById('sv-services-out').textContent=d.total_services_out??'--';
-    document.getElementById('sv-montant').textContent=d.montant_total?fmoney(d.montant_total):'0 $';
-    document.getElementById('sv-errors').textContent=d.total_errors??'--';
-    document.getElementById('sv-reas').textContent=d.total_reas_manual??'--';
-}catch(e){} }
-function renderLogs(){
-    var c=document.getElementById('logs-list');
-    document.getElementById('pc-logs').textContent=allLogs.length;
-    var f=allLogs;
-    if(currentFilter==='no_role') f=allLogs.filter(function(l){return !l.role_ok;});
-    else if(currentFilter!=='all') f=allLogs.filter(function(l){return l.type===currentFilter;});
-    if(!f.length){ c.innerHTML='<div class="empty"><div class="empty-icon">&#128205;</div>Aucune log correspondante</div>'; return; }
-    c.innerHTML=f.map(function(log){
-        var lbl=typeLabel(log.type);
-        var roleHtml=log.role_ok?'<span class="lc-role role-yes">&#10003; R&ocirc;le EMS</span>':'<span class="lc-role role-no">&#10007; Sans r&ocirc;le</span>';
-        var ex='';
-        if(log.type==='vente'||log.type==='vente_importante'){
-            ex+='<div class="lc-row"><span class="lc-lbl">Montant</span><span class="lc-val money">'+fmoney(log.montant)+'</span></div>';
-            ex+='<div class="lc-row"><span class="lc-lbl">Ventes</span><span class="lc-val">'+(log.ventes||1)+'</span></div>';
-            ex+='<div class="lc-row"><span class="lc-lbl">P&eacute;riode</span><span class="lc-val">'+(log.periode||0)+' min</span></div>';
-            ex+='<div class="lc-row"><span class="lc-lbl">Origine</span><span class="lc-val">'+(log.origine||'--')+'</span></div>';
-        }
-        if(log.employee) ex+='<div class="lc-row"><span class="lc-lbl">Employ&eacute;</span><span class="lc-val">'+esc(log.employee)+'</span></div>';
-        return '<div class="log-card '+log.type+'"><div class="lc-head"><span class="lc-badge">'+lbl+'</span><span class="lc-time">'+(log.timestamp||'')+'</span>'+roleHtml+'<button class="lc-del" onclick="deleteLog('+log.id+')">&#10005;</button></div>'
-            +'<div class="lc-row"><span class="lc-lbl">Joueur</span><span class="lc-val">'+esc(log.joueur)+'</span></div>'
-            +'<div class="lc-row"><span class="lc-lbl">Soci&eacute;t&eacute;</span><span class="lc-val">'+esc(log.societe)+'</span></div>'
-            +'<div class="lc-row"><span class="lc-lbl">License</span><span class="lc-val mono">'+esc(log.license)+'</span></div>'
-            +ex+'</div>';
+
+    c.innerHTML=entries.map(function(e){
+        var key=e.joueur.toLowerCase();
+        var ventes=logsByJoueur[key]||[];
+        var roleOk=ventes.length>0?ventes[0].role_ok:null;
+        var roleHtml=roleOk===true?'<span class="rjc-role role-yes">&#10003; R&ocirc;le</span>':roleOk===false?'<span class="rjc-role role-no">&#10007; R&ocirc;le</span>':'';
+
+        var detailRows=ventes.slice(0,20).map(function(l){
+            return '<div class="rjl-item">'
+                +'<span class="rjl-time">'+esc(l.timestamp||'')+'</span>'
+                +'<span class="rjl-type">'+(l.type==='vente_importante'?'&#128176; Importante':'&#128230; Vente')+'</span>'
+                +'<span class="rjl-money">'+fmoney(l.montant)+'</span>'
+                +'</div>';
+        }).join('');
+        if(!detailRows) detailRows='<div style="font-size:12px;color:var(--t3);padding:6px 0">Aucun d&eacute;tail (r&eacute;as manuelles uniquement)</div>';
+
+        var uid='rjc-'+key.replace(/[^a-z0-9]/g,'_');
+        return '<div class="rea-joueur-card">'
+            +'<div class="rjc-head" onclick="toggleRjc(\''+uid+'\')" id="head-'+uid+'">'
+            +'<div style="flex:1"><div class="rjc-name">'+esc(e.joueur)+'</div>'+(e.license?'<div class="rjc-license">'+esc(e.license)+'</div>':'')+'</div>'
+            +(roleHtml?roleHtml+' ':'')
+            +'<div style="text-align:right"><div class="rjc-total">'+e.reas+'</div><div class="rjc-lbl">r&eacute;as</div></div>'
+            +'<span class="rjc-arrow">&#9654;</span>'
+            +'</div>'
+            +'<div class="rjc-logs" id="'+uid+'">'+detailRows+'</div>'
+            +'</div>';
     }).join('');
 }
+
+function toggleRjc(uid){
+    var logs=document.getElementById(uid);
+    var head=document.getElementById('head-'+uid);
+    var isOpen=logs.classList.contains('open');
+    logs.classList.toggle('open',!isOpen);
+    head.classList.toggle('open',!isOpen);
+}
+
+/* ── COL 2 tab Services ── */
+function renderServices(){
+    var c=document.getElementById('services-list');
+    var services=allLogs.filter(function(l){return l.type==='prise_service'||l.type==='fin_service';});
+    var tc=document.getElementById('tc-services');
+    if(tc) tc.textContent=services.length?'('+services.length+')':'';
+    if(!services.length){ c.innerHTML='<div class="empty"><div class="empty-icon">&#128197;</div>Aucun service</div>'; return; }
+    c.innerHTML=services.map(function(log){
+        var lbl=log.type==='prise_service'?'&#9989; Prise service':'&#10060; Fin service';
+        return '<div class="log-card '+log.type+'">'
+            +'<div class="lc-head"><span class="lc-badge">'+lbl+'</span><span class="lc-time">'+esc(log.timestamp||'')+'</span>'
+            +'<button class="lc-del" onclick="deleteLog('+log.id+')">&#10005;</button></div>'
+            +'<div class="lc-row"><span class="lc-lbl">Joueur</span><span class="lc-val">'+esc(log.joueur)+'</span></div>'
+            +(log.employee?'<div class="lc-row"><span class="lc-lbl">Employ&eacute;</span><span class="lc-val">'+esc(log.employee)+'</span></div>':'')
+            +'<div class="lc-row"><span class="lc-lbl">License</span><span class="lc-val mono">'+esc(log.license)+'</span></div>'
+            +'</div>';
+    }).join('');
+}
+
+/* ── COL 2 tab Erreurs ── */
 function renderErrors(){
     var c=document.getElementById('errors-list');
-    document.getElementById('pc-errors').textContent=allErrors.length;
+    var tc=document.getElementById('tc-errors');
+    if(tc) tc.textContent=allErrors.length?'('+allErrors.length+')':'';
     if(!allErrors.length){ c.innerHTML='<div class="empty"><div class="empty-icon">&#9989;</div>Aucune erreur</div>'; return; }
     c.innerHTML=allErrors.map(function(err){
         var rawStr=Object.entries(err.raw_fields||{}).map(function(kv){return kv[0]+': '+kv[1];}).join('\n');
         return '<div class="err-card"><div class="err-reason">&#9888; '+esc(err.reason)+'</div>'
             +'<div class="err-time">'+(err.timestamp||'')+' &mdash; '+esc(err.raw_title||'')+'</div>'
-            +(err.joueur?'<div style="font-size:12px;color:var(--t2);margin-bottom:4px">Joueur: <b>'+esc(err.joueur)+'</b> | License: <code style="font-size:10px">'+esc(err.license)+'</code></div>':'')
+            +(err.joueur?'<div style="font-size:12px;color:var(--t2);margin-bottom:4px">Joueur: <b>'+esc(err.joueur)+'</b> | <code style="font-size:10px">'+esc(err.license)+'</code></div>':'')
             +(rawStr?'<div class="err-raw">'+esc(rawStr)+'</div>':'')
             +'</div>';
     }).join('');
 }
-function renderRea(){
+
+/* ── COL 3 : Réas manuelles ── */
+function renderReaManual(){
     var c=document.getElementById('rea-list');
     var entries=Object.values(allRea).sort(function(a,b){return b.reas-a.reas;});
     document.getElementById('pc-reas').textContent=entries.length;
-    if(!entries.length){ c.innerHTML='<div class="empty"><div class="empty-icon">&#128137;</div>Aucune r&eacute;a enregistr&eacute;e</div>'; return; }
+    if(!entries.length){ c.innerHTML='<div class="empty"><div class="empty-icon">&#43;</div>Aucune r&eacute;a manuelle</div>'; return; }
     c.innerHTML=entries.map(function(e){
         return '<div class="rea-card"><div style="flex:1"><div class="rea-name">'+esc(e.joueur)+'</div>'+(e.license?'<div class="rea-license">'+esc(e.license)+'</div>':'')+'</div><div class="rea-count">'+e.reas+'</div><button class="rea-del" onclick="deleteRea(\''+esc(e.joueur)+'\')">&#10005;</button></div>';
     }).join('');
 }
+
+/* ── ACTIONS ── */
 async function deleteLog(id){
-    if(!confirm('Supprimer cette log ?')) return;
+    if(!confirm('Supprimer ?')) return;
     var r=await fetch('/api/test/logs?id='+id,{method:'DELETE'});
-    if(r.ok){toast('Log supprim\u00e9e','ok');loadLogs();loadStats();}else toast('Erreur','err');
+    if(r.ok){toast('Supprim\u00e9','ok');loadLogs();loadStats();}else toast('Erreur','err');
 }
 async function reaAction(action){
     var joueur=document.getElementById('rf-joueur').value.trim();
@@ -259,7 +336,7 @@ async function reaAction(action){
     var d=await r.json();
     if(r.ok){
         toast((action==='add'?'+':'-')+amount+' r\u00e9a pour '+joueur+' (total: '+d.reas+')','ok');
-        loadRea();loadStats();
+        loadRea();loadStats();loadLogs();
         document.getElementById('rf-joueur').value='';document.getElementById('rf-license').value='';
         document.getElementById('rf-note').value='';document.getElementById('rf-amount').value=1;
     }else toast(d.error||'Erreur','err');
@@ -267,17 +344,13 @@ async function reaAction(action){
 async function deleteRea(joueur){
     if(!confirm('Supprimer toutes les r\u00e9as de '+joueur+' ?')) return;
     var r=await fetch('/api/test/rea/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({joueur:joueur})});
-    if(r.ok){toast('Joueur supprim\u00e9','ok');loadRea();loadStats();}else toast('Erreur','err');
+    if(r.ok){toast('Supprim\u00e9','ok');loadRea();loadStats();loadLogs();}else toast('Erreur','err');
 }
 async function clearTarget(target){
     var labels={logs:'les logs',errors:'les erreurs',all:'TOUT'};
     if(!confirm('Vider '+(labels[target]||target)+' ?')) return;
     var r=await fetch('/api/test/clear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target:target})});
-    if(r.ok){toast('Vid\u00e9 \u2713','ok');loadAll();}else toast('Erreur','err');
-}
-function typeLabel(t){
-    var m={vente:'&#128230; Vente',vente_importante:'&#128176; Vente importante',prise_service:'&#9989; Prise service',fin_service:'&#10060; Fin service'};
-    return m[t]||t;
+    if(r.ok){toast('Vid\u00e9','ok');loadAll();}else toast('Erreur','err');
 }
 function fmoney(n){ return (n||0).toLocaleString('fr-FR')+' $'; }
 function esc(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
