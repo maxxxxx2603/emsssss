@@ -12194,11 +12194,29 @@ La direction des EMS"""
 
 
     # ============ ROUTES DE TEST - GESTION DES LOGS ============
-    
+
     # ============ ROUTES /test ============
     _wt_logs   = os.path.join(DATA_DIR, 'test_logs.json')
     _wt_errors = os.path.join(DATA_DIR, 'test_errors.json')
     _wt_rea    = os.path.join(DATA_DIR, 'test_rea.json')
+
+    def _wt_load(filepath, default):
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return default() if callable(default) else default
+
+    def _wt_save(filepath, data):
+        try:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    # Alias pour compatibilité avec le code des routes
+    load_json = _wt_load
+    save_json = _wt_save
 
     @web_app.route('/test')
     def test_logs_page():
