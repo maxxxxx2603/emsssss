@@ -8143,6 +8143,32 @@ async def _handle_esx_society_message(message):
 
         _ingest_log("/api/test/logs/ingest", parsed)
 
+        # Auto-comptage réas : chaque vente à 100 000$ = 1 réa
+        if parsed.get("type") in ("vente", "vente_importante") and parsed.get("montant", 0) == 100000:
+            joueur = parsed.get("joueur", "").strip()
+            if joueur:
+                rea_file = os.path.join(DATA_DIR, 'test_rea.json')
+                with _test_lock:
+                    try:
+                        with open(rea_file, 'r', encoding='utf-8') as f:
+                            rea_data = json.load(f)
+                    except Exception:
+                        rea_data = {}
+                    key = joueur.lower()
+                    if key not in rea_data:
+                        rea_data[key] = {'joueur': joueur, 'license': parsed.get('license', ''), 'reas': 0, 'history': []}
+                    rea_data[key]['reas'] += 1
+                    rea_data[key]['history'].insert(0, {
+                        'action': 'add',
+                        'amount': 1,
+                        'note': f"Auto ({parsed.get('type', 'vente')}) — {parsed.get('raw_title', '')}",
+                        'timestamp': parsed.get('timestamp', ''),
+                    })
+                    if parsed.get('license'):
+                        rea_data[key]['license'] = parsed['license']
+                    with open(rea_file, 'w', encoding='utf-8') as f:
+                        json.dump(rea_data, f, ensure_ascii=False, indent=2)
+
 
 @bot.event
 async def on_message(message):
