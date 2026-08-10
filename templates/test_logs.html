@@ -303,6 +303,9 @@ body{background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSyst
 
 <script>
 var aLogs=[],aErr=[],aRea={},cTab='sv';
+// Mémoriser quels détails sont ouverts entre chaque refresh
+var openUids=new Set();
+
 loadAll();setInterval(loadAll,5000);
 
 function switchTab(t){
@@ -337,21 +340,23 @@ function renderReas(){
     var lic=e.license||'';
     var vs=byLic[lic]||[];
     var uid='r'+lic.replace(/[^a-z0-9]/gi,'');
+    var isOpen=openUids.has(uid);
     var rows=vs.slice(0,30).map(function(l){
       return '<div class="rdd"><span class="rdd-t">'+esc(l.timestamp||'')+'</span><span class="rdd-type">'+(l.type==='vente_importante'?'&#128176; Importante':'&#128230; Vente')+'</span><span class="rdd-money">'+fm(l.montant)+'</span></div>';
     }).join('');
     if(!rows)rows='<div style="font-size:11px;color:var(--t3);padding:4px 0">Aucun d&eacute;tail disponible</div>';
-    return '<div class="rc"><div class="rc-head" onclick="tog(\''+uid+'\')" id="h'+uid+'">'
+    return '<div class="rc"><div class="rc-head'+(isOpen?' open':'')+'" onclick="tog(\''+uid+'\')" id="h'+uid+'">'
       +'<div class="rc-info"><div class="rc-nom">'+esc(e.nom||lic)+'</div>'+(lic?'<div class="rc-lic">'+esc(lic)+'</div>':'')+'</div>'
       +'<div class="rc-num"><div class="rc-total">'+e.reas+'</div><div class="rc-rlbl">r&eacute;as</div></div>'
       +'<span class="rc-arr">&#9654;</span>'
-      +'</div><div class="rc-detail" id="'+uid+'">'+rows+'</div></div>';
+      +'</div><div class="rc-detail'+(isOpen?' open':'')+'" id="'+uid+'">'+rows+'</div></div>';
   }).join('');
 }
 function tog(uid){
   var d=document.getElementById(uid),h=document.getElementById('h'+uid);
   var o=d.classList.contains('open');
   d.classList.toggle('open',!o);h.classList.toggle('open',!o);
+  if(!o) openUids.add(uid); else openUids.delete(uid);
 }
 
 function renderSv(){
