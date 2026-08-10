@@ -7985,9 +7985,170 @@ class DispoButton(discord.ui.View):
 
 # --- COMMANDE DISPO ---
 
+ESX_SOCIETY_CHANNEL_ID = 1267921697420345424
+ESX_SOCIETY_ROLE_ID = 838102445095256068
+
+# Fichiers partagés avec Flask (même process, même DATA_DIR)
+_TEST_LOGS_FILE  = os.path.join(DATA_DIR, 'test_logs.json')
+_TEST_ERRORS_FILE = os.path.join(DATA_DIR, 'test_errors.json')
+_TEST_MAX = 500
+_test_lock = __import__('threading').Lock()
+
+# Mapping titres embed -> type interne
+_ESX_TITLE_MAP = {
+    "vente": "vente",
+    "vente importante": "vente_importante",
+    "prise de service": "prise_service",
+    "fin de service": "fin_service",
+}
+
+def _parse_esx_embed(embed):
+    """Parse un embed esx_society et retourne un dict de données ou None."""
+    title = (embed.title or "").strip().lower()
+    log_type = None
+    for key, val in _ESX_TITLE_MAP.items():
+        if title.startswith(key):
+            log_type = val
+            break
+    if log_type is None:
+        return None, f"Titre embed non reconnu: '{embed.title}'"
+
+    fields = {f.name.strip().lower(): f.value.strip() for f in embed.fields}
+
+    # Extraire la license depuis le champ "identifiant"
+    identifiant_raw = fields.get("identifiant", "")
+    # Peut contenir des backticks : `license:xxxx`
+    license_val = identifiant_raw.strip("`").strip()
+
+    joueur = fields.get("joueur", "")
+    societe = fields.get("société", fields.get("societe", ""))
+    employee = fields.get("employé", fields.get("employe", ""))
+
+    # Validation basique
+    if not license_val.startswith("license:"):
+        return None, f"License invalide: '{license_val}'"
+    if societe.lower() != "ems":
+        return None, f"Société ignorée (pas EMS): '{societe}'"
+
+    result = {
+        "type": log_type,
+        "societe": societe,
+        "joueur": joueur,
+        "employee": employee,
+        "license": license_val,
+        "raw_title": embed.title or "",
+        "role_ok": False,
+        "montant": 0,
+        "ventes": 0,
+        "periode": 0,
+        "origine": "",
+    }
+
+    if log_type in ("vente", "vente_importante"):
+        # Montant: "100 000 $" -> 100000
+        montant_raw = fields.get("montant", "0").replace(" ", "").replace("$", "").replace(",", "")
+        try:
+            result["montant"] = int(montant_raw)
+        except Exception:
+            result["montant"] = 0
+        ventes_raw = fields.get("ventes", "1")
+        try:
+            result["ventes"] = int(ventes_raw)
+        except Exception:
+            result["ventes"] = 1
+        periode_raw = fields.get("période", fields.get("periode", "0")).replace("min", "").strip()
+        try:
+            result["periode"] = int(periode_raw)
+        except Exception:
+            result["periode"] = 0
+        result["origine"] = fields.get("origine", "addon_account")
+
+    return result, None
+
+
+def _ingest_log(endpoint_path, payload):
+    """Écrit directement dans les fichiers JSON partagés avec Flask (même process)."""
+    try:
+        if endpoint_path.endswith('/logs/ingest'):
+            filepath = _TEST_LOGS_FILE
+        elif endpoint_path.endswith('/errors/ingest'):
+            filepath = _TEST_ERRORS_FILE
+        else:
+            return
+        with _test_lock:
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            except Exception:
+                data = []
+            data.insert(0, payload)
+            data = data[:_TEST_MAX]
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[ESX_INGEST] Erreur écriture {endpoint_path}: {e}")
+
+
+async def _handle_esx_society_message(message):
+    """Capture et parse les messages esx_society dans le channel logs."""
+    if not message.embeds:
+        return  # Pas d'embed, rien à faire
+
+    for embed in message.embeds:
+        parsed, error = _parse_esx_embed(embed)
+
+        if error or parsed is None:
+            # Signaler l'erreur
+            raw_fields = {f.name: f.value for f in embed.fields}
+            _ingest_log("/api/test/errors/ingest", {
+                "reason": error or "Parse échoué",
+                "raw_title": embed.title or "",
+                "raw_fields": raw_fields,
+                "joueur": raw_fields.get("Joueur", ""),
+                "license": raw_fields.get("Identifiant", ""),
+                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            })
+            continue
+
+        # Vérification du rôle : chercher le membre Discord par nom de joueur
+        guild = message.guild
+        role_ok = False
+        if guild:
+            ems_role = guild.get_role(ESX_SOCIETY_ROLE_ID)
+            if ems_role:
+                joueur_lower = parsed["joueur"].lower()
+                for member in ems_role.members:
+                    if member.display_name.lower() == joueur_lower or member.name.lower() == joueur_lower:
+                        role_ok = True
+                        break
+
+        parsed["role_ok"] = role_ok
+        parsed["id"] = int(time.time() * 1000)
+        parsed["timestamp"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        parsed["source"] = "discord_bot"
+
+        if not role_ok:
+            raw_fields = {f.name: f.value for f in embed.fields}
+            _ingest_log("/api/test/errors/ingest", {
+                "reason": f"Rôle EMS non trouvé pour le joueur '{parsed['joueur']}' (license: {parsed['license']})",
+                "raw_title": embed.title or "",
+                "raw_fields": raw_fields,
+                "joueur": parsed["joueur"],
+                "license": parsed["license"],
+                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            })
+
+        _ingest_log("/api/test/logs/ingest", parsed)
+
+
 @bot.event
 async def on_message(message):
     """Handler principal des messages - comptage réas, taxi, burgershot"""
+
+    # --- CAPTURE LOGS ESX_SOCIETY (bot) AVANT le filtre bot ---
+    if message.author.bot and message.channel.id == ESX_SOCIETY_CHANNEL_ID:
+        await _handle_esx_society_message(message)
+        # Ne pas return ici, continuer pour d'autres traitements si besoin
 
     # Ignorer les bots et les DM immédiatement (early exit O(1))
     if message.author.bot:
