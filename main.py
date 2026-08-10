@@ -11997,6 +11997,118 @@ La direction des EMS"""
         except Exception as e:
             return jsonify({'ok': False, 'error': str(e)}), 500
 
+
+    # ============ ROUTES DE TEST - GESTION DES LOGS ============
+    
+    TEST_LOGS_FILE = os.path.join(DATA_DIR, 'test_logs.json')
+    VALID_CHANNEL_ID = '1267921697420345424'
+    VALID_ROLE_ID = '838102445095256068'
+
+    @web_app.route('/test')
+    def test_logs_page():
+        """Page de test pour la gestion des logs"""
+        return render_template('test_logs.html')
+
+    @web_app.route('/api/test/logs', methods=['GET', 'POST', 'DELETE'])
+    def api_test_logs():
+        """API pour gérer les logs de test"""
+        
+        if request.method == 'GET':
+            # Récupérer toutes les logs
+            logs = load_json(TEST_LOGS_FILE, [])
+            # Filtrer par channel valide
+            valid_logs = [log for log in logs if log.get('channelId') == VALID_CHANNEL_ID]
+            return jsonify({'logs': valid_logs})
+        
+        elif request.method == 'POST':
+            # Ajouter une nouvelle log
+            data = request.get_json()
+            
+            # Validations strictes
+            if data.get('channelId') != VALID_CHANNEL_ID:
+                return jsonify({'error': 'Channel ID invalide'}), 400
+            
+            if data.get('userId') != VALID_ROLE_ID:
+                return jsonify({'error': 'User ID/Role invalide'}), 400
+            
+            if not data.get('license', '').startswith('license:'):
+                return jsonify({'error': 'Format de license invalide'}), 400
+            
+            # Charger les logs existantes
+            logs = load_json(TEST_LOGS_FILE, [])
+            
+            # Créer la nouvelle log
+            new_log = {
+                'id': int(time.time() * 1000),
+                'type': data.get('type'),
+                'societe': data.get('societe'),
+                'joueur': data.get('joueur'),
+                'employee': data.get('employee'),
+                'license': data.get('license'),
+                'userId': data.get('userId'),
+                'channelId': data.get('channelId'),
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            }
+            
+            # Ajouter les champs spécifiques aux ventes
+            if data.get('type') == 'vente':
+                new_log.update({
+                    'montant': int(data.get('montant', 0)),
+                    'ventes': int(data.get('ventes', 1)),
+                    'periode': int(data.get('periode', 0)),
+                    'origine': data.get('origine', 'addon_account'),
+                })
+            
+            logs.insert(0, new_log)
+            
+            # Sauvegarder
+            if save_json(TEST_LOGS_FILE, logs):
+                return jsonify({'status': 'success', 'log': new_log}), 201
+            else:
+                return jsonify({'error': 'Erreur lors de la sauvegarde'}), 500
+        
+        elif request.method == 'DELETE':
+            # Supprimer une log
+            log_id = request.args.get('id')
+            if not log_id:
+                return jsonify({'error': 'ID requis'}), 400
+            
+            logs = load_json(TEST_LOGS_FILE, [])
+            logs = [log for log in logs if log.get('id') != int(log_id)]
+            
+            if save_json(TEST_LOGS_FILE, logs):
+                return jsonify({'status': 'success'})
+            else:
+                return jsonify({'error': 'Erreur lors de la sauvegarde'}), 500
+
+    @web_app.route('/api/test/stats')
+    def api_test_stats():
+        """Statistiques des logs de test"""
+        logs = load_json(TEST_LOGS_FILE, [])
+        valid_logs = [log for log in logs if log.get('channelId') == VALID_CHANNEL_ID]
+        
+        total_ventes = len([l for l in valid_logs if l.get('type') == 'vente'])
+        total_services = len([l for l in valid_logs if l.get('type') in ['prise_service', 'fin_service']])
+        montant_total = sum(l.get('montant', 0) for l in valid_logs if l.get('type') == 'vente')
+        
+        return jsonify({
+            'total_logs': len(valid_logs),
+            'total_ventes': total_ventes,
+            'total_services': total_services,
+            'montant_total': montant_total,
+            'logs_invalides': len(logs) - len(valid_logs)
+        })
+
+    @web_app.route('/api/test/clear', methods=['POST'])
+    def api_test_clear():
+        """Effacer toutes les logs de test (démo seulement)"""
+        if save_json(TEST_LOGS_FILE, []):
+            return jsonify({'status': 'success', 'message': 'Toutes les logs ont été effacées'})
+        else:
+            return jsonify({'error': 'Erreur lors de la suppression'}), 500
+
+    # ============ FIN DES ROUTES DE TEST ============
+
     def run_web():
         port = int(os.environ.get('PORT', 8080))
         web_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
