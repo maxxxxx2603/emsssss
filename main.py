@@ -8100,7 +8100,9 @@ async def _handle_esx_society_message(message):
         return  # Pas d'embed, rien à faire
 
     for embed in message.embeds:
+        print(f"[ESX] embed title='{embed.title}' fields={[f.name for f in embed.fields]}")
         parsed, error = _parse_esx_embed(embed)
+        print(f"[ESX] parsed={parsed is not None} error={error}")
 
         if error or parsed is None:
             # Signaler l'erreur
