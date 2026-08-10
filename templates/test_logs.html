@@ -125,9 +125,21 @@ body{background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSyst
 .rc-info{flex:1;min-width:0}
 .rc-nom{font-weight:600;font-size:14px;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rc-lic{font-size:10px;color:var(--t3);font-family:'SF Mono',ui-monospace,monospace;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Mini barre de progression */
+.rc-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:6px;overflow:hidden}
+.rc-bar-fill{height:100%;border-radius:2px;transition:width .4s ease}
 .rc-num{text-align:right;flex-shrink:0}
-.rc-total{font-size:28px;font-weight:800;color:var(--green);line-height:1;letter-spacing:-1px}
+.rc-total{font-size:28px;font-weight:800;line-height:1;letter-spacing:-1px}
 .rc-rlbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+/* Bouton set total inline */
+.rc-set-form{display:none;align-items:center;gap:5px;padding:8px 14px;border-top:0.5px solid var(--bdr);background:rgba(10,10,12,.3)}
+.rc-set-form.open{display:flex}
+.rc-set-input{flex:1;background:var(--bg2);border:0.5px solid var(--bdr2);border-radius:6px;padding:6px 8px;color:var(--t1);font-size:13px;font-family:inherit;outline:none}
+.rc-set-input:focus{border-color:rgba(255,59,48,.5)}
+.rc-set-btn{border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:rgba(255,59,48,.15);color:var(--red);border:0.5px solid rgba(255,59,48,.3)}
+.rc-set-btn:hover{background:rgba(255,59,48,.25)}
+.rc-set-cancel{font-size:11px;color:var(--t3);cursor:pointer;padding:0 4px}
+.rc-set-cancel:hover{color:var(--t1)}
 .rc-arr{color:var(--t3);font-size:10px;margin-left:2px;transition:transform .2s;flex-shrink:0}
 .rc-head.open .rc-arr{transform:rotate(90deg)}
 
@@ -336,20 +348,44 @@ function renderReas(){
   aLogs.filter(function(l){return l.type==='vente'||l.type==='vente_importante';}).forEach(function(l){
     var k=l.license||'';if(!byLic[k])byLic[k]=[];byLic[k].push(l);
   });
+  var QUOTA=100;
   c.innerHTML=items.map(function(e){
     var lic=e.license||'';
     var vs=byLic[lic]||[];
     var uid='r'+lic.replace(/[^a-z0-9]/gi,'');
     var isOpen=openUids.has(uid);
+    // Barre de progression
+    var pct=Math.min(100,Math.round((e.reas/QUOTA)*100));
+    var barColor=e.reas>=QUOTA?'var(--green)':'var(--orange)';
+    var totalColor=e.reas>=QUOTA?'var(--green)':'var(--orange)';
     var rows=vs.slice(0,30).map(function(l){
       return '<div class="rdd"><span class="rdd-t">'+esc(l.timestamp||'')+'</span><span class="rdd-type">'+(l.type==='vente_importante'?'&#128176; Importante':'&#128230; Vente')+'</span><span class="rdd-money">'+fm(l.montant)+'</span></div>';
     }).join('');
     if(!rows)rows='<div style="font-size:11px;color:var(--t3);padding:4px 0">Aucun d&eacute;tail disponible</div>';
+    var sfid='sf'+uid;
     return '<div class="rc"><div class="rc-head'+(isOpen?' open':'')+'" onclick="tog(\''+uid+'\')" id="h'+uid+'">'
-      +'<div class="rc-info"><div class="rc-nom">'+esc(e.nom||lic)+'</div>'+(lic?'<div class="rc-lic">'+esc(lic)+'</div>':'')+'</div>'
-      +'<div class="rc-num"><div class="rc-total">'+e.reas+'</div><div class="rc-rlbl">r&eacute;as</div></div>'
-      +'<span class="rc-arr">&#9654;</span>'
-      +'</div><div class="rc-detail'+(isOpen?' open':'')+'" id="'+uid+'">'+rows+'</div></div>';
+      +'<div class="rc-info">'
+        +'<div class="rc-nom">'+esc(e.nom||lic)+'</div>'
+        +(lic?'<div class="rc-lic">'+esc(lic)+'</div>':'')
+        +'<div class="rc-bar"><div class="rc-bar-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
+      +'</div>'
+      +'<div class="rc-num" style="margin-left:10px">'
+        +'<div class="rc-total" style="color:'+totalColor+'">'+e.reas+'</div>'
+        +'<div class="rc-rlbl">/ '+QUOTA+' r&eacute;as</div>'
+        +'<div style="font-size:9px;color:var(--t3);margin-top:2px">'+pct+'%</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:4px;margin-left:8px;flex-shrink:0">'
+        +'<span class="rc-arr">&#9654;</span>'
+        +'<span onclick="event.stopPropagation();toggleSet(\''+sfid+'\')" style="font-size:9px;color:var(--t3);cursor:pointer;text-align:center;background:var(--bg2);border-radius:4px;padding:2px 4px;border:0.5px solid var(--bdr)">&#9998;</span>'
+      +'</div>'
+      +'</div>'
+      +'<div class="rc-set-form" id="'+sfid+'">'
+        +'<span style="font-size:11px;color:var(--t2);white-space:nowrap">D&eacute;finir total :</span>'
+        +'<input type="number" class="rc-set-input" id="si'+uid+'" placeholder="'+e.reas+'" min="0" />'
+        +'<button class="rc-set-btn" onclick="setTotal(\''+lic+'\',\''+esc(e.nom||'')+'\',\''+sfid+'\',\''+uid+'\')">Appliquer</button>'
+        +'<span class="rc-set-cancel" onclick="toggleSet(\''+sfid+'\')">Annuler</span>'
+      +'</div>'
+      +'<div class="rc-detail'+(isOpen?' open':'')+'" id="'+uid+'">'+rows+'</div></div>';
   }).join('');
 }
 function tog(uid){
@@ -357,6 +393,10 @@ function tog(uid){
   var o=d.classList.contains('open');
   d.classList.toggle('open',!o);h.classList.toggle('open',!o);
   if(!o) openUids.add(uid); else openUids.delete(uid);
+}
+function toggleSet(sfid){
+  var f=document.getElementById(sfid);
+  f.classList.toggle('open');
 }
 
 function renderSv(){
@@ -405,6 +445,15 @@ function renderMan(){
 }
 
 async function delLog(id){if(!confirm('Supprimer ?'))return;var r=await fetch('/api/test/logs?id='+id,{method:'DELETE'});if(r.ok){toast('Supprim\u00e9','ok');loadLogs();loadStats();}else toast('Erreur','err');}
+
+async function setTotal(lic,nom,sfid,uid){
+  var val=parseInt(document.getElementById('si'+uid).value);
+  if(isNaN(val)||val<0){toast('Valeur invalide','err');return;}
+  var r=await fetch('/api/test/rea/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({license:lic,nom:nom,total:val})});
+  var d=await r.json();
+  if(r.ok){toast('Total d\u00e9fini : '+val+' r\u00e9as','ok');document.getElementById(sfid).classList.remove('open');loadRea();loadStats();}
+  else toast(d.error||'Erreur','err');
+}
 async function reaAct(a){
   var nom=g('f-nom').trim(),lic=g('f-lic').trim(),n=parseInt(g('f-n'))||1,note=g('f-note').trim();
   if(!nom&&!lic){toast('Nom ou license requis','err');return;}

@@ -12314,6 +12314,32 @@ La direction des EMS"""
         save_json(_wt_rea, rea_data)
         return jsonify({'status': 'success'})
 
+    @web_app.route('/api/test/rea/set', methods=['POST'])
+    def api_test_rea_set():
+        """Définir directement le total de réas d'un joueur (écrase l'ancien)."""
+        data = request.get_json(silent=True) or {}
+        key = (data.get('license') or data.get('nom') or '').strip()
+        total = int(data.get('total', 0))
+        if not key:
+            return jsonify({'error': 'License ou nom requis'}), 400
+        if total < 0:
+            return jsonify({'error': 'Total invalide'}), 400
+        rea_data = load_json(_wt_rea, {})
+        if key not in rea_data:
+            rea_data[key] = {'nom': data.get('nom', key), 'license': data.get('license', ''), 'reas': 0, 'history': []}
+        ancien = rea_data[key]['reas']
+        rea_data[key]['reas'] = total
+        if data.get('nom'): rea_data[key]['nom'] = data['nom']
+        if data.get('license'): rea_data[key]['license'] = data['license']
+        rea_data[key]['history'].insert(0, {
+            'action': 'set',
+            'amount': total,
+            'note': f"Définition manuelle (ancien: {ancien})",
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        })
+        save_json(_wt_rea, rea_data)
+        return jsonify({'status': 'success', 'reas': total})
+
     @web_app.route('/api/test/reset-week', methods=['POST'])
     def api_test_reset_week():
         """Marque un reset hebdomadaire : archive les réas et repart à zéro."""
