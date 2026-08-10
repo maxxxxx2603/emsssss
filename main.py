@@ -7989,8 +7989,11 @@ ESX_SOCIETY_CHANNEL_ID = 1267921697420345424
 ESX_SOCIETY_ROLE_ID = 838102445095256068
 
 # Fichiers partagés avec Flask (même process, même DATA_DIR)
-_TEST_LOGS_FILE  = os.path.join(DATA_DIR, 'test_logs.json')
+_TEST_LOGS_FILE   = os.path.join(DATA_DIR, 'test_logs.json')
 _TEST_ERRORS_FILE = os.path.join(DATA_DIR, 'test_errors.json')
+_TEST_REA_FILE    = os.path.join(DATA_DIR, 'test_rea.json')
+_TEST_MAP_FILE    = os.path.join(DATA_DIR, 'test_license_map.json')  # license → nom réel
+_TEST_META_FILE   = os.path.join(DATA_DIR, 'test_meta.json')         # last_reset, etc.
 _TEST_MAX = 500
 _test_lock = __import__('threading').Lock()
 
@@ -8092,32 +8095,68 @@ def _ingest_log(endpoint_path, payload):
         print(f"[ESX_INGEST] Erreur écriture {endpoint_path}: {e}")
 
 
+def _test_read(filepath, default):
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return default() if callable(default) else default
+
+
+def _test_write(filepath, data):
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[ESX] Erreur écriture {filepath}: {e}")
+
+
 async def _handle_esx_society_message(message):
     """Capture et parse les messages esx_society dans le channel logs."""
     print(f"[ESX] msg reçu — webhook={getattr(message,'webhook_id',None)} embeds={len(message.embeds)} author={message.author}")
     if not message.embeds:
-        print(f"[ESX] aucun embed, ignoré")
-        return  # Pas d'embed, rien à faire
+        return
 
     for embed in message.embeds:
         print(f"[ESX] embed title='{embed.title}' fields={[f.name for f in embed.fields]}")
         parsed, error = _parse_esx_embed(embed)
         print(f"[ESX] parsed={parsed is not None} error={error}")
 
+        ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        raw_fields = {f.name: f.value for f in embed.fields}
+
         if error or parsed is None:
-            # Signaler l'erreur
-            raw_fields = {f.name: f.value for f in embed.fields}
             _ingest_log("/api/test/errors/ingest", {
                 "reason": error or "Parse échoué",
                 "raw_title": embed.title or "",
                 "raw_fields": raw_fields,
                 "joueur": raw_fields.get("Joueur", ""),
-                "license": raw_fields.get("Identifiant", ""),
-                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                "license": raw_fields.get("Identifiant", "").strip("`").strip(),
+                "timestamp": ts,
             })
             continue
 
-        # Vérification du rôle : chercher le membre Discord par nom de joueur
+        parsed["id"] = int(time.time() * 1000)
+        parsed["timestamp"] = ts
+        parsed["source"] = "discord_bot"
+        parsed["role_ok"] = False  # sera mis à jour ci-dessous
+
+        license_key = parsed.get("license", "")
+
+        # ── PDS : mettre à jour le mapping license → nom réel ──
+        if parsed["type"] == "prise_service" and license_key:
+            with _test_lock:
+                lmap = _test_read(_TEST_MAP_FILE, {})
+                lmap[license_key] = {
+                    "joueur":   parsed.get("joueur", ""),
+                    "employee": parsed.get("employee", ""),
+                    "nom":      parsed.get("employee") or parsed.get("joueur", ""),
+                    "last_pds": ts,
+                }
+                _test_write(_TEST_MAP_FILE, lmap)
+            print(f"[ESX] License map MAJ: {license_key} → {lmap[license_key]['nom']}")
+
+        # ── Vérification du rôle Discord ──
         guild = message.guild
         role_ok = False
         if guild:
@@ -8128,50 +8167,50 @@ async def _handle_esx_society_message(message):
                     if member.display_name.lower() == joueur_lower or member.name.lower() == joueur_lower:
                         role_ok = True
                         break
-
         parsed["role_ok"] = role_ok
-        parsed["id"] = int(time.time() * 1000)
-        parsed["timestamp"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        parsed["source"] = "discord_bot"
 
         if not role_ok:
-            raw_fields = {f.name: f.value for f in embed.fields}
             _ingest_log("/api/test/errors/ingest", {
-                "reason": f"Rôle EMS non trouvé pour le joueur '{parsed['joueur']}' (license: {parsed['license']})",
+                "reason": f"Rôle EMS non trouvé pour '{parsed['joueur']}' ({license_key})",
                 "raw_title": embed.title or "",
                 "raw_fields": raw_fields,
                 "joueur": parsed["joueur"],
-                "license": parsed["license"],
-                "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                "license": license_key,
+                "timestamp": ts,
             })
+
+        # Stocker le nom réel depuis le mapping dans la log
+        with _test_lock:
+            lmap = _test_read(_TEST_MAP_FILE, {})
+        if license_key in lmap:
+            parsed["nom_reel"] = lmap[license_key].get("nom", parsed.get("joueur", ""))
+        else:
+            parsed["nom_reel"] = parsed.get("joueur", "")
 
         _ingest_log("/api/test/logs/ingest", parsed)
 
-        # Auto-comptage réas : chaque vente à 100 000$ = 1 réa
-        if parsed.get("type") in ("vente", "vente_importante") and parsed.get("montant", 0) == 100000:
-            joueur = parsed.get("joueur", "").strip()
-            if joueur:
-                rea_file = os.path.join(DATA_DIR, 'test_rea.json')
-                with _test_lock:
-                    try:
-                        with open(rea_file, 'r', encoding='utf-8') as f:
-                            rea_data = json.load(f)
-                    except Exception:
-                        rea_data = {}
-                    key = joueur.lower()
-                    if key not in rea_data:
-                        rea_data[key] = {'joueur': joueur, 'license': parsed.get('license', ''), 'reas': 0, 'history': []}
-                    rea_data[key]['reas'] += 1
-                    rea_data[key]['history'].insert(0, {
-                        'action': 'add',
-                        'amount': 1,
-                        'note': f"Auto ({parsed.get('type', 'vente')}) — {parsed.get('raw_title', '')}",
-                        'timestamp': parsed.get('timestamp', ''),
-                    })
-                    if parsed.get('license'):
-                        rea_data[key]['license'] = parsed['license']
-                    with open(rea_file, 'w', encoding='utf-8') as f:
-                        json.dump(rea_data, f, ensure_ascii=False, indent=2)
+        # ── Auto-comptage réas : vente 100k = +1 réa ──
+        if parsed.get("type") in ("vente", "vente_importante") and parsed.get("montant", 0) == 100000 and license_key:
+            with _test_lock:
+                lmap2 = _test_read(_TEST_MAP_FILE, {})
+                nom = lmap2.get(license_key, {}).get("nom") or parsed.get("joueur", license_key)
+                rea_data = _test_read(_TEST_REA_FILE, {})
+                # Clé = license pour unicité
+                if license_key not in rea_data:
+                    rea_data[license_key] = {"nom": nom, "license": license_key, "reas": 0, "history": []}
+                else:
+                    # Mettre à jour le nom si on l'a maintenant
+                    if nom:
+                        rea_data[license_key]["nom"] = nom
+                rea_data[license_key]["reas"] += 1
+                rea_data[license_key]["history"].insert(0, {
+                    "action": "add",
+                    "amount": 1,
+                    "note": f"Auto — {parsed.get('type')} {parsed.get('raw_title','')}",
+                    "timestamp": ts,
+                })
+                _test_write(_TEST_REA_FILE, rea_data)
+            print(f"[ESX] +1 réa pour {nom} ({license_key})")
 
 
 @bot.event
@@ -12198,27 +12237,14 @@ La direction des EMS"""
     # ============ ROUTES DE TEST - GESTION DES LOGS ============
 
     # ============ ROUTES /test ============
-    _wt_logs   = os.path.join(DATA_DIR, 'test_logs.json')
-    _wt_errors = os.path.join(DATA_DIR, 'test_errors.json')
-    _wt_rea    = os.path.join(DATA_DIR, 'test_rea.json')
+    _wt_logs   = _TEST_LOGS_FILE
+    _wt_errors = _TEST_ERRORS_FILE
+    _wt_rea    = _TEST_REA_FILE
+    _wt_map    = _TEST_MAP_FILE
+    _wt_meta   = _TEST_META_FILE
 
-    def _wt_load(filepath, default):
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception:
-            return default() if callable(default) else default
-
-    def _wt_save(filepath, data):
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
-
-    # Alias pour compatibilité avec le code des routes
-    load_json = _wt_load
-    save_json = _wt_save
+    load_json = _test_read
+    save_json = _test_write
 
     @web_app.route('/test')
     def test_logs_page():
@@ -12248,6 +12274,10 @@ La direction des EMS"""
         save_json(_wt_errors, [])
         return jsonify({'status': 'success'})
 
+    @web_app.route('/api/test/license-map')
+    def api_test_license_map():
+        return jsonify({'map': load_json(_wt_map, {})})
+
     @web_app.route('/api/test/rea', methods=['GET'])
     def api_test_rea_list():
         return jsonify({'rea': load_json(_wt_rea, {})})
@@ -12255,31 +12285,34 @@ La direction des EMS"""
     @web_app.route('/api/test/rea/add', methods=['POST'])
     def api_test_rea_add():
         data = request.get_json(silent=True) or {}
-        joueur = (data.get('joueur') or '').strip()
-        if not joueur:
-            return jsonify({'error': 'Joueur requis'}), 400
+        nom = (data.get('nom') or data.get('joueur') or '').strip()
+        license_key = (data.get('license') or '').strip()
+        if not nom and not license_key:
+            return jsonify({'error': 'Nom ou license requis'}), 400
         amount = max(1, int(data.get('amount', 1)))
+        key = license_key or nom.lower()
         rea_data = load_json(_wt_rea, {})
-        key = joueur.lower()
         if key not in rea_data:
-            rea_data[key] = {'joueur': joueur, 'license': data.get('license', ''), 'reas': 0, 'history': []}
+            rea_data[key] = {'nom': nom, 'license': license_key, 'reas': 0, 'history': []}
+        if nom: rea_data[key]['nom'] = nom
+        if license_key: rea_data[key]['license'] = license_key
         rea_data[key]['reas'] += amount
         rea_data[key]['history'].insert(0, {'action': 'add', 'amount': amount, 'note': data.get('note', ''), 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
-        if data.get('license'):
-            rea_data[key]['license'] = data['license']
         save_json(_wt_rea, rea_data)
         return jsonify({'status': 'success', 'reas': rea_data[key]['reas']})
 
     @web_app.route('/api/test/rea/remove', methods=['POST'])
     def api_test_rea_remove():
         data = request.get_json(silent=True) or {}
-        joueur = (data.get('joueur') or '').strip()
-        if not joueur:
-            return jsonify({'error': 'Joueur requis'}), 400
+        key = (data.get('license') or data.get('joueur') or data.get('nom') or '').strip()
+        if not key:
+            return jsonify({'error': 'License ou nom requis'}), 400
         amount = max(1, int(data.get('amount', 1)))
         rea_data = load_json(_wt_rea, {})
-        key = joueur.lower()
+        # Chercher par license d'abord, puis par nom
         if key not in rea_data:
+            key = next((k for k, v in rea_data.items() if v.get('nom','').lower() == key.lower()), None)
+        if not key or key not in rea_data:
             return jsonify({'error': 'Joueur introuvable'}), 404
         rea_data[key]['reas'] = max(0, rea_data[key]['reas'] - amount)
         rea_data[key]['history'].insert(0, {'action': 'remove', 'amount': amount, 'note': data.get('note', ''), 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
@@ -12289,27 +12322,55 @@ La direction des EMS"""
     @web_app.route('/api/test/rea/delete', methods=['POST'])
     def api_test_rea_delete():
         data = request.get_json(silent=True) or {}
-        joueur = (data.get('joueur') or '').strip()
+        key = (data.get('license') or data.get('joueur') or data.get('nom') or '').strip()
         rea_data = load_json(_wt_rea, {})
-        rea_data.pop(joueur.lower(), None)
+        if key in rea_data:
+            del rea_data[key]
+        else:
+            key = next((k for k, v in rea_data.items() if v.get('nom','').lower() == key.lower()), None)
+            if key:
+                del rea_data[key]
         save_json(_wt_rea, rea_data)
         return jsonify({'status': 'success'})
 
+    @web_app.route('/api/test/reset-week', methods=['POST'])
+    def api_test_reset_week():
+        """Marque un reset hebdomadaire : archive les réas et repart à zéro."""
+        ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        rea_data = load_json(_wt_rea, {})
+        # Archive dans meta
+        meta = load_json(_wt_meta, {})
+        meta['last_reset'] = ts
+        meta['archived_reas'] = meta.get('archived_reas', [])
+        if rea_data:
+            meta['archived_reas'].insert(0, {'reset_at': ts, 'reas': dict(rea_data)})
+            meta['archived_reas'] = meta['archived_reas'][:10]  # garder 10 resets max
+        save_json(_wt_meta, meta)
+        save_json(_wt_rea, {})
+        return jsonify({'status': 'success', 'reset_at': ts})
+
+    @web_app.route('/api/test/meta')
+    def api_test_meta():
+        meta = load_json(_wt_meta, {})
+        return jsonify({'meta': meta})
+
     @web_app.route('/api/test/stats')
     def api_test_stats():
-        logs   = load_json(_wt_logs, [])
-        errors = load_json(_wt_errors, [])
+        logs     = load_json(_wt_logs, [])
+        errors   = load_json(_wt_errors, [])
         rea_data = load_json(_wt_rea, {})
-        ventes = [l for l in logs if l.get('type') in ('vente', 'vente_importante')]
+        meta     = load_json(_wt_meta, {})
+        ventes   = [l for l in logs if l.get('type') in ('vente', 'vente_importante')]
         return jsonify({
-            'total_logs': len(logs),
-            'total_ventes': len(ventes),
+            'total_logs':         len(logs),
+            'total_ventes':       len(ventes),
             'total_services_in':  len([l for l in logs if l.get('type') == 'prise_service']),
             'total_services_out': len([l for l in logs if l.get('type') == 'fin_service']),
-            'montant_total': sum(l.get('montant', 0) for l in ventes),
-            'total_errors': len(errors),
-            'total_reas_manual': sum(v.get('reas', 0) for v in rea_data.values()),
-            'joueurs_rea': len(rea_data),
+            'montant_total':      sum(l.get('montant', 0) for l in ventes),
+            'total_errors':       len(errors),
+            'total_reas':         sum(v.get('reas', 0) for v in rea_data.values()),
+            'joueurs_rea':        len(rea_data),
+            'last_reset':         meta.get('last_reset', '—'),
         })
 
     @web_app.route('/api/test/clear', methods=['POST'])
@@ -12318,6 +12379,7 @@ La direction des EMS"""
         if target in ('logs', 'all'):   save_json(_wt_logs, [])
         if target in ('errors', 'all'): save_json(_wt_errors, [])
         if target in ('rea', 'all'):    save_json(_wt_rea, {})
+        if target == 'all':             save_json(_wt_map, {})
         return jsonify({'status': 'success', 'cleared': target})
 
     # ============ FIN DES ROUTES DE TEST ============
