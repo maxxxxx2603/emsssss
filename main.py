@@ -14,7 +14,7 @@ import re as _re
 import math
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
-from flask import Flask, jsonify, send_file, request
+from flask import Flask, jsonify, send_file, request, render_template
 from io import BytesIO
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -12161,112 +12161,110 @@ La direction des EMS"""
 
     # ============ ROUTES DE TEST - GESTION DES LOGS ============
     
-    TEST_LOGS_FILE = os.path.join(DATA_DIR, 'test_logs.json')
-    VALID_CHANNEL_ID = '1267921697420345424'
-    VALID_ROLE_ID = '838102445095256068'
+    # ============ ROUTES /test ============
+    _wt_logs   = os.path.join(DATA_DIR, 'test_logs.json')
+    _wt_errors = os.path.join(DATA_DIR, 'test_errors.json')
+    _wt_rea    = os.path.join(DATA_DIR, 'test_rea.json')
 
     @web_app.route('/test')
     def test_logs_page():
-        """Page de test pour la gestion des logs"""
         return render_template('test_logs.html')
 
-    @web_app.route('/api/test/logs', methods=['GET', 'POST', 'DELETE'])
+    @web_app.route('/api/test/logs', methods=['GET', 'DELETE'])
     def api_test_logs():
-        """API pour gérer les logs de test"""
-        
         if request.method == 'GET':
-            # Récupérer toutes les logs
-            logs = load_json(TEST_LOGS_FILE, [])
-            # Filtrer par channel valide
-            valid_logs = [log for log in logs if log.get('channelId') == VALID_CHANNEL_ID]
-            return jsonify({'logs': valid_logs})
-        
-        elif request.method == 'POST':
-            # Ajouter une nouvelle log
-            data = request.get_json()
-            
-            # Validations strictes
-            if data.get('channelId') != VALID_CHANNEL_ID:
-                return jsonify({'error': 'Channel ID invalide'}), 400
-            
-            if data.get('userId') != VALID_ROLE_ID:
-                return jsonify({'error': 'User ID/Role invalide'}), 400
-            
-            if not data.get('license', '').startswith('license:'):
-                return jsonify({'error': 'Format de license invalide'}), 400
-            
-            # Charger les logs existantes
-            logs = load_json(TEST_LOGS_FILE, [])
-            
-            # Créer la nouvelle log
-            new_log = {
-                'id': int(time.time() * 1000),
-                'type': data.get('type'),
-                'societe': data.get('societe'),
-                'joueur': data.get('joueur'),
-                'employee': data.get('employee'),
-                'license': data.get('license'),
-                'userId': data.get('userId'),
-                'channelId': data.get('channelId'),
-                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            }
-            
-            # Ajouter les champs spécifiques aux ventes
-            if data.get('type') == 'vente':
-                new_log.update({
-                    'montant': int(data.get('montant', 0)),
-                    'ventes': int(data.get('ventes', 1)),
-                    'periode': int(data.get('periode', 0)),
-                    'origine': data.get('origine', 'addon_account'),
-                })
-            
-            logs.insert(0, new_log)
-            
-            # Sauvegarder
-            if save_json(TEST_LOGS_FILE, logs):
-                return jsonify({'status': 'success', 'log': new_log}), 201
-            else:
-                return jsonify({'error': 'Erreur lors de la sauvegarde'}), 500
-        
-        elif request.method == 'DELETE':
-            # Supprimer une log
-            log_id = request.args.get('id')
-            if not log_id:
-                return jsonify({'error': 'ID requis'}), 400
-            
-            logs = load_json(TEST_LOGS_FILE, [])
-            logs = [log for log in logs if log.get('id') != int(log_id)]
-            
-            if save_json(TEST_LOGS_FILE, logs):
-                return jsonify({'status': 'success'})
-            else:
-                return jsonify({'error': 'Erreur lors de la sauvegarde'}), 500
+            logs = load_json(_wt_logs, [])
+            log_type = request.args.get('type')
+            if log_type:
+                logs = [l for l in logs if l.get('type') == log_type]
+            return jsonify({'logs': logs, 'total': len(logs)})
+        log_id = request.args.get('id')
+        if not log_id:
+            return jsonify({'error': 'ID requis'}), 400
+        logs = load_json(_wt_logs, [])
+        logs = [l for l in logs if str(l.get('id')) != str(log_id)]
+        save_json(_wt_logs, logs)
+        return jsonify({'status': 'success'})
+
+    @web_app.route('/api/test/errors', methods=['GET', 'DELETE'])
+    def api_test_errors():
+        if request.method == 'GET':
+            errors = load_json(_wt_errors, [])
+            return jsonify({'errors': errors, 'total': len(errors)})
+        save_json(_wt_errors, [])
+        return jsonify({'status': 'success'})
+
+    @web_app.route('/api/test/rea', methods=['GET'])
+    def api_test_rea_list():
+        return jsonify({'rea': load_json(_wt_rea, {})})
+
+    @web_app.route('/api/test/rea/add', methods=['POST'])
+    def api_test_rea_add():
+        data = request.get_json(silent=True) or {}
+        joueur = (data.get('joueur') or '').strip()
+        if not joueur:
+            return jsonify({'error': 'Joueur requis'}), 400
+        amount = max(1, int(data.get('amount', 1)))
+        rea_data = load_json(_wt_rea, {})
+        key = joueur.lower()
+        if key not in rea_data:
+            rea_data[key] = {'joueur': joueur, 'license': data.get('license', ''), 'reas': 0, 'history': []}
+        rea_data[key]['reas'] += amount
+        rea_data[key]['history'].insert(0, {'action': 'add', 'amount': amount, 'note': data.get('note', ''), 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+        if data.get('license'):
+            rea_data[key]['license'] = data['license']
+        save_json(_wt_rea, rea_data)
+        return jsonify({'status': 'success', 'reas': rea_data[key]['reas']})
+
+    @web_app.route('/api/test/rea/remove', methods=['POST'])
+    def api_test_rea_remove():
+        data = request.get_json(silent=True) or {}
+        joueur = (data.get('joueur') or '').strip()
+        if not joueur:
+            return jsonify({'error': 'Joueur requis'}), 400
+        amount = max(1, int(data.get('amount', 1)))
+        rea_data = load_json(_wt_rea, {})
+        key = joueur.lower()
+        if key not in rea_data:
+            return jsonify({'error': 'Joueur introuvable'}), 404
+        rea_data[key]['reas'] = max(0, rea_data[key]['reas'] - amount)
+        rea_data[key]['history'].insert(0, {'action': 'remove', 'amount': amount, 'note': data.get('note', ''), 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')})
+        save_json(_wt_rea, rea_data)
+        return jsonify({'status': 'success', 'reas': rea_data[key]['reas']})
+
+    @web_app.route('/api/test/rea/delete', methods=['POST'])
+    def api_test_rea_delete():
+        data = request.get_json(silent=True) or {}
+        joueur = (data.get('joueur') or '').strip()
+        rea_data = load_json(_wt_rea, {})
+        rea_data.pop(joueur.lower(), None)
+        save_json(_wt_rea, rea_data)
+        return jsonify({'status': 'success'})
 
     @web_app.route('/api/test/stats')
     def api_test_stats():
-        """Statistiques des logs de test"""
-        logs = load_json(TEST_LOGS_FILE, [])
-        valid_logs = [log for log in logs if log.get('channelId') == VALID_CHANNEL_ID]
-        
-        total_ventes = len([l for l in valid_logs if l.get('type') == 'vente'])
-        total_services = len([l for l in valid_logs if l.get('type') in ['prise_service', 'fin_service']])
-        montant_total = sum(l.get('montant', 0) for l in valid_logs if l.get('type') == 'vente')
-        
+        logs   = load_json(_wt_logs, [])
+        errors = load_json(_wt_errors, [])
+        rea_data = load_json(_wt_rea, {})
+        ventes = [l for l in logs if l.get('type') in ('vente', 'vente_importante')]
         return jsonify({
-            'total_logs': len(valid_logs),
-            'total_ventes': total_ventes,
-            'total_services': total_services,
-            'montant_total': montant_total,
-            'logs_invalides': len(logs) - len(valid_logs)
+            'total_logs': len(logs),
+            'total_ventes': len(ventes),
+            'total_services_in':  len([l for l in logs if l.get('type') == 'prise_service']),
+            'total_services_out': len([l for l in logs if l.get('type') == 'fin_service']),
+            'montant_total': sum(l.get('montant', 0) for l in ventes),
+            'total_errors': len(errors),
+            'total_reas_manual': sum(v.get('reas', 0) for v in rea_data.values()),
+            'joueurs_rea': len(rea_data),
         })
 
     @web_app.route('/api/test/clear', methods=['POST'])
     def api_test_clear():
-        """Effacer toutes les logs de test (démo seulement)"""
-        if save_json(TEST_LOGS_FILE, []):
-            return jsonify({'status': 'success', 'message': 'Toutes les logs ont été effacées'})
-        else:
-            return jsonify({'error': 'Erreur lors de la suppression'}), 500
+        target = (request.get_json(silent=True) or {}).get('target', 'all')
+        if target in ('logs', 'all'):   save_json(_wt_logs, [])
+        if target in ('errors', 'all'): save_json(_wt_errors, [])
+        if target in ('rea', 'all'):    save_json(_wt_rea, {})
+        return jsonify({'status': 'success', 'cleared': target})
 
     # ============ FIN DES ROUTES DE TEST ============
 
