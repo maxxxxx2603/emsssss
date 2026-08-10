@@ -8094,7 +8094,9 @@ def _ingest_log(endpoint_path, payload):
 
 async def _handle_esx_society_message(message):
     """Capture et parse les messages esx_society dans le channel logs."""
+    print(f"[ESX] msg reçu — webhook={getattr(message,'webhook_id',None)} embeds={len(message.embeds)} author={message.author}")
     if not message.embeds:
+        print(f"[ESX] aucun embed, ignoré")
         return  # Pas d'embed, rien à faire
 
     for embed in message.embeds:
@@ -8174,10 +8176,13 @@ async def _handle_esx_society_message(message):
 async def on_message(message):
     """Handler principal des messages - comptage réas, taxi, burgershot"""
 
-    # --- CAPTURE LOGS ESX_SOCIETY (bot) AVANT le filtre bot ---
-    if message.author.bot and message.channel.id == ESX_SOCIETY_CHANNEL_ID:
+    # --- CAPTURE LOGS ESX_SOCIETY (webhook OU bot) ---
+    # esx_society envoie via webhook : webhook_id est défini, author.bot peut être False
+    _is_esx_channel = message.channel.id == ESX_SOCIETY_CHANNEL_ID
+    _is_webhook = getattr(message, 'webhook_id', None) is not None
+    _is_bot = message.author.bot
+    if _is_esx_channel and (_is_webhook or _is_bot):
         await _handle_esx_society_message(message)
-        # Ne pas return ici, continuer pour d'autres traitements si besoin
 
     # Ignorer les bots et les DM immédiatement (early exit O(1))
     if message.author.bot:
