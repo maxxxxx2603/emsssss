@@ -8171,27 +8171,40 @@ async def _handle_esx_society_message(message):
         _ingest_log("/api/test/logs/ingest", parsed)
 
         # ── Auto-comptage réas : chaque 100k = +1 réa (récap = montant/100k) ──
+        # Condition : la license doit être dans le map (= joueur a déjà fait une PDS)
         montant = parsed.get("montant", 0)
         nb_reas = montant // 100000  # 100k=1, 200k=2, etc.
         if parsed.get("type") in ("vente", "vente_importante") and nb_reas >= 1 and license_key:
             with _test_lock:
                 lmap2 = _test_read(_TEST_MAP_FILE, {})
-                nom = lmap2.get(license_key, {}).get("nom") or parsed.get("joueur", license_key)
-                rea_data = _test_read(_TEST_REA_FILE, {})
-                if license_key not in rea_data:
-                    rea_data[license_key] = {"nom": nom, "license": license_key, "reas": 0, "history": []}
+                if license_key not in lmap2:
+                    # Pas de PDS connue → on ignore et on log
+                    print(f"[ESX] Ignoré (pas de PDS) : {parsed.get('joueur')} ({license_key})")
+                    _ingest_log("/api/test/errors/ingest", {
+                        "reason": f"Vente ignorée — aucune PDS enregistrée pour cette license",
+                        "raw_title": parsed.get("raw_title", ""),
+                        "raw_fields": {},
+                        "joueur": parsed.get("joueur", ""),
+                        "license": license_key,
+                        "timestamp": ts,
+                    })
                 else:
-                    if nom:
-                        rea_data[license_key]["nom"] = nom
-                rea_data[license_key]["reas"] += nb_reas
-                rea_data[license_key]["history"].insert(0, {
-                    "action": "add",
-                    "amount": nb_reas,
-                    "note": f"Auto — {parsed.get('raw_title','')} ({montant:,}$)",
-                    "timestamp": ts,
-                })
-                _test_write(_TEST_REA_FILE, rea_data)
-            print(f"[ESX] +{nb_reas} réa(s) pour {nom} ({license_key})")
+                    nom = lmap2[license_key].get("nom") or parsed.get("joueur", license_key)
+                    rea_data = _test_read(_TEST_REA_FILE, {})
+                    if license_key not in rea_data:
+                        rea_data[license_key] = {"nom": nom, "license": license_key, "reas": 0, "history": []}
+                    else:
+                        if nom:
+                            rea_data[license_key]["nom"] = nom
+                    rea_data[license_key]["reas"] += nb_reas
+                    rea_data[license_key]["history"].insert(0, {
+                        "action": "add",
+                        "amount": nb_reas,
+                        "note": f"Auto — {parsed.get('raw_title','')} ({montant:,}$)",
+                        "timestamp": ts,
+                    })
+                    _test_write(_TEST_REA_FILE, rea_data)
+                    print(f"[ESX] +{nb_reas} réa(s) pour {nom} ({license_key})")
 
 
 @bot.event
