@@ -8138,7 +8138,7 @@ def _process_esx_sync(parsed, ts, is_error=False, error_payload=None):
                 "last_pds": ts,
             }
             _test_write(_TEST_MAP_FILE, lmap)
-        print(f"[ESX] License map MAJ: {license_key} → {lmap[license_key]['nom']}")
+        print(f"[ESX] PDS : {lmap[license_key]['nom']}")
 
     # Enrichir avec le nom réel
     with _test_lock:
@@ -8154,15 +8154,7 @@ def _process_esx_sync(parsed, ts, is_error=False, error_payload=None):
         with _test_lock:
             lmap2 = _test_read(_TEST_MAP_FILE, {})
             if license_key not in lmap2:
-                print(f"[ESX] Ignoré (pas de PDS) : {parsed.get('joueur')} ({license_key})")
-                _ingest_log("/api/test/errors/ingest", {
-                    "reason": "Vente ignorée — aucune PDS enregistrée pour cette license",
-                    "raw_title": parsed.get("raw_title", ""),
-                    "raw_fields": {},
-                    "joueur": parsed.get("joueur", ""),
-                    "license": license_key,
-                    "timestamp": ts,
-                })
+                print(f"[ESX] Ignoré (pas de PDS) : {parsed.get('joueur')}")
             else:
                 nom = lmap2[license_key].get("nom") or parsed.get("joueur", license_key)
                 rea_data = _test_read(_TEST_REA_FILE, {})
@@ -8178,26 +8170,29 @@ def _process_esx_sync(parsed, ts, is_error=False, error_payload=None):
                     "timestamp": ts,
                 })
                 _test_write(_TEST_REA_FILE, rea_data)
-                print(f"[ESX] +{nb_reas} réa(s) pour {nom} ({license_key})")
+                print(f"[ESX] +{nb_reas} réa(s) pour {nom}")
 
+
+# Titres esx_society connus mais non traités — silence total
+_ESX_IGNORED_TITLES = {"facture refusée", "licenciement", "embauche", "promotion", "démission", "sanction"}
 
 async def _handle_esx_society_message(message):
     """Capture et parse les messages esx_society dans le channel logs."""
-    print(f"[ESX] msg reçu — webhook={getattr(message,'webhook_id',None)} embeds={len(message.embeds)} author={message.author}")
     if not message.embeds:
         return
 
     loop = asyncio.get_event_loop()
 
     for embed in message.embeds:
-        print(f"[ESX] embed title='{embed.title}' fields={[f.name for f in embed.fields]}")
         parsed, error = _parse_esx_embed(embed)
-        print(f"[ESX] parsed={parsed is not None} error={error}")
-
         ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         raw_fields = {f.name: f.value for f in embed.fields}
 
         if error or parsed is None:
+            # Ignorer silencieusement les titres connus mais non traités
+            title_low = (embed.title or "").lower()
+            if any(t in title_low for t in _ESX_IGNORED_TITLES):
+                continue
             err_payload = {
                 "reason": error or "Parse échoué",
                 "raw_title": embed.title or "",
@@ -9468,7 +9463,7 @@ async def refresh_service_message():
             service_status_message_id = None
             save_service_message_id(None)
     except Exception as e:
-        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur refresh PDS: {e}")
+        if e: print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur refresh PDS: {repr(e)}")
 
 @refresh_service_message.before_loop
 async def before_refresh_service():
@@ -9533,8 +9528,9 @@ async def update_descriptions_background():
                 await asyncio.sleep(35)
                 
             except Exception as e:
-                print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur update {key}: {e}")
-                await asyncio.sleep(60)  # Délai plus long en cas d'erreur
+                if e:
+                    print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur update {key}: {repr(e)}")
+                await asyncio.sleep(60)
         
         if updated_count > 0:
             print(f"[{now_paris().strftime('%H:%M:%S')}] 🔄 Descriptions: {updated_count} modifiés, {skipped_count} inchangés")
