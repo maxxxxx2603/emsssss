@@ -8734,13 +8734,16 @@ class ServiceView(discord.ui.View):
             except:
                 pass
         
-        await interaction.response.send_message(
-            f"✅ **Service commencé !** 🟢\n\n"
-            f"Tu peux maintenant envoyer tes réas.\n"
-            f"⏱️ Fin de service auto après **30 min** sans réa.\n"
-            f"Clique sur **🔴 Fin de Service** pour terminer.",
-            ephemeral=True
-        )
+        try:
+            await interaction.response.send_message(
+                f"✅ **Service commencé !** 🟢\n\n"
+                f"Tu peux maintenant envoyer tes réas.\n"
+                f"⏱️ Fin de service auto après **30 min** sans réa.\n"
+                f"Clique sur **🔴 Fin de Service** pour terminer.",
+                ephemeral=True
+            )
+        except (discord.errors.NotFound, discord.errors.InteractionResponded, asyncio.TimeoutError, Exception):
+            pass
         
         # Mettre à jour le statut en temps réel
         await update_service_status(force=True)
@@ -8812,13 +8815,16 @@ class ServiceView(discord.ui.View):
             except:
                 pass
         
-        await interaction.response.send_message(
-            f"✅ **Service terminé !** 🔴\n\n"
-            f"⏱️ Durée : **{minutes} min**\n"
-            f"🚑 Réas effectuées : **{reas}**\n\n"
-            f"Merci pour ton service !",
-            ephemeral=True
-        )
+        try:
+            await interaction.response.send_message(
+                f"✅ **Service terminé !** 🔴\n\n"
+                f"⏱️ Durée : **{minutes} min**\n"
+                f"🚑 Réas effectuées : **{reas}**\n\n"
+                f"Merci pour ton service !",
+                ephemeral=True
+            )
+        except (discord.errors.NotFound, discord.errors.InteractionResponded, asyncio.TimeoutError, Exception):
+            pass
         
         # Mettre à jour le statut en temps réel
         await update_service_status(force=True)
