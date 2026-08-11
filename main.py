@@ -8074,7 +8074,7 @@ def _parse_esx_embed(embed):
 
 
 def _ingest_log(endpoint_path, payload):
-    """Écrit directement dans les fichiers JSON partagés avec Flask (même process)."""
+    """Écriture synchrone — appelée uniquement depuis run_in_executor (thread pool)."""
     try:
         if endpoint_path.endswith('/logs/ingest'):
             filepath = _TEST_LOGS_FILE
@@ -8112,11 +8112,75 @@ def _test_write(filepath, data):
         print(f"[ESX] Erreur écriture {filepath}: {e}")
 
 
+def _process_esx_sync(parsed, ts, is_error=False, error_payload=None):
+    """Tout l'I/O fichier en une seule fonction sync → exécutée dans un thread via run_in_executor."""
+    if is_error:
+        _ingest_log("/api/test/errors/ingest", error_payload)
+        return
+
+    license_key = parsed.get("license", "")
+
+    # PDS → mettre à jour le mapping license → nom réel
+    if parsed.get("type") == "prise_service" and license_key:
+        with _test_lock:
+            lmap = _test_read(_TEST_MAP_FILE, {})
+            lmap[license_key] = {
+                "joueur":   parsed.get("joueur", ""),
+                "employee": parsed.get("employee", ""),
+                "nom":      parsed.get("employee") or parsed.get("joueur", ""),
+                "last_pds": ts,
+            }
+            _test_write(_TEST_MAP_FILE, lmap)
+        print(f"[ESX] License map MAJ: {license_key} → {lmap[license_key]['nom']}")
+
+    # Enrichir avec le nom réel
+    with _test_lock:
+        lmap = _test_read(_TEST_MAP_FILE, {})
+    parsed["nom_reel"] = lmap.get(license_key, {}).get("nom") or parsed.get("joueur", "")
+
+    _ingest_log("/api/test/logs/ingest", parsed)
+
+    # Comptage réas : vente 100k = +1 réa, seulement si PDS connue
+    montant = parsed.get("montant", 0)
+    nb_reas = montant // 100000
+    if parsed.get("type") in ("vente", "vente_importante") and nb_reas >= 1 and license_key:
+        with _test_lock:
+            lmap2 = _test_read(_TEST_MAP_FILE, {})
+            if license_key not in lmap2:
+                print(f"[ESX] Ignoré (pas de PDS) : {parsed.get('joueur')} ({license_key})")
+                _ingest_log("/api/test/errors/ingest", {
+                    "reason": "Vente ignorée — aucune PDS enregistrée pour cette license",
+                    "raw_title": parsed.get("raw_title", ""),
+                    "raw_fields": {},
+                    "joueur": parsed.get("joueur", ""),
+                    "license": license_key,
+                    "timestamp": ts,
+                })
+            else:
+                nom = lmap2[license_key].get("nom") or parsed.get("joueur", license_key)
+                rea_data = _test_read(_TEST_REA_FILE, {})
+                if license_key not in rea_data:
+                    rea_data[license_key] = {"nom": nom, "license": license_key, "reas": 0, "history": []}
+                else:
+                    if nom:
+                        rea_data[license_key]["nom"] = nom
+                rea_data[license_key]["reas"] += nb_reas
+                rea_data[license_key]["history"].insert(0, {
+                    "action": "add", "amount": nb_reas,
+                    "note": f"Auto — {parsed.get('raw_title','')} ({montant:,}$)",
+                    "timestamp": ts,
+                })
+                _test_write(_TEST_REA_FILE, rea_data)
+                print(f"[ESX] +{nb_reas} réa(s) pour {nom} ({license_key})")
+
+
 async def _handle_esx_society_message(message):
     """Capture et parse les messages esx_society dans le channel logs."""
     print(f"[ESX] msg reçu — webhook={getattr(message,'webhook_id',None)} embeds={len(message.embeds)} author={message.author}")
     if not message.embeds:
         return
+
+    loop = asyncio.get_event_loop()
 
     for embed in message.embeds:
         print(f"[ESX] embed title='{embed.title}' fields={[f.name for f in embed.fields]}")
@@ -8127,84 +8191,24 @@ async def _handle_esx_society_message(message):
         raw_fields = {f.name: f.value for f in embed.fields}
 
         if error or parsed is None:
-            _ingest_log("/api/test/errors/ingest", {
+            err_payload = {
                 "reason": error or "Parse échoué",
                 "raw_title": embed.title or "",
                 "raw_fields": raw_fields,
                 "joueur": raw_fields.get("Joueur", ""),
                 "license": raw_fields.get("Identifiant", "").strip("`").strip(),
                 "timestamp": ts,
-            })
+            }
+            await loop.run_in_executor(None, _process_esx_sync, None, ts, True, err_payload)
             continue
 
         parsed["id"] = int(time.time() * 1000)
         parsed["timestamp"] = ts
         parsed["source"] = "discord_bot"
-        parsed["role_ok"] = False  # sera mis à jour ci-dessous
-
-        license_key = parsed.get("license", "")
-
-        # ── PDS : mettre à jour le mapping license → nom réel ──
-        if parsed["type"] == "prise_service" and license_key:
-            with _test_lock:
-                lmap = _test_read(_TEST_MAP_FILE, {})
-                lmap[license_key] = {
-                    "joueur":   parsed.get("joueur", ""),
-                    "employee": parsed.get("employee", ""),
-                    "nom":      parsed.get("employee") or parsed.get("joueur", ""),
-                    "last_pds": ts,
-                }
-                _test_write(_TEST_MAP_FILE, lmap)
-            print(f"[ESX] License map MAJ: {license_key} → {lmap[license_key]['nom']}")
-
-        # Rôle OK par défaut : le canal est déjà réservé EMS, pas besoin de vérifier
         parsed["role_ok"] = True
 
-        # Stocker le nom réel depuis le mapping dans la log
-        with _test_lock:
-            lmap = _test_read(_TEST_MAP_FILE, {})
-        if license_key in lmap:
-            parsed["nom_reel"] = lmap[license_key].get("nom", parsed.get("joueur", ""))
-        else:
-            parsed["nom_reel"] = parsed.get("joueur", "")
-
-        _ingest_log("/api/test/logs/ingest", parsed)
-
-        # ── Auto-comptage réas : chaque 100k = +1 réa (récap = montant/100k) ──
-        # Condition : la license doit être dans le map (= joueur a déjà fait une PDS)
-        montant = parsed.get("montant", 0)
-        nb_reas = montant // 100000  # 100k=1, 200k=2, etc.
-        if parsed.get("type") in ("vente", "vente_importante") and nb_reas >= 1 and license_key:
-            with _test_lock:
-                lmap2 = _test_read(_TEST_MAP_FILE, {})
-                if license_key not in lmap2:
-                    # Pas de PDS connue → on ignore et on log
-                    print(f"[ESX] Ignoré (pas de PDS) : {parsed.get('joueur')} ({license_key})")
-                    _ingest_log("/api/test/errors/ingest", {
-                        "reason": f"Vente ignorée — aucune PDS enregistrée pour cette license",
-                        "raw_title": parsed.get("raw_title", ""),
-                        "raw_fields": {},
-                        "joueur": parsed.get("joueur", ""),
-                        "license": license_key,
-                        "timestamp": ts,
-                    })
-                else:
-                    nom = lmap2[license_key].get("nom") or parsed.get("joueur", license_key)
-                    rea_data = _test_read(_TEST_REA_FILE, {})
-                    if license_key not in rea_data:
-                        rea_data[license_key] = {"nom": nom, "license": license_key, "reas": 0, "history": []}
-                    else:
-                        if nom:
-                            rea_data[license_key]["nom"] = nom
-                    rea_data[license_key]["reas"] += nb_reas
-                    rea_data[license_key]["history"].insert(0, {
-                        "action": "add",
-                        "amount": nb_reas,
-                        "note": f"Auto — {parsed.get('raw_title','')} ({montant:,}$)",
-                        "timestamp": ts,
-                    })
-                    _test_write(_TEST_REA_FILE, rea_data)
-                    print(f"[ESX] +{nb_reas} réa(s) pour {nom} ({license_key})")
+        # Tout l'I/O dans un thread — ne bloque plus l'event loop
+        await loop.run_in_executor(None, _process_esx_sync, parsed, ts, False, None)
 
 
 @bot.event
