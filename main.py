@@ -22,6 +22,13 @@ try:
 except ImportError:
     _PIL_AVAILABLE = False
 
+# Silencer les TimeoutError/NotFound sur toutes les interactions UI
+async def _view_on_error(self, interaction, error, item):
+    if not isinstance(error, (asyncio.TimeoutError, discord.errors.NotFound,
+                               discord.errors.InteractionResponded)):
+        print(f"[VIEW ERROR] {item}: {error}")
+discord.ui.View.on_error = _view_on_error
+
 
 def generate_debrief_chart(stats_list, title="Débrief de la semaine"):
     """Génère une image (bar chart) esthétique des réas par employé pour l'annonce Discord.
