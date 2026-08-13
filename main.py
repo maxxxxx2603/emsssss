@@ -8129,16 +8129,37 @@ def _process_esx_sync(parsed, ts, is_error=False, error_payload=None):
 
     # PDS → mettre à jour le mapping license → nom réel
     if parsed.get("type") == "prise_service" and license_key:
+        nom_pds = parsed.get("employee") or parsed.get("joueur", "")
         with _test_lock:
             lmap = _test_read(_TEST_MAP_FILE, {})
             lmap[license_key] = {
                 "joueur":   parsed.get("joueur", ""),
                 "employee": parsed.get("employee", ""),
-                "nom":      parsed.get("employee") or parsed.get("joueur", ""),
+                "nom":      nom_pds,
                 "last_pds": ts,
             }
             _test_write(_TEST_MAP_FILE, lmap)
-        print(f"[ESX] PDS : {lmap[license_key]['nom']}")
+
+            # Fusionner l'entrée nom-clé (import) avec l'entrée license si elle existe
+            rea_data = _test_read(_TEST_REA_FILE, {})
+            nom_key = nom_pds.lower().replace(' ', '-')
+            if nom_key in rea_data and license_key not in rea_data:
+                entry = rea_data.pop(nom_key)
+                entry['license'] = license_key
+                entry['nom'] = nom_pds
+                rea_data[license_key] = entry
+                _test_write(_TEST_REA_FILE, rea_data)
+                print(f"[ESX] PDS : {nom_pds} (fusion {nom_key} → license)")
+            elif license_key in rea_data and nom_key in rea_data:
+                # Les deux existent, fusionner les réas
+                rea_data[license_key]['reas'] += rea_data[nom_key].get('reas', 0)
+                rea_data[license_key]['history'] = rea_data[nom_key].get('history', []) + rea_data[license_key]['history']
+                rea_data[license_key]['nom'] = nom_pds
+                del rea_data[nom_key]
+                _test_write(_TEST_REA_FILE, rea_data)
+                print(f"[ESX] PDS : {nom_pds} (fusion doublon)")
+            else:
+                print(f"[ESX] PDS : {nom_pds}")
 
     # Enrichir avec le nom réel
     with _test_lock:
@@ -12368,45 +12389,83 @@ La direction des EMS"""
 
     @web_app.route('/api/test/import-stats', methods=['POST'])
     def api_test_import_stats():
-        """Importe les réas actuelles depuis stats.json vers test_rea.json.
-        Écrase uniquement les joueurs déjà présents dans stats.json.
-        Conserve les entrées manuelles existantes sans stats correspondantes."""
-        stats = load_json(STATS_FILE, {})  # {nom_key: count}
+        stats = load_json(STATS_FILE, {})
         if not stats:
             return jsonify({'error': 'stats.json vide ou introuvable'}), 404
         lmap = load_json(_wt_map, {})
-        # Index inverse : nom_key → license (depuis le license map)
+
+        # Index license → nom_key du stats (dans les deux sens)
         name_to_lic = {}
         for lic, info in lmap.items():
-            nom_k = (info.get('employee') or info.get('joueur') or '').lower().replace(' ', '-')
-            if nom_k:
-                name_to_lic[nom_k] = lic
-            joueur_k = (info.get('joueur') or '').lower().replace(' ', '-')
-            if joueur_k:
-                name_to_lic[joueur_k] = lic
+            for field in ('employee', 'joueur'):
+                nk = (info.get(field) or '').lower().replace(' ', '-')
+                if nk:
+                    name_to_lic[nk] = lic
 
         rea_data = load_json(_wt_rea, {})
         ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         imported = 0
         for nom_key, count in stats.items():
-            nom_display = nom_key.replace('-', ' ').title()
             lic = name_to_lic.get(nom_key, '')
+            nom_display = lmap.get(lic, {}).get('nom') or nom_key.replace('-', ' ').title()
             key = lic or nom_key
             ancien = rea_data.get(key, {}).get('reas', 0)
+            # Si l'entrée nom-clé existe ET qu'on a maintenant une license, fusionner
+            if lic and nom_key in rea_data and lic not in rea_data:
+                old_entry = rea_data.pop(nom_key)
+                ancien = old_entry.get('reas', 0)
+            elif lic and nom_key in rea_data and lic in rea_data:
+                # Doublon : additionner puis supprimer l'ancienne clé nom
+                rea_data[lic]['reas'] += rea_data[nom_key].get('reas', 0)
+                rea_data[lic]['history'] = rea_data[nom_key].get('history', []) + rea_data[lic].get('history', [])
+                rea_data[lic]['nom'] = nom_display
+                del rea_data[nom_key]
+                imported += 1
+                continue
             rea_data[key] = {
                 'nom': nom_display,
                 'license': lic,
                 'reas': int(count),
-                'history': [{
-                    'action': 'import',
-                    'amount': int(count),
-                    'note': f'Import stats.json (ancien: {ancien})',
-                    'timestamp': ts,
-                }] + rea_data.get(key, {}).get('history', []),
+                'history': [{'action': 'import', 'amount': int(count), 'note': f'Import stats.json (ancien: {ancien})', 'timestamp': ts}]
+                           + rea_data.get(key, {}).get('history', []),
             }
             imported += 1
         save_json(_wt_rea, rea_data)
         return jsonify({'status': 'success', 'imported': imported, 'total_joueurs': len(rea_data)})
+
+    @web_app.route('/api/test/rea/fix-keys', methods=['POST'])
+    def api_test_rea_fix_keys():
+        """Fusionne toutes les entrées nom-clé avec leur license correspondante."""
+        lmap = load_json(_wt_map, {})
+        name_to_lic = {}
+        for lic, info in lmap.items():
+            for field in ('employee', 'joueur'):
+                nk = (info.get(field) or '').lower().replace(' ', '-')
+                if nk:
+                    name_to_lic[nk] = lic
+
+        rea_data = load_json(_wt_rea, {})
+        merged = 0
+        ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        for nom_key in list(rea_data.keys()):
+            if nom_key.startswith('license:'):
+                continue
+            lic = name_to_lic.get(nom_key)
+            if not lic:
+                continue
+            entry = rea_data[nom_key]
+            nom_display = lmap[lic].get('nom') or entry.get('nom', nom_key.replace('-', ' ').title())
+            if lic in rea_data:
+                # Doublon : additionner
+                rea_data[lic]['reas'] += entry.get('reas', 0)
+                rea_data[lic]['history'] = entry.get('history', []) + rea_data[lic].get('history', [])
+                rea_data[lic]['nom'] = nom_display
+            else:
+                rea_data[lic] = {**entry, 'license': lic, 'nom': nom_display}
+            del rea_data[nom_key]
+            merged += 1
+        save_json(_wt_rea, rea_data)
+        return jsonify({'status': 'success', 'merged': merged, 'total': len(rea_data)})
 
     @web_app.route('/api/test/reset-week', methods=['POST'])
     def api_test_reset_week():
