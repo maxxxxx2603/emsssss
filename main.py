@@ -9631,24 +9631,23 @@ async def remise(interaction: discord.Interaction):
         
         for member in employes_discord:
             try:
-                # Chercher le channel de cet employé
-                member_name_lower = member.name.lower().replace(' ', '-')
-                member_display_lower = member.display_name.lower().replace(' ', '-')
-                
                 found_channel = None
                 
-                # Chercher par username Discord
-                for channel_name, channel in all_channels.items():
-                    if member_name_lower in channel_name or member_display_lower in channel_name:
-                        found_channel = channel
-                        break
+                # Extraire les mots du display_name (prénom nom)
+                member_words = [w.lower() for w in member.display_name.split()]
+                member_full_lower = member.display_name.lower().replace(' ', '-')
                 
-                if not found_channel:
-                    # Essayer avec des variantes
-                    for channel_name, channel in all_channels.items():
-                        if member.id == channel.name or str(member.id) in channel.name:
-                            found_channel = channel
-                            break
+                # Chercher le channel qui correspond au display_name
+                for channel_name, channel in all_channels.items():
+                    # Nettoyer le nom du channel (enlever emojis et tirets)
+                    channel_name_clean = channel_name.replace('🔴', '').replace('🟠', '').replace('🟢', '').replace('🟡', '').strip()
+                    channel_words = channel_name_clean.split()
+                    
+                    # Vérifier si tous les mots du display_name sont dans le channel
+                    if len(member_words) > 0 and all(word in channel_name_clean.replace('-', ' ') for word in member_words):
+                        found_channel = channel
+                        print(f"[REMISE] 🔍 {member.display_name} → trouvé dans {channel.name}")
+                        break
                 
                 if found_channel:
                     # Déterminer le total de réas
@@ -9657,18 +9656,21 @@ async def remise(interaction: discord.Interaction):
                     # Chercher dans _REMISE_STATS (clés en kebab-case)
                     for employee_key, reas in _REMISE_STATS.items():
                         # Vérifier si le nom correspond
-                        parts_key = employee_key.lower().split('-')
-                        parts_member = member.name.lower().split()
+                        key_lower = employee_key.lower()
+                        display_lower = member.display_name.lower()
                         
-                        if any(part in member.name.lower() or part in member.display_name.lower() for part in parts_key):
+                        # Match par prénom-nom ou par les parties du nom
+                        if key_lower in display_lower.replace(' ', '-') or display_lower.replace(' ', '-') in key_lower:
                             total_reas = reas
+                            print(f"[REMISE] 📊 {member.display_name} = {employee_key}: {reas}/100")
                             break
                     
                     # Calculer l'emoji
                     emoji = get_color_emoji(total_reas)
                     
                     # Construire le nouveau nom du channel
-                    new_channel_name = f"{emoji}{member.name.lower()}"
+                    # Utiliser le display_name normalisé pour le nom du channel
+                    new_channel_name = f"{emoji}{member_full_lower}"
                     
                     # Mettre à jour le topic/description
                     new_topic = f"{emoji} {member.display_name} • {total_reas}/100 réas"
@@ -9679,11 +9681,14 @@ async def remise(interaction: discord.Interaction):
                         topic=new_topic
                     )
                     updated_count += 1
-                    print(f"[REMISE] ✅ {member.name} ({member.display_name}): {emoji} {total_reas}/100")
+                    print(f"[REMISE] ✅ {member.display_name}: {emoji} {total_reas}/100")
                 
                 else:
-                    # Channel non trouvé
-                    print(f"[REMISE] ⚠️ Channel non trouvé pour {member.name} ({member.display_name})")
+                    # Channel non trouvé - afficher les channels disponibles proches
+                    similar_channels = [ch for ch in all_channels.keys() if any(w in ch for w in member_words)]
+                    print(f"[REMISE] ⚠️ Channel non trouvé pour {member.display_name}")
+                    if similar_channels:
+                        print(f"    Channels similaires: {', '.join(similar_channels[:3])}")
                     failed_channels.append((member.display_name, "Channel non trouvé"))
             
             except discord.Forbidden:
