@@ -9618,11 +9618,20 @@ async def remise(interaction: discord.Interaction):
                         # Calculer l'emoji en fonction du total
                         emoji = get_color_emoji(total_reas)
                         
-                        # Mettre à jour le topic du channel
-                        new_topic = f"{emoji} {total_reas}/100"
+                        # Construire le nouveau nom du channel avec l'emoji et le total
+                        # Format: emoji-nom-employe-total
+                        display_name = ' '.join([p.capitalize() for p in employee_key.split('-')])
+                        new_channel_name = f"{emoji}-{employee_key}-{total_reas}"
+                        
+                        # Mettre à jour le topic/description du channel
+                        new_topic = f"{emoji} {display_name} • {total_reas}/100 réas"
                         
                         try:
-                            await channel.edit(topic=new_topic)
+                            # Mettre à jour le nom ET la description
+                            await channel.edit(
+                                name=new_channel_name.lower(),
+                                topic=new_topic
+                            )
                             updated_count += 1
                             print(f"[REMISE] ✅ {employee_key}: {emoji} {total_reas}/100")
                         except discord.Forbidden:
@@ -9641,13 +9650,17 @@ async def remise(interaction: discord.Interaction):
             color=discord.Color.green()
         )
         
-        embed.add_field(name="✅ Mise à jour", value=f"Les statistiques officielles ont été appliquées", inline=False)
+        embed.add_field(
+            name="✅ Mises à jour appliquées",
+            value="• 📝 Noms des channels: `emoji-nom-total`\n• 📌 Descriptions: `emoji Nom • Total/100 réas`\n• 🎯 Statistiques: Sauvegardées",
+            inline=False
+        )
         
         if failed_channels:
             failed_text = "\n".join([f"• {name}: {reason}" for name, reason in failed_channels])
             embed.add_field(name="❌ Erreurs", value=failed_text, inline=False)
         
-        # Ajouter la liste des totaux
+        # Ajouter la liste des totaux avec emojis
         stats_text = ""
         for i, (name, value) in enumerate(sorted(_REMISE_STATS.items(), key=lambda x: x[1], reverse=True)):
             emoji = get_color_emoji(value)
