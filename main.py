@@ -9609,37 +9609,76 @@ async def remise(interaction: discord.Interaction):
         
         for employee_key, total_reas in _REMISE_STATS.items():
             try:
-                # Chercher les channels contenant le nom de l'employé
-                for channel in guild.text_channels:
-                    channel_name_lower = channel.name.lower()
-                    employee_name_lower = employee_key.lower()
-                    
-                    if employee_name_lower in channel_name_lower:
-                        # Calculer l'emoji en fonction du total
-                        emoji = get_color_emoji(total_reas)
+                found = False
+                
+                # Chercher dans TOUTES les catégories du serveur
+                for category in guild.categories:
+                    if found:
+                        break
+                    for channel in category.text_channels:
+                        channel_name_lower = channel.name.lower()
+                        employee_name_lower = employee_key.lower()
                         
-                        # Construire le nouveau nom du channel avec l'emoji et le total
-                        # Format: emoji-nom-employe-total
-                        display_name = ' '.join([p.capitalize() for p in employee_key.split('-')])
-                        new_channel_name = f"{emoji}-{employee_key}-{total_reas}"
-                        
-                        # Mettre à jour le topic/description du channel
-                        new_topic = f"{emoji} {display_name} • {total_reas}/100 réas"
-                        
-                        try:
-                            # Mettre à jour le nom ET la description
-                            await channel.edit(
-                                name=new_channel_name.lower(),
-                                topic=new_topic
-                            )
-                            updated_count += 1
-                            print(f"[REMISE] ✅ {employee_key}: {emoji} {total_reas}/100")
-                        except discord.Forbidden:
-                            failed_channels.append((employee_key, "Permission refusée"))
-                        except Exception as e:
-                            failed_channels.append((employee_key, str(e)))
-                        
-                        break  # Passer au prochain employé
+                        if employee_name_lower in channel_name_lower:
+                            # Calculer l'emoji en fonction du total
+                            emoji = get_color_emoji(total_reas)
+                            
+                            # Construire le nouveau nom du channel avec l'emoji et le total
+                            display_name = ' '.join([p.capitalize() for p in employee_key.split('-')])
+                            new_channel_name = f"{emoji}-{employee_key}-{total_reas}"
+                            
+                            # Mettre à jour le topic/description du channel
+                            new_topic = f"{emoji} {display_name} • {total_reas}/100 réas"
+                            
+                            try:
+                                # Mettre à jour le nom ET la description
+                                await channel.edit(
+                                    name=new_channel_name.lower(),
+                                    topic=new_topic
+                                )
+                                updated_count += 1
+                                print(f"[REMISE] ✅ {employee_key} (catégorie: {category.name}): {emoji} {total_reas}/100")
+                                found = True
+                            except discord.Forbidden:
+                                failed_channels.append((employee_key, "Permission refusée"))
+                            except Exception as e:
+                                failed_channels.append((employee_key, str(e)))
+                            
+                            break  # Passer à la catégorie suivante
+                
+                # Si pas trouvé en catégorie, chercher au niveau racine du serveur
+                if not found:
+                    for channel in guild.text_channels:
+                        if channel.category is None:  # Au niveau racine
+                            channel_name_lower = channel.name.lower()
+                            employee_name_lower = employee_key.lower()
+                            
+                            if employee_name_lower in channel_name_lower:
+                                # Calculer l'emoji en fonction du total
+                                emoji = get_color_emoji(total_reas)
+                                
+                                # Construire le nouveau nom du channel avec l'emoji et le total
+                                display_name = ' '.join([p.capitalize() for p in employee_key.split('-')])
+                                new_channel_name = f"{emoji}-{employee_key}-{total_reas}"
+                                
+                                # Mettre à jour le topic/description du channel
+                                new_topic = f"{emoji} {display_name} • {total_reas}/100 réas"
+                                
+                                try:
+                                    # Mettre à jour le nom ET la description
+                                    await channel.edit(
+                                        name=new_channel_name.lower(),
+                                        topic=new_topic
+                                    )
+                                    updated_count += 1
+                                    print(f"[REMISE] ✅ {employee_key} (racine): {emoji} {total_reas}/100")
+                                    found = True
+                                except discord.Forbidden:
+                                    failed_channels.append((employee_key, "Permission refusée"))
+                                except Exception as e:
+                                    failed_channels.append((employee_key, str(e)))
+                                
+                                break
             except Exception as e:
                 print(f"[REMISE] ❌ Erreur pour {employee_key}: {e}")
         
