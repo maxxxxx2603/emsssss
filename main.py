@@ -1870,13 +1870,34 @@ async def update_avert_board(guild: discord.Guild):
         color=discord.Color.red() if has_alerts else EMS_RED
     )
 
-    # Découper si trop long
-    chunk_size = 20
-    chunks_list = [lines[i:i+chunk_size] for i in range(0, len(lines), chunk_size)]
-    for idx, chunk in enumerate(chunks_list):
+    # Découper en fields de maximum 1024 caractères chacun (limite Discord)
+    current_chunk = []
+    current_length = 0
+    field_num = 0
+    
+    for line in lines:
+        line_length = len(line) + 1  # +1 pour le \n
+        
+        # Si le chunk actuel + la nouvelle ligne dépasse 1024, créer un nouveau field
+        if current_length + line_length > 1020:  # Laisser un peu de marge
+            if current_chunk:
+                embed.add_field(
+                    name="👥 Employés" if field_num == 0 else "​",
+                    value="\n".join(current_chunk),
+                    inline=False
+                )
+                field_num += 1
+            current_chunk = [line]
+            current_length = line_length
+        else:
+            current_chunk.append(line)
+            current_length += line_length
+    
+    # Ajouter le dernier chunk
+    if current_chunk:
         embed.add_field(
-            name="👥 Employés" if idx == 0 else "​",
-            value="\n".join(chunk),
+            name="👥 Employés" if field_num == 0 else "​",
+            value="\n".join(current_chunk),
             inline=False
         )
 
