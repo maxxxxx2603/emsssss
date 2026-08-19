@@ -9590,7 +9590,7 @@ _REMISE_STATS = {
 @bot.tree.command(name="remise", description="Remet les stats à jour avec les totaux officiels")
 @app_commands.checks.has_permissions(administrator=True)
 async def remise(interaction: discord.Interaction):
-    """Remet à jour les statistiques de tous les employés avec les totaux officiels"""
+    """Remet à jour les statistiques de TOUS les employés avec le rôle 838102445095256068"""
     await interaction.response.defer(ephemeral=True)
     
     try:
@@ -9603,100 +9603,133 @@ async def remise(interaction: discord.Interaction):
         print("[REMISE] Mise à jour des statistiques officielles...")
         save_stats(dict(_REMISE_STATS))
         
-        # Mettre à jour tous les channels employés avec les nouveaux totaux
-        updated_count = 0
-        failed_channels = []
+        # Obtenir le rôle des employés
+        role_employe = guild.get_role(838102445095256068)
+        if not role_employe:
+            await interaction.followup.send("❌ Rôle employé introuvable", ephemeral=True)
+            return
         
-        for employee_key, total_reas in _REMISE_STATS.items():
-            try:
-                found = False
-                
-                # Chercher dans TOUTES les catégories du serveur
-                for category in guild.categories:
-                    if found:
+        # Obtenir tous les membres avec le rôle employé
+        employes_discord = [m for m in guild.members if role_employe in m.roles]
+        
+        # Mettre à jour tous les channels employés
+        updated_count = 0
+        skipped_count = 0
+        failed_channels = []
+        updated_employees = set()
+        
+        # D'abord, mettre à jour les channels existants
+        all_channels = []
+        
+        # Collecter tous les channels de toutes les catégories
+        for category in guild.categories:
+            all_channels.extend(category.text_channels)
+        
+        # Ajouter les channels au niveau racine
+        for channel in guild.text_channels:
+            if channel.category is None:
+                all_channels.append(channel)
+        
+        # Mettre à jour chaque channel d'employé trouvé
+        for channel in all_channels:
+            channel_name_lower = channel.name.lower()
+            
+            # Chercher si ce channel correspond à un employé
+            matched_employee = None
+            matched_total = 0
+            
+            for employee_key, total_reas in _REMISE_STATS.items():
+                employee_name_lower = employee_key.lower()
+                if employee_name_lower in channel_name_lower:
+                    matched_employee = employee_key
+                    matched_total = total_reas
+                    break
+            
+            # Si correspondance trouvée
+            if matched_employee:
+                try:
+                    # Calculer l'emoji en fonction du total
+                    emoji = get_color_emoji(matched_total)
+                    
+                    # Construire le nouveau nom du channel avec l'emoji et le total
+                    display_name = ' '.join([p.capitalize() for p in matched_employee.split('-')])
+                    new_channel_name = f"{emoji}{matched_employee}"
+                    
+                    # Mettre à jour le topic/description du channel
+                    new_topic = f"{emoji} {display_name} • {matched_total}/100 réas"
+                    
+                    # Mettre à jour le nom ET la description
+                    await channel.edit(
+                        name=new_channel_name.lower(),
+                        topic=new_topic
+                    )
+                    updated_count += 1
+                    updated_employees.add(matched_employee)
+                    print(f"[REMISE] ✅ {matched_employee}: {emoji} {matched_total}/100")
+                    
+                except discord.Forbidden:
+                    failed_channels.append((matched_employee, "Permission refusée"))
+                except Exception as e:
+                    failed_channels.append((matched_employee, str(e)))
+        
+        # Ensuite, mettre à jour les channels des employés qui n'ont pas de réas (0) mais ont le rôle
+        for member in employes_discord:
+            # Chercher si cet employé a déjà été traité
+            found_in_stats = False
+            for employee_key in _REMISE_STATS.keys():
+                if employee_key in updated_employees:
+                    # Vérifier si le nom correspond au membre
+                    name_parts = employee_key.split('-')
+                    if any(part.lower() in member.name.lower() or part.lower() in member.display_name.lower() for part in name_parts):
+                        found_in_stats = True
                         break
-                    for channel in category.text_channels:
-                        channel_name_lower = channel.name.lower()
-                        employee_name_lower = employee_key.lower()
-                        
-                        if employee_name_lower in channel_name_lower:
-                            # Calculer l'emoji en fonction du total
+            
+            if not found_in_stats:
+                # Cet employé n'a pas été trouvé, chercher son channel
+                channel_name_normalized = member.display_name.lower().replace(' ', '-')
+                
+                for channel in all_channels:
+                    channel_name_lower = channel.name.lower()
+                    
+                    if member.name.lower() in channel_name_lower or channel_name_normalized in channel_name_lower:
+                        try:
+                            # 0 réa pour les employés sans stats
+                            total_reas = 0
                             emoji = get_color_emoji(total_reas)
-                            
-                            # Construire le nouveau nom du channel avec l'emoji et le total
-                            display_name = ' '.join([p.capitalize() for p in employee_key.split('-')])
-                            new_channel_name = f"{emoji}-{employee_key}-{total_reas}"
-                            
-                            # Mettre à jour le topic/description du channel
+                            display_name = member.display_name
+                            new_channel_name = f"{emoji}{member.name.lower()}"
                             new_topic = f"{emoji} {display_name} • {total_reas}/100 réas"
                             
-                            try:
-                                # Mettre à jour le nom ET la description
-                                await channel.edit(
-                                    name=new_channel_name.lower(),
-                                    topic=new_topic
-                                )
-                                updated_count += 1
-                                print(f"[REMISE] ✅ {employee_key} (catégorie: {category.name}): {emoji} {total_reas}/100")
-                                found = True
-                            except discord.Forbidden:
-                                failed_channels.append((employee_key, "Permission refusée"))
-                            except Exception as e:
-                                failed_channels.append((employee_key, str(e)))
-                            
-                            break  # Passer à la catégorie suivante
-                
-                # Si pas trouvé en catégorie, chercher au niveau racine du serveur
-                if not found:
-                    for channel in guild.text_channels:
-                        if channel.category is None:  # Au niveau racine
-                            channel_name_lower = channel.name.lower()
-                            employee_name_lower = employee_key.lower()
-                            
-                            if employee_name_lower in channel_name_lower:
-                                # Calculer l'emoji en fonction du total
-                                emoji = get_color_emoji(total_reas)
-                                
-                                # Construire le nouveau nom du channel avec l'emoji et le total
-                                display_name = ' '.join([p.capitalize() for p in employee_key.split('-')])
-                                new_channel_name = f"{emoji}-{employee_key}-{total_reas}"
-                                
-                                # Mettre à jour le topic/description du channel
-                                new_topic = f"{emoji} {display_name} • {total_reas}/100 réas"
-                                
-                                try:
-                                    # Mettre à jour le nom ET la description
-                                    await channel.edit(
-                                        name=new_channel_name.lower(),
-                                        topic=new_topic
-                                    )
-                                    updated_count += 1
-                                    print(f"[REMISE] ✅ {employee_key} (racine): {emoji} {total_reas}/100")
-                                    found = True
-                                except discord.Forbidden:
-                                    failed_channels.append((employee_key, "Permission refusée"))
-                                except Exception as e:
-                                    failed_channels.append((employee_key, str(e)))
-                                
-                                break
-            except Exception as e:
-                print(f"[REMISE] ❌ Erreur pour {employee_key}: {e}")
+                            await channel.edit(
+                                name=new_channel_name.lower(),
+                                topic=new_topic
+                            )
+                            updated_count += 1
+                            print(f"[REMISE] ✅ {member.name}: {emoji} 0/100")
+                            break
+                        except discord.Forbidden:
+                            failed_channels.append((member.name, "Permission refusée"))
+                        except Exception as e:
+                            failed_channels.append((member.name, str(e)))
+                    
+                    if len([e for e in failed_channels if e[0] == member.name]) > 0 and any(e[0] == member.name for e in failed_channels):
+                        break
         
         # Créer l'embed récapitulatif
         embed = discord.Embed(
             title="🟢 REMISE À JOUR COMPLÈTE",
-            description=f"**{updated_count}/{len(_REMISE_STATS)}** channels employés mis à jour",
+            description=f"**{updated_count}** channels employés mis à jour",
             color=discord.Color.green()
         )
         
         embed.add_field(
             name="✅ Mises à jour appliquées",
-            value="• 📝 Noms des channels: `emoji-nom-total`\n• 📌 Descriptions: `emoji Nom • Total/100 réas`\n• 🎯 Statistiques: Sauvegardées",
+            value=f"• 📝 Noms des channels: `🔴employe-name`\n• 📌 Descriptions: `🔴 Name • Total/100 réas`\n• 🎯 {len(employes_discord)} employés avec le rôle",
             inline=False
         )
         
         if failed_channels:
-            failed_text = "\n".join([f"• {name}: {reason}" for name, reason in failed_channels])
+            failed_text = "\n".join([f"• {name}: {reason}" for name, reason in failed_channels[:10]])
             embed.add_field(name="❌ Erreurs", value=failed_text, inline=False)
         
         # Ajouter la liste des totaux avec emojis
@@ -9704,19 +9737,17 @@ async def remise(interaction: discord.Interaction):
         for i, (name, value) in enumerate(sorted(_REMISE_STATS.items(), key=lambda x: x[1], reverse=True)):
             emoji = get_color_emoji(value)
             display_name = ' '.join([p.capitalize() for p in name.split('-')])
-            stats_text += f"{emoji} **{display_name}**: {value}/100\n"
+            stats_text += f"{emoji}{display_name}: {value}/100\n"
             if (i + 1) % 10 == 0 and i + 1 < len(_REMISE_STATS):
                 stats_text += "\n"
         
         embed.add_field(name="📊 Totaux officiels", value=stats_text, inline=False)
-        embed.set_footer(text="🚑 EMS System | Remise à jour")
+        embed.set_footer(text="🚑 EMS System | Remise à jour complète")
         
         await interaction.followup.send(embed=embed, ephemeral=True)
         
-        # Log public
-        logs_channel = guild.get_channel(3084862779227086007)  # Remplacer par votre channel logs si besoin
-        if logs_channel:
-            await logs_channel.send(f"🟢 **REMISE EFFECTUÉE** | {updated_count} channels mis à jour")
+        # Mettre à jour le tableau des avertissements aussi
+        await update_avert_board(guild)
         
     except Exception as e:
         print(f"[REMISE] Erreur: {e}")
@@ -9767,6 +9798,8 @@ async def on_ready():
         check_rea_inactivity.start()
     if not auto_snapshot_current_week.is_running():
         auto_snapshot_current_week.start()
+    if not auto_update_avert_board.is_running():
+        auto_update_avert_board.start()
 
     # Pré-remplir les données de la semaine du 20/07 (une seule fois, idempotent)
     seed_last_week_data_once()
@@ -10538,6 +10571,23 @@ async def auto_backup_stats():
 
 @auto_backup_stats.before_loop
 async def before_auto_backup():
+    await bot.wait_until_ready()
+
+# --- TÂCHE DE MISE À JOUR AUTOMATIQUE DU TABLEAU DES AVERTISSEMENTS ---
+@tasks.loop(minutes=2)
+async def auto_update_avert_board():
+    """Met à jour automatiquement le tableau des avertissements toutes les 2 minutes"""
+    try:
+        for guild in bot.guilds:
+            try:
+                await update_avert_board(guild)
+            except Exception as e:
+                print(f"Erreur mise à jour avert_board pour {guild.name}: {e}")
+    except Exception as e:
+        print(f"Erreur auto_update_avert_board: {e}")
+
+@auto_update_avert_board.before_loop
+async def before_auto_update_avert():
     await bot.wait_until_ready()
 
 if __name__ == "__main__":
