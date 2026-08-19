@@ -1,4 +1,4 @@
-import os
+﻿import os
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -30,14 +30,14 @@ async def _view_on_error(self, interaction, error, item):
 discord.ui.View.on_error = _view_on_error
 
 
-def generate_debrief_chart(stats_list, title="Débrief de la semaine"):
-    """Génère une image (bar chart) esthétique des réas par employé pour l'annonce Discord.
+def generate_debrief_chart(stats_list, title="DÃ©brief de la semaine"):
+    """GÃ©nÃ¨re une image (bar chart) esthÃ©tique des rÃ©as par employÃ© pour l'annonce Discord.
     stats_list: [{'name': str, 'reas': int}, ...]
     Retourne un objet BytesIO (PNG) ou None si Pillow indisponible / liste vide."""
     if not _PIL_AVAILABLE or not stats_list:
         return None
     try:
-        data = sorted(stats_list, key=lambda x: x['reas'], reverse=True)[:15]  # top 15 max pour lisibilité
+        data = sorted(stats_list, key=lambda x: x['reas'], reverse=True)[:15]  # top 15 max pour lisibilitÃ©
         if not data:
             return None
 
@@ -60,7 +60,7 @@ def generate_debrief_chart(stats_list, title="Débrief de la semaine"):
         img = Image.new('RGB', (width, height), bg_color)
         draw = ImageDraw.Draw(img)
 
-        # Polices (fallback sur police par défaut si aucune TTF trouvée)
+        # Polices (fallback sur police par dÃ©faut si aucune TTF trouvÃ©e)
         def _load_font(size, bold=False):
             candidates = [
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -78,15 +78,15 @@ def generate_debrief_chart(stats_list, title="Débrief de la semaine"):
         font_value = _load_font(16, bold=True)
 
         # Titre
-        draw.text((24, 24), f"📋 {title}", font=font_title, fill=text_color)
+        draw.text((24, 24), f"ðŸ“‹ {title}", font=font_title, fill=text_color)
 
         max_reas = max((d['reas'] for d in data), default=1) or 1
         max_bar_width = width - left_pad - right_pad
 
         for i, d in enumerate(data):
             y = top_pad + i * (bar_h + gap)
-            # Nom (tronqué si trop long)
-            name = d['name'][:22] + ('…' if len(d['name']) > 22 else '')
+            # Nom (tronquÃ© si trop long)
+            name = d['name'][:22] + ('â€¦' if len(d['name']) > 22 else '')
             draw.text((24, y + bar_h//2 - 8), name, font=font_name, fill=text_color)
 
             # Fond de la barre (piste grise)
@@ -96,7 +96,7 @@ def generate_debrief_chart(stats_list, title="Débrief de la semaine"):
             bar_width = max(6, int(max_bar_width * (d['reas'] / max_reas)))
             draw.rounded_rectangle([left_pad, y, left_pad + bar_width, y + bar_h], radius=8, fill=red)
 
-            # Valeur à droite de la barre
+            # Valeur Ã  droite de la barre
             draw.text((left_pad + max_bar_width + 12, y + bar_h//2 - 8), str(d['reas']), font=font_value, fill=text_color)
 
         buf = BytesIO()
@@ -109,7 +109,7 @@ def generate_debrief_chart(stats_list, title="Débrief de la semaine"):
 
 
 def make_ems_logo(size=64):
-    """Génère un petit logo EMS (croix blanche sur cercle rouge) directement en mémoire."""
+    """GÃ©nÃ¨re un petit logo EMS (croix blanche sur cercle rouge) directement en mÃ©moire."""
     logo_img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     logo_draw = ImageDraw.Draw(logo_img)
     cx, cy, r = size/2, size/2, size/2 - 2
@@ -126,10 +126,10 @@ _ATTESTATION_FONTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__))
 
 
 def _attestation_font(size, bold=False, mono=False, script=False):
-    """Charge une police EMBARQUÉE dans le repo (fonts/) — indispensable car les polices
-    système (DejaVu etc.) ne sont pas garanties présentes sur l'environnement de déploiement
-    (Railway), ce qui causait un repli sur la police par défaut de Pillow qui ne gère PAS
-    correctement les caractères accentués (é, è, à...)."""
+    """Charge une police EMBARQUÃ‰E dans le repo (fonts/) â€” indispensable car les polices
+    systÃ¨me (DejaVu etc.) ne sont pas garanties prÃ©sentes sur l'environnement de dÃ©ploiement
+    (Railway), ce qui causait un repli sur la police par dÃ©faut de Pillow qui ne gÃ¨re PAS
+    correctement les caractÃ¨res accentuÃ©s (Ã©, Ã¨, Ã ...)."""
     if script:
         path = os.path.join(_ATTESTATION_FONTS_DIR, 'DancingScript-Bold.ttf')
     elif mono:
@@ -152,12 +152,12 @@ def _attestation_font(size, bold=False, mono=False, script=False):
 
 
 def generate_attestation_medicale(data):
-    """Génère l'image d'une attestation médicale/rapport d'intervention officiel EMS,
-    à partir des infos saisies lors du remplissage d'un dossier patient.
+    """GÃ©nÃ¨re l'image d'une attestation mÃ©dicale/rapport d'intervention officiel EMS,
+    Ã  partir des infos saisies lors du remplissage d'un dossier patient.
     data attend: ref_doc, emetteur, destinataire, date_doc, nom, prenom, date_naissance,
     heure, lieu, motif, avis_intro, disposition, note (optionnel),
     praticien_nom, praticien_grade, praticien_prenom_sig, footer,
-    photo_bytes (optionnel, bytes bruts de la carte d'identité — intégrée sur le document).
+    photo_bytes (optionnel, bytes bruts de la carte d'identitÃ© â€” intÃ©grÃ©e sur le document).
     Retourne un BytesIO (PNG) ou None si Pillow indisponible."""
     if not _PIL_AVAILABLE:
         return None
@@ -200,7 +200,7 @@ def generate_attestation_medicale(data):
                     cur = w
             if cur:
                 lines.append(cur)
-            return lines or ['—']
+            return lines or ['â€”']
 
         tmp_img = Image.new('RGB', (W, 100))
         tmp_draw = ImageDraw.Draw(tmp_img)
@@ -216,15 +216,15 @@ def generate_attestation_medicale(data):
 
         logo = make_ems_logo(46)
         img.paste(logo, (PAD, y-2), logo)
-        draw.text((PAD+56, y), "CENTRE MÉDICAL - EMS", font=f_logo, fill=BLACK)
-        draw.text((PAD+56, y+22), "Emergency Medical Services · Los Santos", font=f_logo_sub, fill=GRAY)
+        draw.text((PAD+56, y), "CENTRE MÃ‰DICAL - EMS", font=f_logo, fill=BLACK)
+        draw.text((PAD+56, y+22), "Emergency Medical Services Â· Los Santos", font=f_logo_sub, fill=GRAY)
 
         right_x = W - PAD
         lines_r = [
             ("LOS SANTOS MEDICAL CENTER", f_head_r),
             ("Central District, Pillbox Hill", f_logo_sub),
             ("Urgences: 911 / EMS", f_logo_sub),
-            (f"Réf Doc: {data.get('ref_doc','—')}", f_logo_sub),
+            (f"RÃ©f Doc: {data.get('ref_doc','â€”')}", f_logo_sub),
         ]
         ry = y
         for txt, fnt in lines_r:
@@ -237,7 +237,7 @@ def generate_attestation_medicale(data):
         y += 20
 
         draw.rounded_rectangle([PAD, y, W-PAD, y+38], radius=6, fill=(30, 30, 34))
-        title = "RAPPORT D'INTERVENTION & ATTESTATION D'ARRÊT DE TRAVAIL"
+        title = "RAPPORT D'INTERVENTION & ATTESTATION D'ARRÃŠT DE TRAVAIL"
         tw = draw.textlength(title, font=f_title)
         draw.text(((W-tw)/2, y+11), title, font=f_title, fill=(255, 255, 255))
         y += 38 + 16
@@ -251,10 +251,10 @@ def generate_attestation_medicale(data):
             draw.rounded_rectangle([PAD, yy, PAD+w, yy+h], radius=5, outline=LINE, width=1)
             draw.line([(PAD+160, yy+2), (PAD+160, yy+h-2)], fill=(210, 210, 212), width=1)
             draw.text((PAD+12, yy+h/2-7), label, font=f_label, fill=BLACK)
-            draw.text((PAD+172, yy+h/2-7), value or '—', font=f_value, fill=BLACK)
+            draw.text((PAD+172, yy+h/2-7), value or 'â€”', font=f_value, fill=BLACK)
             return yy + h + 6
 
-        y = table_row("ÉMETTEUR", data.get('emetteur', ''), y)
+        y = table_row("Ã‰METTEUR", data.get('emetteur', ''), y)
         y = table_row("DESTINATAIRE", data.get('destinataire', ''), y)
         y = table_row("DATE DU DOCUMENT", data.get('date_doc', ''), y)
         y += 14
@@ -269,8 +269,8 @@ def generate_attestation_medicale(data):
 
         row_start_y = y
         y = table_row("Nom :", data.get('nom', ''), y, width=patient_table_w)
-        y = table_row("Prénom :", data.get('prenom', ''), y, width=patient_table_w)
-        y = table_row("Date de naissance :", data.get('date_naissance') or '—', y, width=patient_table_w)
+        y = table_row("PrÃ©nom :", data.get('prenom', ''), y, width=patient_table_w)
+        y = table_row("Date de naissance :", data.get('date_naissance') or 'â€”', y, width=patient_table_w)
 
         if id_photo_bytes:
             try:
@@ -291,15 +291,15 @@ def generate_attestation_medicale(data):
                 draw.rounded_rectangle([photo_x-3, photo_y-3, photo_x+id_w+3, photo_y+id_h+3], radius=6, outline=LINE, width=2)
                 img.paste(id_img, (photo_x, photo_y))
                 cap_font = _attestation_font(8, bold=True)
-                cap = "PIÈCE D'IDENTITÉ"
+                cap = "PIÃˆCE D'IDENTITÃ‰"
                 cw = draw.textlength(cap, font=cap_font)
                 draw.text((photo_x + id_w/2 - cw/2, photo_y + id_h + 6), cap, font=cap_font, fill=GRAY)
             except Exception as _photo_err:
-                print(f"Erreur intégration photo attestation: {_photo_err}")
+                print(f"Erreur intÃ©gration photo attestation: {_photo_err}")
 
         y += 14
 
-        y = section_label("DÉTAILS DE L'INTERVENTION", y)
+        y = section_label("DÃ‰TAILS DE L'INTERVENTION", y)
         y = table_row("Heure de prise en charge :", data.get('heure', ''), y)
         y = table_row("Lieu de l'incident :", data.get('lieu', ''), y)
 
@@ -313,7 +313,7 @@ def generate_attestation_medicale(data):
             my += 16
         y += mh + 20
 
-        y = section_label("AVIS MÉDICAL ET DISPOSITIONS", y)
+        y = section_label("AVIS MÃ‰DICAL ET DISPOSITIONS", y)
         box_h = len(avis_lines)*18 + 24
         draw.rounded_rectangle([PAD, y, W-PAD, y+box_h], radius=6, fill=SECTION_BG, outline=(210, 210, 212), width=1)
         ty = y + 12
@@ -344,7 +344,7 @@ def generate_attestation_medicale(data):
 
         draw.line([(PAD, y), (PAD+220, y)], fill=(210, 210, 212), width=1)
         y += 14
-        draw.text((PAD, y), "LE PRATICIEN RÉFÉRENT", font=f_sig_sub_label, fill=GRAY)
+        draw.text((PAD, y), "LE PRATICIEN RÃ‰FÃ‰RENT", font=f_sig_sub_label, fill=GRAY)
         y += 22
         draw.text((PAD-4, y-10), data.get('praticien_prenom_sig', ''), font=f_sig, fill=(35, 35, 90))
         y += 54
@@ -355,7 +355,7 @@ def generate_attestation_medicale(data):
         cx, cy, r = W - PAD - 100, y - 40, 62
         draw.ellipse([cx-r, cy-r, cx+r, cy+r], outline=ACCENT, width=2)
         draw.ellipse([cx-r+7, cy-r+7, cx+r-7, cy+r-7], outline=ACCENT, width=1)
-        label = "VALIDÉ & CERTIFIÉ"
+        label = "VALIDÃ‰ & CERTIFIÃ‰"
         lw = draw.textlength(label, font=stamp_font)
         draw.rectangle([cx-lw/2-6, cy-8, cx+lw/2+6, cy+8], outline=ACCENT, width=1)
         draw.text((cx-lw/2, cy-7), label, font=stamp_font, fill=ACCENT)
@@ -388,37 +388,37 @@ def generate_attestation_medicale(data):
 
 
 # ============================================================
-# BILAN D'APTITUDE — Templates variés (pour éviter le copier-coller)
+# BILAN D'APTITUDE â€” Templates variÃ©s (pour Ã©viter le copier-coller)
 # ============================================================
 _PSYCHO_APTE = [
-    "L'agent a passé son évaluation psychologique avec succès. Il fait preuve d'un bon discernement, présente un raisonnement clair et cohérent, et ne montre aucun signe d'anomalie sur le plan psychologique. Au vu des résultats obtenus, rien ne s'oppose à son aptitude à exercer ses fonctions. {civ} {nom} possède les qualités requises pour devenir un excellent agent.",
-    "Suite à l'entretien psychologique mené ce jour, {civ} {nom} démontre une stabilité émotionnelle satisfaisante, une capacité d'analyse pertinente et un sens du jugement approprié à la fonction. Aucun élément ne remet en cause son aptitude psychologique à exercer.",
-    "L'évaluation psychologique de {civ} {nom} n'a révélé aucune contre-indication. Le candidat fait preuve de calme, de rigueur et d'un raisonnement structuré, autant de qualités essentielles à l'exercice de ses futures fonctions.",
-    "Après un entretien approfondi, il ressort que {civ} {nom} présente un profil psychologique compatible avec les exigences du poste : contrôle de soi, clarté d'esprit et absence de troubles décelables.",
-    "L'entretien mené avec {civ} {nom} met en évidence une bonne gestion du stress, une capacité d'adaptation solide et un jugement mesuré. Aucune réserve psychologique n'est à signaler.",
+    "L'agent a passÃ© son Ã©valuation psychologique avec succÃ¨s. Il fait preuve d'un bon discernement, prÃ©sente un raisonnement clair et cohÃ©rent, et ne montre aucun signe d'anomalie sur le plan psychologique. Au vu des rÃ©sultats obtenus, rien ne s'oppose Ã  son aptitude Ã  exercer ses fonctions. {civ} {nom} possÃ¨de les qualitÃ©s requises pour devenir un excellent agent.",
+    "Suite Ã  l'entretien psychologique menÃ© ce jour, {civ} {nom} dÃ©montre une stabilitÃ© Ã©motionnelle satisfaisante, une capacitÃ© d'analyse pertinente et un sens du jugement appropriÃ© Ã  la fonction. Aucun Ã©lÃ©ment ne remet en cause son aptitude psychologique Ã  exercer.",
+    "L'Ã©valuation psychologique de {civ} {nom} n'a rÃ©vÃ©lÃ© aucune contre-indication. Le candidat fait preuve de calme, de rigueur et d'un raisonnement structurÃ©, autant de qualitÃ©s essentielles Ã  l'exercice de ses futures fonctions.",
+    "AprÃ¨s un entretien approfondi, il ressort que {civ} {nom} prÃ©sente un profil psychologique compatible avec les exigences du poste : contrÃ´le de soi, clartÃ© d'esprit et absence de troubles dÃ©celables.",
+    "L'entretien menÃ© avec {civ} {nom} met en Ã©vidence une bonne gestion du stress, une capacitÃ© d'adaptation solide et un jugement mesurÃ©. Aucune rÃ©serve psychologique n'est Ã  signaler.",
 ]
 _PSYCHO_INAPTE = [
-    "L'évaluation psychologique de {civ} {nom} a mis en évidence des éléments incompatibles avec l'exercice de la fonction visée à ce jour. Un suivi complémentaire est recommandé avant toute nouvelle évaluation.",
-    "Suite à l'entretien mené ce jour, des réserves sérieuses ont été émises quant à l'aptitude psychologique de {civ} {nom}. Il est recommandé de ne pas valider sa prise de fonction en l'état.",
-    "L'examen psychologique de {civ} {nom} révèle des signes d'instabilité incompatibles avec les exigences du poste actuellement. Une réévaluation ultérieure pourra être envisagée.",
+    "L'Ã©valuation psychologique de {civ} {nom} a mis en Ã©vidence des Ã©lÃ©ments incompatibles avec l'exercice de la fonction visÃ©e Ã  ce jour. Un suivi complÃ©mentaire est recommandÃ© avant toute nouvelle Ã©valuation.",
+    "Suite Ã  l'entretien menÃ© ce jour, des rÃ©serves sÃ©rieuses ont Ã©tÃ© Ã©mises quant Ã  l'aptitude psychologique de {civ} {nom}. Il est recommandÃ© de ne pas valider sa prise de fonction en l'Ã©tat.",
+    "L'examen psychologique de {civ} {nom} rÃ©vÃ¨le des signes d'instabilitÃ© incompatibles avec les exigences du poste actuellement. Une rÃ©Ã©valuation ultÃ©rieure pourra Ãªtre envisagÃ©e.",
 ]
 _SANTE_APTE = [
-    "Aptitude favorable. Une surveillance de routine est toutefois recommandée dans le cadre du suivi de l'agent, afin de s'assurer du maintien de son équilibre psychologique et de son aptitude à exercer ses fonctions.",
-    "L'examen médical ne révèle aucune contre-indication à l'exercice de la fonction. Un contrôle de routine annuel est conseillé pour assurer un suivi optimal.",
-    "Sur le plan physique, {civ} {nom} est jugé apte sans réserve. Il est conseillé de maintenir un suivi médical régulier conformément aux protocoles standards.",
-    "Bilan de santé général satisfaisant. Aucune restriction médicale n'est à signaler ; un suivi de routine reste néanmoins recommandé.",
-    "L'examen clinique de {civ} {nom} ne présente aucune anomalie. La condition physique est jugée compatible avec les exigences du métier, sous réserve d'un suivi médical annuel.",
+    "Aptitude favorable. Une surveillance de routine est toutefois recommandÃ©e dans le cadre du suivi de l'agent, afin de s'assurer du maintien de son Ã©quilibre psychologique et de son aptitude Ã  exercer ses fonctions.",
+    "L'examen mÃ©dical ne rÃ©vÃ¨le aucune contre-indication Ã  l'exercice de la fonction. Un contrÃ´le de routine annuel est conseillÃ© pour assurer un suivi optimal.",
+    "Sur le plan physique, {civ} {nom} est jugÃ© apte sans rÃ©serve. Il est conseillÃ© de maintenir un suivi mÃ©dical rÃ©gulier conformÃ©ment aux protocoles standards.",
+    "Bilan de santÃ© gÃ©nÃ©ral satisfaisant. Aucune restriction mÃ©dicale n'est Ã  signaler ; un suivi de routine reste nÃ©anmoins recommandÃ©.",
+    "L'examen clinique de {civ} {nom} ne prÃ©sente aucune anomalie. La condition physique est jugÃ©e compatible avec les exigences du mÃ©tier, sous rÃ©serve d'un suivi mÃ©dical annuel.",
 ]
 _SANTE_INAPTE = [
-    "L'examen médical révèle des éléments nécessitant une prise en charge avant toute reprise d'activité. L'aptitude ne peut être validée en l'état.",
-    "Des réserves médicales ont été constatées lors du bilan de santé de {civ} {nom}. Une nouvelle évaluation est requise après rétablissement.",
-    "Sur le plan physique, {civ} {nom} présente actuellement des contre-indications à l'exercice de la fonction. Un suivi médical est requis avant réévaluation.",
+    "L'examen mÃ©dical rÃ©vÃ¨le des Ã©lÃ©ments nÃ©cessitant une prise en charge avant toute reprise d'activitÃ©. L'aptitude ne peut Ãªtre validÃ©e en l'Ã©tat.",
+    "Des rÃ©serves mÃ©dicales ont Ã©tÃ© constatÃ©es lors du bilan de santÃ© de {civ} {nom}. Une nouvelle Ã©valuation est requise aprÃ¨s rÃ©tablissement.",
+    "Sur le plan physique, {civ} {nom} prÃ©sente actuellement des contre-indications Ã  l'exercice de la fonction. Un suivi mÃ©dical est requis avant rÃ©Ã©valuation.",
 ]
 
 
 def generate_aptitude_report(data):
-    """Génère l'image d'un bilan d'aptitude psychologique et médicale (LSPD/BCSO),
-    avec des textes variés à chaque génération pour éviter le copier-coller.
+    """GÃ©nÃ¨re l'image d'un bilan d'aptitude psychologique et mÃ©dicale (LSPD/BCSO),
+    avec des textes variÃ©s Ã  chaque gÃ©nÃ©ration pour Ã©viter le copier-coller.
     data attend: org ('LSPD'|'BCSO'), matricule, nom_officier, civilite ('m'|'mme'),
     apte (bool), praticien_nom, praticien_grade, ref_doc, date_doc, photo_bytes (optionnel).
     Retourne un BytesIO (PNG) ou None si Pillow indisponible."""
@@ -466,7 +466,7 @@ def generate_aptitude_report(data):
                     cur = w
             if cur:
                 lines.append(cur)
-            return lines or ['—']
+            return lines or ['â€”']
 
         civ = 'Madame' if data.get('civilite') == 'mme' else 'Monsieur'
         nom_officier = data.get('nom_officier', '')
@@ -485,14 +485,14 @@ def generate_aptitude_report(data):
 
         logo = make_ems_logo(46)
         img.paste(logo, (PAD, y-2), logo)
-        draw.text((PAD+56, y), "CENTRE MÉDICAL - EMS", font=f_logo, fill=BLACK)
-        draw.text((PAD+56, y+22), "Bilan d'Aptitude Psychologique & Médicale", font=f_logo_sub, fill=GRAY)
+        draw.text((PAD+56, y), "CENTRE MÃ‰DICAL - EMS", font=f_logo, fill=BLACK)
+        draw.text((PAD+56, y+22), "Bilan d'Aptitude Psychologique & MÃ©dicale", font=f_logo_sub, fill=GRAY)
 
         right_x = W - PAD
         org_label = "LOS SANTOS POLICE DEPARTMENT" if data.get('org') == 'LSPD' else "BLAINE COUNTY SHERIFF'S OFFICE"
         lines_r = [
             (org_label, f_head_r),
-            (f"Réf Doc: {data.get('ref_doc','—')}", f_logo_sub),
+            (f"RÃ©f Doc: {data.get('ref_doc','â€”')}", f_logo_sub),
             (data.get('date_doc', ''), f_logo_sub),
         ]
         ry = y
@@ -505,7 +505,7 @@ def generate_aptitude_report(data):
         draw.line([(PAD, y), (W-PAD, y)], fill=ACCENT, width=2)
         y += 20
 
-        title = "BILAN D'APTITUDE — ÉVALUATION PSYCHOLOGIQUE ET MÉDICALE"
+        title = "BILAN D'APTITUDE â€” Ã‰VALUATION PSYCHOLOGIQUE ET MÃ‰DICALE"
         draw.rounded_rectangle([PAD, y, W-PAD, y+38], radius=6, fill=(30, 30, 34))
         tw = draw.textlength(title, font=f_title)
         draw.text(((W-tw)/2, y+11), title, font=f_title, fill=(255, 255, 255))
@@ -520,7 +520,7 @@ def generate_aptitude_report(data):
             draw.rounded_rectangle([PAD, yy, PAD+w, yy+h], radius=5, outline=LINE, width=1)
             draw.line([(PAD+160, yy+2), (PAD+160, yy+h-2)], fill=(210, 210, 212), width=1)
             draw.text((PAD+12, yy+h/2-7), label, font=f_label, fill=BLACK)
-            draw.text((PAD+172, yy+h/2-7), value or '—', font=f_value, fill=BLACK)
+            draw.text((PAD+172, yy+h/2-7), value or 'â€”', font=f_value, fill=BLACK)
             return yy + h + 6
 
         y = section_label("INFORMATIONS DE L'OFFICIER", y)
@@ -550,7 +550,7 @@ def generate_aptitude_report(data):
                 draw.rounded_rectangle([px-3, py-3, px+id_w+3, py+id_h+3], radius=6, outline=LINE, width=2)
                 img.paste(id_img, (px, py))
                 cap_font = _attestation_font(8, bold=True)
-                cap = "PIÈCE D'IDENTITÉ"
+                cap = "PIÃˆCE D'IDENTITÃ‰"
                 cw = draw.textlength(cap, font=cap_font)
                 draw.text((px + id_w/2 - cw/2, py + id_h + 6), cap, font=cap_font, fill=GRAY)
             except Exception as _e:
@@ -559,7 +559,7 @@ def generate_aptitude_report(data):
 
         status_h = 50
         draw.rounded_rectangle([PAD, y, W-PAD, y+status_h], radius=8, fill=STATUS_BG, outline=STATUS_COLOR, width=2)
-        status_txt = "✅ APTE À EXERCER" if APTE else "⛔ NON APTE À EXERCER"
+        status_txt = "âœ… APTE Ã€ EXERCER" if APTE else "â›” NON APTE Ã€ EXERCER"
         sw = draw.textlength(status_txt, font=f_status)
         draw.text(((W-sw)/2, y+status_h/2-13), status_txt, font=f_status, fill=STATUS_COLOR)
         y += status_h + 22
@@ -573,7 +573,7 @@ def generate_aptitude_report(data):
             ty += 18
         y += bh + 18
 
-        y = section_label("BILAN DE SANTÉ", y)
+        y = section_label("BILAN DE SANTÃ‰", y)
         bh2 = len(sante_lines)*18 + 24
         draw.rounded_rectangle([PAD, y, W-PAD, y+bh2], radius=6, fill=SECTION_BG, outline=(210, 210, 212), width=1)
         ty = y + 12
@@ -584,7 +584,7 @@ def generate_aptitude_report(data):
 
         draw.line([(PAD, y), (PAD+220, y)], fill=(210, 210, 212), width=1)
         y += 14
-        draw.text((PAD, y), "LE PRATICIEN RÉFÉRENT", font=f_sig_sub_label, fill=GRAY)
+        draw.text((PAD, y), "LE PRATICIEN RÃ‰FÃ‰RENT", font=f_sig_sub_label, fill=GRAY)
         y += 22
         draw.text((PAD-4, y-10), data.get('praticien_nom', ''), font=f_sig, fill=(35, 35, 90))
         y += 54
@@ -592,7 +592,7 @@ def generate_aptitude_report(data):
         y += 18
         draw.text((PAD, y), data.get('praticien_grade', ''), font=f_sig_sub, fill=GRAY)
 
-        # Badge EMS (logo rond, en bas à droite du document)
+        # Badge EMS (logo rond, en bas Ã  droite du document)
         badge_size = 110
         bx, by = W - PAD - badge_size, y - 70
         badge = make_ems_logo(badge_size)
@@ -605,7 +605,7 @@ def generate_aptitude_report(data):
         y += 90
         draw.line([(PAD, y), (W-PAD, y)], fill=(210, 210, 212), width=1)
         y += 14
-        footer = "DOCUMENT OFFICIEL EMS LOS SANTOS — RAPPORT D'APTITUDE CONFIDENTIEL — TOUTE FALSIFICATION EST PASSIBLE DE POURSUITES."
+        footer = "DOCUMENT OFFICIEL EMS LOS SANTOS â€” RAPPORT D'APTITUDE CONFIDENTIEL â€” TOUTE FALSIFICATION EST PASSIBLE DE POURSUITES."
         for l in wrap_text(draw, footer, f_footer, W-2*PAD):
             fw = draw.textlength(l, font=f_footer)
             draw.text(((W-fw)/2, y), l, font=f_footer, fill=ACCENT)
@@ -622,45 +622,45 @@ def generate_aptitude_report(data):
 
 
 # ============================================================
-# DÉTECTION IA — Analyse linguistique des réponses CV
+# DÃ‰TECTION IA â€” Analyse linguistique des rÃ©ponses CV
 # ============================================================
 
-# Marqueurs linguistiques typiques des textes IA en français
+# Marqueurs linguistiques typiques des textes IA en franÃ§ais
 _IA_PATTERNS = [
     # Connecteurs trop formels / transitions IA typiques
     r"\ben effet\b", r"\bde plus\b", r"\bpar ailleurs\b", r"\bainsi\b",
-    r"\btoutefois\b", r"\bnéanmoins\b", r"\bcependant\b", r"\bnotamment\b",
-    r"\ben outre\b", r"\bégalement\b", r"\bpar conséquent\b", r"\bdès lors\b",
+    r"\btoutefois\b", r"\bnÃ©anmoins\b", r"\bcependant\b", r"\bnotamment\b",
+    r"\ben outre\b", r"\bÃ©galement\b", r"\bpar consÃ©quent\b", r"\bdÃ¨s lors\b",
     r"\bil convient de\b", r"\bil est important de\b", r"\bdans ce cadre\b",
     r"\bdans cette optique\b", r"\bdans le but de\b", r"\bc'est pourquoi\b",
-    r"\bà cet égard\b", r"\ben ce sens\b", r"\bforce est de constater\b",
-    r"\bil va sans dire\b", r"\bà titre d'exemple\b", r"\bà travers\b",
-    r"\ben premier lieu\b", r"\ben second lieu\b", r"\bpremièrement\b",
-    r"\bdeuxièmement\b", r"\btroisièmement\b", r"\bpour conclure\b",
-    r"\ben conclusion\b", r"\nen résumé\b", r"\ben somme\b",
-    # Formules IA auto-référentielles
-    r"\bien sûr\b", r"\bsans aucun doute\b", r"\bla question est\b",
-    r"\bje suis convaincu\b", r"\bje suis persuadé\b", r"\bje suis déterminé\b",
-    r"\bfaire preuve de\b", r"\bm'épanouir\b", r"\bcontribuer\b",
+    r"\bÃ  cet Ã©gard\b", r"\ben ce sens\b", r"\bforce est de constater\b",
+    r"\bil va sans dire\b", r"\bÃ  titre d'exemple\b", r"\bÃ  travers\b",
+    r"\ben premier lieu\b", r"\ben second lieu\b", r"\bpremiÃ¨rement\b",
+    r"\bdeuxiÃ¨mement\b", r"\btroisiÃ¨mement\b", r"\bpour conclure\b",
+    r"\ben conclusion\b", r"\nen rÃ©sumÃ©\b", r"\ben somme\b",
+    # Formules IA auto-rÃ©fÃ©rentielles
+    r"\bien sÃ»r\b", r"\bsans aucun doute\b", r"\bla question est\b",
+    r"\bje suis convaincu\b", r"\bje suis persuadÃ©\b", r"\bje suis dÃ©terminÃ©\b",
+    r"\bfaire preuve de\b", r"\bm'Ã©panouir\b", r"\bcontribuer\b",
     r"\bm'investir pleinement\b", r"\bapporter ma pierre\b",
-    r"\brelever les défis\b", r"\bmettre à profit\b",
-    r"\bmon parcours\b.*\bm'a permis\b", r"\bforte de\b.*\bexpérience\b",
+    r"\brelever les dÃ©fis\b", r"\bmettre Ã  profit\b",
+    r"\bmon parcours\b.*\bm'a permis\b", r"\bforte de\b.*\bexpÃ©rience\b",
 ]
 
-# Mots distinctifs très fréquents dans les textes IA
+# Mots distinctifs trÃ¨s frÃ©quents dans les textes IA
 _IA_KEYWORDS = [
-    "passionné", "dévoué", "rigoureux", "polyvalent", "dynamique",
-    "compétences", "professionnel", "profil", "opportunité",
-    "m'épanouir", "m'investir", "collaborer", "synergie",
+    "passionnÃ©", "dÃ©vouÃ©", "rigoureux", "polyvalent", "dynamique",
+    "compÃ©tences", "professionnel", "profil", "opportunitÃ©",
+    "m'Ã©panouir", "m'investir", "collaborer", "synergie",
     "valeurs", "engagement", "enrichissant", "stimulant",
-    "développer mes compétences", "rejoindre votre équipe",
-    "votre organisation", "vos critères", "votre structure",
+    "dÃ©velopper mes compÃ©tences", "rejoindre votre Ã©quipe",
+    "votre organisation", "vos critÃ¨res", "votre structure",
 ]
 
 def _detect_ia(text: str) -> dict:
     """
-    Analyse un texte et retourne un score IA + les indices détectés.
-    Score: 0.0 (humain) à 1.0 (très probablement IA)
+    Analyse un texte et retourne un score IA + les indices dÃ©tectÃ©s.
+    Score: 0.0 (humain) Ã  1.0 (trÃ¨s probablement IA)
     """
     if not text or len(text.strip()) < 30:
         return {"score": 0.0, "indices": [], "verdict": "trop_court"}
@@ -676,29 +676,29 @@ def _detect_ia(text: str) -> dict:
             pattern_hits += 1
     if pattern_hits >= 3:
         score += 0.35
-        indices.append(f"{pattern_hits} connecteurs formels détectés")
+        indices.append(f"{pattern_hits} connecteurs formels dÃ©tectÃ©s")
     elif pattern_hits >= 1:
         score += 0.10
         indices.append(f"{pattern_hits} connecteur(s) formel(s)")
 
-    # 2. Mots-clés caractéristiques
+    # 2. Mots-clÃ©s caractÃ©ristiques
     kw_hits = sum(1 for kw in _IA_KEYWORDS if kw in t)
     if kw_hits >= 4:
         score += 0.30
-        indices.append(f"{kw_hits} mots-clés IA détectés")
+        indices.append(f"{kw_hits} mots-clÃ©s IA dÃ©tectÃ©s")
     elif kw_hits >= 2:
         score += 0.15
-        indices.append(f"{kw_hits} mots-clés IA")
+        indices.append(f"{kw_hits} mots-clÃ©s IA")
 
-    # 3. Longueur et structure — l'IA écrit souvent plus long et plus structuré
+    # 3. Longueur et structure â€” l'IA Ã©crit souvent plus long et plus structurÃ©
     words = text.split()
     if len(words) > 80:
         score += 0.15
-        indices.append(f"Réponse très longue ({len(words)} mots)")
+        indices.append(f"RÃ©ponse trÃ¨s longue ({len(words)} mots)")
     elif len(words) > 50:
         score += 0.05
 
-    # 4. Phrases très longues (IA rarement utilise de courtes phrases)
+    # 4. Phrases trÃ¨s longues (IA rarement utilise de courtes phrases)
     sentences = [s.strip() for s in _re.split(r'[.!?]', text) if s.strip()]
     if sentences:
         avg_len = sum(len(s.split()) for s in sentences) / len(sentences)
@@ -706,13 +706,13 @@ def _detect_ia(text: str) -> dict:
             score += 0.15
             indices.append(f"Phrases longues (moy. {avg_len:.0f} mots/phrase)")
 
-    # 5. Absence de fautes / argot / abréviations → trop parfait
+    # 5. Absence de fautes / argot / abrÃ©viations â†’ trop parfait
     has_informal = bool(_re.search(r"\blol\b|\bsvp\b|\bpk\b|\bnn\b|\bbjr\b|\bslt\b|\bcc\b|\bdacc\b|\.{2,}|!{2,}|\?{2,}", t))
     if not has_informal and len(words) > 40:
         score += 0.05
-        indices.append("Aucune marque d'écriture informelle")
+        indices.append("Aucune marque d'Ã©criture informelle")
 
-    # Plafonner à 1.0
+    # Plafonner Ã  1.0
     score = min(score, 1.0)
 
     if score >= 0.65:
@@ -738,7 +738,7 @@ def log(msg):
     print(f'[{ts}] {msg}', file=sys.stderr, flush=True)
 
 # --- CONFIGURATION ---
-# Support à la fois config.json (local) et variables d'environnement (Railway)
+# Support Ã  la fois config.json (local) et variables d'environnement (Railway)
 if os.path.exists('config.json'):
     with open('config.json', 'r', encoding='utf-8') as f:
         config = json.load(f)
@@ -755,7 +755,7 @@ else:
         "ROLE_DIRECTION_ID": int(os.environ.get("ROLE_DIRECTION_ID", 0))
     }
 
-# Répertoire de données persistant (volume Railway ou local)
+# RÃ©pertoire de donnÃ©es persistant (volume Railway ou local)
 DATA_DIR = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", ".")
 if DATA_DIR != "." and not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -780,9 +780,9 @@ PATIENT_PHOTOS_DIR = os.path.join(DATA_DIR, 'patient_photos')
 os.makedirs(PATIENT_PHOTOS_DIR, exist_ok=True)
 
 def save_patient_photo(pid: str, data_uri: str) -> str:
-    """Décode une image data-URI base64 et la sauvegarde comme fichier séparé
+    """DÃ©code une image data-URI base64 et la sauvegarde comme fichier sÃ©parÃ©
     (au lieu de la stocker dans patients.json, ce qui alourdirait ce fichier
-    et ralentirait chaque lecture/écriture). Retourne le nom de fichier relatif."""
+    et ralentirait chaque lecture/Ã©criture). Retourne le nom de fichier relatif."""
     try:
         if not data_uri or not data_uri.startswith('data:'):
             return ''
@@ -822,10 +822,10 @@ def load_parrainage():
 def save_parrainage(data):
     atomic_write_json(PARRAINAGE_FILE, data)
 WEEK_SNAPSHOT_FILE = os.path.join(DATA_DIR, 'week_snapshot.json')
-# Instantané de la DERNIÈRE semaine juste avant le reset /semaine (rétrocompat dashboard) :
+# InstantanÃ© de la DERNIÃˆRE semaine juste avant le reset /semaine (rÃ©trocompat dashboard) :
 # {week_key, stats, evening_reas, services, saved_at}
 WEEK_HISTORY_FILE = os.path.join(DATA_DIR, 'week_history.json')
-# Historique glissant des 8 dernières semaines : {week_key: {stats, evening_reas, services, saved_at, finalized}}
+# Historique glissant des 8 derniÃ¨res semaines : {week_key: {stats, evening_reas, services, saved_at, finalized}}
 WEEK_HISTORY_MAX = 8
 
 def load_week_snapshot():
@@ -838,15 +838,15 @@ def load_week_history():
     return robust_load_json(WEEK_HISTORY_FILE, {})
 
 def save_week_to_history(week_key: str, snapshot_data: dict, finalized: bool = False):
-    """Enregistre/actualise l'entrée d'une semaine dans l'historique glissant (8 semaines max).
-    finalized=True quand c'est /semaine qui l'écrit (données figées) ;
-    finalized=False pour les auto-snapshots périodiques de la semaine en cours (données provisoires)."""
+    """Enregistre/actualise l'entrÃ©e d'une semaine dans l'historique glissant (8 semaines max).
+    finalized=True quand c'est /semaine qui l'Ã©crit (donnÃ©es figÃ©es) ;
+    finalized=False pour les auto-snapshots pÃ©riodiques de la semaine en cours (donnÃ©es provisoires)."""
     try:
         history = load_week_history()
         entry = dict(snapshot_data)
         entry['finalized'] = finalized
         history[week_key] = entry
-        # Garder seulement les WEEK_HISTORY_MAX semaines les plus récentes
+        # Garder seulement les WEEK_HISTORY_MAX semaines les plus rÃ©centes
         if len(history) > WEEK_HISTORY_MAX:
             for old_key in sorted(history.keys())[:-WEEK_HISTORY_MAX]:
                 del history[old_key]
@@ -855,22 +855,22 @@ def save_week_to_history(week_key: str, snapshot_data: dict, finalized: bool = F
         print(f"Erreur save_week_to_history: {e}")
 
 def seed_last_week_data_once():
-    """Pré-remplit UNE FOIS l'historique de la semaine du 20/07/2026 avec les vraies données
-    du bilan hebdomadaire (fournies manuellement), car le système de snapshot n'existait pas
-    encore à ce moment-là. Ne fait rien si cette semaine est déjà présente dans l'historique."""
+    """PrÃ©-remplit UNE FOIS l'historique de la semaine du 20/07/2026 avec les vraies donnÃ©es
+    du bilan hebdomadaire (fournies manuellement), car le systÃ¨me de snapshot n'existait pas
+    encore Ã  ce moment-lÃ . Ne fait rien si cette semaine est dÃ©jÃ  prÃ©sente dans l'historique."""
     SEED_WEEK_KEY = "2026-07-20"
     try:
         history = load_week_history()
         if SEED_WEEK_KEY in history:
-            return  # déjà présent, ne rien faire (idempotent)
+            return  # dÃ©jÃ  prÃ©sent, ne rien faire (idempotent)
 
         seed_stats = {
             "sandia-carlo": 511, "toty-roberto": 417, "romain-romarin": 234, "kamelia-zoubida2": 200,
             "taris-mike": 178, "guapan-alvarez": 178, "adam-abdel-karim": 139, "alejandro-lopes": 124,
             "merino-antonio": 120, "emiliano-lopes": 110, "clara-ino": 100, "lyla-wlodarezyk": 82,
             "gustavo-pilguini": 82, "enzo-vitara": 68, "dereck-gaviria": 57, "smith-jason": 47,
-            "aylan-trabuc": 43, "félix-pérez": 43, "martine-joe": 26, "adam-donovan": 22,
-            "kamélia-zoubida": 18, "malik-jhonson": 17, "adam-hernandez": 17, "mike-jimmy": 16,
+            "aylan-trabuc": 43, "fÃ©lix-pÃ©rez": 43, "martine-joe": 26, "adam-donovan": 22,
+            "kamÃ©lia-zoubida": 18, "malik-jhonson": 17, "adam-hernandez": 17, "mike-jimmy": 16,
             "carter-darius": 15, "herve-ferrari": 15, "james-board": 12, "fabrice-costa": 10,
             "muchachos-lopes": 10, "kaya-mehmet": 6, "cameron-wayne": 1, "meeko-risto": 1, "amina-koyim": 1,
         }
@@ -891,7 +891,7 @@ def seed_last_week_data_once():
             "emiliano-lopes": {"total_hours": 8.8, "total_reas": 110, "sessions": 5},
             "gustavo-pilguini": {"total_hours": 6.77, "total_reas": 72, "sessions": 6},
             "smith-jason": {"total_hours": 6.62, "total_reas": 46, "sessions": 7},
-            "félix-pérez": {"total_hours": 6.57, "total_reas": 43, "sessions": 4},
+            "fÃ©lix-pÃ©rez": {"total_hours": 6.57, "total_reas": 43, "sessions": 4},
             "aylan-trabuc": {"total_hours": 3.78, "total_reas": 43, "sessions": 2},
             "adam-donovan": {"total_hours": 3.3, "total_reas": 12, "sessions": 4},
             "malik-jhonson": {"total_hours": 2.63, "total_reas": 17, "sessions": 6},
@@ -905,20 +905,20 @@ def seed_last_week_data_once():
             "rico-alvarez": {"total_hours": 1.0, "total_reas": 0, "sessions": 2},
             "amina-koyim": {"total_hours": 0.55, "total_reas": 1, "sessions": 1},
             "herve-ferrari": {"total_hours": 0.52, "total_reas": 0, "sessions": 2},
-            "kamélia-zoubida": {"total_hours": 0.45, "total_reas": 14, "sessions": 1},
+            "kamÃ©lia-zoubida": {"total_hours": 0.45, "total_reas": 14, "sessions": 1},
         }
         seed_snapshot = {
             "week_key": SEED_WEEK_KEY,
             "stats": seed_stats,
-            "evening_reas": {},  # non disponible pour cette semaine (pas encore trackée à l'époque)
+            "evening_reas": {},  # non disponible pour cette semaine (pas encore trackÃ©e Ã  l'Ã©poque)
             "services": seed_services,
             "saved_at": now_paris().isoformat(),
         }
         save_week_to_history(SEED_WEEK_KEY, seed_snapshot, finalized=True)
-        # Sert aussi de "week_snapshot" (dernière semaine) tant qu'aucune vraie /semaine n'a encore tourné
+        # Sert aussi de "week_snapshot" (derniÃ¨re semaine) tant qu'aucune vraie /semaine n'a encore tournÃ©
         if not load_week_snapshot().get('week_key'):
             save_week_snapshot(seed_snapshot)
-        print(f"✅ Semaine du {SEED_WEEK_KEY} pré-remplie dans l'historique ({len(seed_stats)} employés, {sum(seed_stats.values())} réas)")
+        print(f"âœ… Semaine du {SEED_WEEK_KEY} prÃ©-remplie dans l'historique ({len(seed_stats)} employÃ©s, {sum(seed_stats.values())} rÃ©as)")
     except Exception as e:
         print(f"Erreur seed_last_week_data_once: {e}")
 # {patient_id: {nom, prenom, photo (data URI base64), created, dossiers: [{date, symptome, description, examens, conseils, par}]}}
@@ -960,7 +960,7 @@ def save_cv_tracking(data):
     atomic_write_json(CV_TRACKING_FILE, data)
 
 def cv_track_add(user: discord.User, statut: str = 'pending', photos_b64: list = None, cv_text: str = None):
-    """Ajoute ou met à jour un CV dans le tracking (avec photos carte identité/permis et texte complet)."""
+    """Ajoute ou met Ã  jour un CV dans le tracking (avec photos carte identitÃ©/permis et texte complet)."""
     try:
         data = load_cv_tracking()
         uid = str(user.id)
@@ -978,7 +978,7 @@ def cv_track_add(user: discord.User, statut: str = 'pending', photos_b64: list =
         print(f"Erreur cv_track_add: {e}")
 
 def cv_track_update(user_id: str, statut: str, raison: str = None):
-    """Met à jour le statut d'un CV existant."""
+    """Met Ã  jour le statut d'un CV existant."""
     try:
         data = load_cv_tracking()
         if user_id in data:
@@ -990,9 +990,9 @@ def cv_track_update(user_id: str, statut: str, raison: str = None):
     except Exception as e:
         print(f"Erreur cv_track_update: {e}")
 
-# Services actifs en mémoire: {user_id: {"start": datetime_iso, "last_rea": datetime_iso, "employee_key": str}}
+# Services actifs en mÃ©moire: {user_id: {"start": datetime_iso, "last_rea": datetime_iso, "employee_key": str}}
 active_services = {}
-service_status_message_id = None  # ID du message de statut en temps réel
+service_status_message_id = None  # ID du message de statut en temps rÃ©el
 
 def load_service_message_id():
     """Charge l'ID du message PDS depuis le fichier"""
@@ -1025,7 +1025,7 @@ ROLE_NO_TEST_ID = 1163524216688230591
 ROLE_TAXI_REQUEST_ID = 1311784189984505876
 
 # Configuration Reset
-ROLE_BASE_ID = 838102445095256066  # Rôle de base à conserver
+ROLE_BASE_ID = 838102445095256066  # RÃ´le de base Ã  conserver
 RESET_CHANNEL_ID = 1450938023033176247
 
 # Configuration Leaderboard
@@ -1038,12 +1038,12 @@ CITOYEN_ROLE_ID = 838102445095256066
 
 # Configuration Dispo
 DISPO_REQUEST_CHANNEL_ID = 1478916243858915591  # Canal pour les demandes initiales
-DISPO_CHANNEL_ID = 1478912686069780602  # Canal pour les décisions de recrutement
+DISPO_CHANNEL_ID = 1478912686069780602  # Canal pour les dÃ©cisions de recrutement
 DISPO_CONFIRMATION_ROLE_ID = 896103247096471613
-DIRECTION_ROLE_ID = 838120186585940010  # Rôle direction pour validation dispo et recrutement
+DIRECTION_ROLE_ID = 838120186585940010  # RÃ´le direction pour validation dispo et recrutement
 ROLE_PENDING_ID = 896103247096471613
 
-# Liste unifiée des rôles EMS à retirer lors d'un licenciement
+# Liste unifiÃ©e des rÃ´les EMS Ã  retirer lors d'un licenciement
 EMS_ROLE_IDS_TO_REMOVE = [
     895047492784238652,  # EMT
     838102445095256069,  # STG
@@ -1054,8 +1054,8 @@ EMS_ROLE_IDS_TO_REMOVE = [
     1528560704511148092, # PSY
     1528561040663777310, # CAD
     1088570974603055195, # DIR
-    838102445095256068,  # Autre rôle EMS 1
-    838102445095256070,  # Autre rôle EMS 2
+    838102445095256068,  # Autre rÃ´le EMS 1
+    838102445095256070,  # Autre rÃ´le EMS 2
 ]
 ROLE_EMT_1 = 838102445095256070
 ROLE_EMT_2 = 838102445095256068
@@ -1063,20 +1063,20 @@ ROLE_EMT_3 = 895047492784238652
 ROLE_CITOYEN = 838102445095256068
 
 # Configuration Giveaway
-GIVEAWAY_PING_ROLE_ID = 838102445095256068  # Rôle à ping pour les giveaways
+GIVEAWAY_PING_ROLE_ID = 838102445095256068  # RÃ´le Ã  ping pour les giveaways
 GIVEAWAY_FILE = 'giveaways.json'
 
 # --- FONCTIONS UTILITAIRES JSON ---
 def atomic_write_json(path: str, data: dict, make_backup: bool = True, max_retries: int = 3):
     tmp_path = f"{path}.tmp"
-    last_exc = Exception("atomic_write_json: aucune tentative effectuée")
+    last_exc = Exception("atomic_write_json: aucune tentative effectuÃ©e")
     for attempt in range(1, max_retries + 1):
         try:
             with open(tmp_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
                 f.flush()
                 os.fsync(f.fileno())
-            # Ecrire/mettre à jour une sauvegarde simple
+            # Ecrire/mettre Ã  jour une sauvegarde simple
             if make_backup:
                 try:
                     with open(f"{path}.bak", 'w', encoding='utf-8') as bf:
@@ -1084,7 +1084,7 @@ def atomic_write_json(path: str, data: dict, make_backup: bool = True, max_retri
                 except Exception:
                     pass
             os.replace(tmp_path, path)
-            return  # Succès
+            return  # SuccÃ¨s
         except Exception as e:
             last_exc = e
             # Nettoyage tmp si besoin
@@ -1119,14 +1119,14 @@ def robust_load_json(path: str, default):
                 pass
         return default
 
-# Fonction pour charger les catégories
+# Fonction pour charger les catÃ©gories
 def load_categories():
     default = {
         "CATEGORY_EMT_ID": 1515101532746678332,
         "CATEGORY_STG_ID": 1515101531186397335,  # Stagiaire
         "CATEGORY_ADS_ID": 0,
         "CATEGORY_INF_ID": 0,
-        "CATEGORY_PSY_ID": 1528562582804365312,  # Psychologue ✓
+        "CATEGORY_PSY_ID": 1528562582804365312,  # Psychologue âœ“
         "CATEGORY_MED_ID": 0,
         "CATEGORY_CDS_ID": 0,               # Chef de Service
         "CATEGORY_CAD_ID": 1528562915458814053,  # Chef Adjoint [CAD]
@@ -1137,7 +1137,7 @@ def load_categories():
 def save_categories(cats):
     atomic_write_json(CATEGORIES_FILE, cats)
 
-# Charger les catégories au démarrage
+# Charger les catÃ©gories au dÃ©marrage
 categories = load_categories()
 CATEGORY_EMT_ID = categories.get("CATEGORY_EMT_ID", 1515101532746678332)
 CATEGORY_STG_ID = categories.get("CATEGORY_STG_ID", 1515101531186397335)  # Stagiaire
@@ -1159,7 +1159,7 @@ def save_blacklist_cv(data):
     atomic_write_json(BLACKLIST_CV_FILE, data)
 
 def is_blacklisted_cv(user_id: int) -> dict | None:
-    """Retourne les infos de blacklist si l'user est blacklisté et le délai pas encore passé, sinon None."""
+    """Retourne les infos de blacklist si l'user est blacklistÃ© et le dÃ©lai pas encore passÃ©, sinon None."""
     bl = load_blacklist_cv()
     uid = str(user_id)
     if uid not in bl:
@@ -1168,16 +1168,16 @@ def is_blacklisted_cv(user_id: int) -> dict | None:
     blacklisted_at = datetime.fromisoformat(entry["date"])
     if datetime.utcnow() - blacklisted_at < timedelta(weeks=1):
         return entry
-    return None  # délai passé → plus blacklisté
+    return None  # dÃ©lai passÃ© â†’ plus blacklistÃ©
 
-# Cooldown pour réactions
+# Cooldown pour rÃ©actions
 processed_reactions = set()
 
-# Compteur de réas nocturnes (21h-23h) en mémoire: {"employee_key_YYYY-MM-DD": count}
+# Compteur de rÃ©as nocturnes (21h-23h) en mÃ©moire: {"employee_key_YYYY-MM-DD": count}
 EVENING_REAS_FILE = os.path.join(DATA_DIR, 'evening_reas.json')
-evening_reas = robust_load_json(EVENING_REAS_FILE, {})  # persisté sur disque, résiste aux redémarrages
+evening_reas = robust_load_json(EVENING_REAS_FILE, {})  # persistÃ© sur disque, rÃ©siste aux redÃ©marrages
 
-# Suivi des retraits du coffre société: {"username_YYYY-MM-DD": {"count": N, "items": [...]}}
+# Suivi des retraits du coffre sociÃ©tÃ©: {"username_YYYY-MM-DD": {"count": N, "items": [...]}}
 coffre_tracking = {}
 
 # --- COULEURS EMS ---
@@ -1185,7 +1185,7 @@ EMS_RED = discord.Color.from_rgb(220, 20, 60)
 EMS_DARK_RED = discord.Color.from_rgb(178, 34, 52)
 
 # --- MATRICULES ---
-# Salons vocaux de service — IDs des divisions
+# Salons vocaux de service â€” IDs des divisions
 SERVICE_VOICE_CHANNELS = {
     "Lincoln 01": 1524437901176213606,
     "Lincoln 02": 1524164049150148758,
@@ -1201,7 +1201,7 @@ SERVICE_VOICE_CHANNELS = {
     "Xray 03":    1524164701829861376,
 }
 SERVICE_VOICE_IDS = set(SERVICE_VOICE_CHANNELS.values())
-WAITING_VOICE_ID = 896196296283660328  # Salon vocal de repos après FDS
+WAITING_VOICE_ID = 896196296283660328  # Salon vocal de repos aprÃ¨s FDS
 matricule_board_message_id = None  # ID du message embed dans le salon matricules
 direction_matricules = {}  # {grade: {matricule_str: nom}} ex: {"DIR": {"01": "Jean Dupont"}}
 
@@ -1220,20 +1220,20 @@ def save_avertissements(data: dict):
 
 def get_avert_emoji(count: int) -> str:
     if count == 0:
-        return "🟢"
+        return "ðŸŸ¢"
     elif count == 1:
-        return "🟡"
+        return "ðŸŸ¡"
     elif count == 2:
-        return "🟠"
+        return "ðŸŸ "
     else:
-        return "🔴"
+        return "ðŸ”´"
 
-_last_matricule_update = 0.0  # timestamp de la dernière mise à jour (debounce)
+_last_matricule_update = 0.0  # timestamp de la derniÃ¨re mise Ã  jour (debounce)
 
 async def update_matricule_board(guild: discord.Guild):
-    """Met à jour (ou crée) l'embed des matricules dans le salon dédié."""
+    """Met Ã  jour (ou crÃ©e) l'embed des matricules dans le salon dÃ©diÃ©."""
     global matricule_board_message_id, _last_matricule_update
-    # Debounce : ne pas spammer les 10 appels simultanés (ex: à la fin de service)
+    # Debounce : ne pas spammer les 10 appels simultanÃ©s (ex: Ã  la fin de service)
     _now_ts = time.time()
     if _now_ts - _last_matricule_update < 30:
         return
@@ -1249,15 +1249,15 @@ async def update_matricule_board(guild: discord.Guild):
 
     grade_order  = ["DIR", "CAD", "CDS", "MED", "PSY", "INF", "ADS", "STG", "EMT"]
     grade_labels = {
-        "DIR": "👔 Directeur Médical",
-        "CAD": "🏥 Chef Adjoint",
-        "CDS": "🏥 Chef de Service",
-        "MED": "⚕️ Médecin",
-        "PSY": "🧠 Psychologue",
-        "INF": "💉 Infirmier",
-        "ADS": "🩺 Aide-Soignant",
-        "STG": "📋 Stagiaire",
-        "EMT": "🚑 EMT",
+        "DIR": "ðŸ‘” Directeur MÃ©dical",
+        "CAD": "ðŸ¥ Chef Adjoint",
+        "CDS": "ðŸ¥ Chef de Service",
+        "MED": "âš•ï¸ MÃ©decin",
+        "PSY": "ðŸ§  Psychologue",
+        "INF": "ðŸ’‰ Infirmier",
+        "ADS": "ðŸ©º Aide-Soignant",
+        "STG": "ðŸ“‹ Stagiaire",
+        "EMT": "ðŸš‘ EMT",
     }
 
     # {grade: {mat: nom}} et {grade: {mat: [nom1, nom2]}} pour doublons
@@ -1286,14 +1286,14 @@ async def update_matricule_board(guild: discord.Guild):
     # Compter
     total_taken   = sum(len(v) for v in all_mats.values())
     total_doublons = sum(len(v) for v in doublons.values())
-    alerte = f"\n⚠️ **{total_doublons} CONFLIT(S) DÉTECTÉ(S) — À CORRIGER !**" if total_doublons else ""
+    alerte = f"\nâš ï¸ **{total_doublons} CONFLIT(S) DÃ‰TECTÃ‰(S) â€” Ã€ CORRIGER !**" if total_doublons else ""
 
     embed = discord.Embed(
-        title="🪪 TABLEAU DES MATRICULES EMS",
+        title="ðŸªª TABLEAU DES MATRICULES EMS",
         description=(
-            f"**{total_taken}** matricule(s) attribuée(s)\n"
-            f"🔴 = Attribuée · 🟢 = Disponible · ⚠️ = Conflit{alerte}\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            f"**{total_taken}** matricule(s) attribuÃ©e(s)\n"
+            f"ðŸ”´ = AttribuÃ©e Â· ðŸŸ¢ = Disponible Â· âš ï¸ = Conflit{alerte}\n\n"
+            f"â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
         ),
         color=discord.Color.red() if total_doublons else EMS_RED
     )
@@ -1304,8 +1304,8 @@ async def update_matricule_board(guild: discord.Guild):
         for grade, mats in doublons.items():
             for mat, noms_list in mats.items():
                 all_noms = noms_list + ([all_mats[grade][mat]] if mat in all_mats[grade] else [])
-                conflit_lines.append(f"⚠️ **[{grade}] {mat}** → {', '.join(all_noms)}")
-        embed.add_field(name="🚨 CONFLITS", value="\n".join(conflit_lines), inline=False)
+                conflit_lines.append(f"âš ï¸ **[{grade}] {mat}** â†’ {', '.join(all_noms)}")
+        embed.add_field(name="ðŸš¨ CONFLITS", value="\n".join(conflit_lines), inline=False)
 
     # Liste plate 01-99 : rouge si pris, vert si dispo
     all_taken = {}  # {mat: (grade, member_id)}
@@ -1341,14 +1341,14 @@ async def update_matricule_board(guild: discord.Guild):
         mat = str(i).zfill(2)
         if mat in all_dbl:
             parts = ", ".join([f"[{g}] {n}" for g, n in all_dbl[mat]])
-            lines.append(f"⚠️ **{mat}** — *CONFLIT : {parts}*")
+            lines.append(f"âš ï¸ **{mat}** â€” *CONFLIT : {parts}*")
         elif mat in all_taken:
             grade, nom = all_taken[mat]
             mid = mat_to_member.get(mat)
             mention = f"<@{mid}>" if mid else nom
-            lines.append(f"🔴 **{mat}** — [{grade}] {mention}")
+            lines.append(f"ðŸ”´ **{mat}** â€” [{grade}] {mention}")
         else:
-            lines.append(f"🟢 **{mat}** — *Disponible*")
+            lines.append(f"ðŸŸ¢ **{mat}** â€” *Disponible*")
 
     def chunks(lst, n):
         for i in range(0, len(lst), n):
@@ -1357,7 +1357,7 @@ async def update_matricule_board(guild: discord.Guild):
     blocks = list(chunks(lines, 20))
     for idx, block in enumerate(blocks):
         embed.add_field(
-            name="🪪 Matricules EMS" if idx == 0 else "​",
+            name="ðŸªª Matricules EMS" if idx == 0 else "â€‹",
             value="\n".join(block),
             inline=False
         )
@@ -1369,19 +1369,19 @@ async def update_matricule_board(guild: discord.Guild):
             if grade in direction_matricules and direction_matricules[grade]:
                 dir_lines.append(f"**{grade_labels.get(grade, grade)}**")
                 for mat, nom in sorted(direction_matricules[grade].items()):
-                    dir_lines.append(f"  🔴 **{mat}** — {nom}")
+                    dir_lines.append(f"  ðŸ”´ **{mat}** â€” {nom}")
         if dir_lines:
             embed.add_field(
-                name="⭐ Matricules Direction (manuel)",
+                name="â­ Matricules Direction (manuel)",
                 value="\n".join(dir_lines),
                 inline=False
             )
 
-    embed.set_footer(text="🚑 EMS System | Mis à jour automatiquement")
+    embed.set_footer(text="ðŸš‘ EMS System | Mis Ã  jour automatiquement")
 
     content = None
 
-    # Envoyer ou éditer le message
+    # Envoyer ou Ã©diter le message
     try:
         if matricule_board_message_id:
             try:
@@ -1410,8 +1410,8 @@ async def update_matricule_board(guild: discord.Guild):
 DISPATCH_CHANNEL_ID = 1524513403048038512
 dispatch_message_id = None
 dispatch_active = False
-dispatch_state = {}  # {user_id: div_name} — assignation courante de chaque employé
-dispatch_lock = asyncio.Lock()  # Verrou pour éviter les race conditions
+dispatch_state = {}  # {user_id: div_name} â€” assignation courante de chaque employÃ©
+dispatch_lock = asyncio.Lock()  # Verrou pour Ã©viter les race conditions
 dispatch_history = robust_load_json(DISPATCH_HISTORY_FILE, [])  # [{date, display_name, division}]
 
 DIVISIONS = [
@@ -1430,16 +1430,16 @@ DIVISIONS = [
 ]
 
 DIV_EMOJI = {
-    "Lincoln": "🚗",
-    "Adam":    "🚙",
-    "Tango":   "🚑",
-    "Xray":    "🚒",
+    "Lincoln": "ðŸš—",
+    "Adam":    "ðŸš™",
+    "Tango":   "ðŸš‘",
+    "Xray":    "ðŸš’",
 }
 
 
 
 class TangoXrayRequestView(discord.ui.View):
-    """Boutons Accepter/Refuser envoyés en DM à la direction."""
+    """Boutons Accepter/Refuser envoyÃ©s en DM Ã  la direction."""
     def __init__(self, requester_id: int, requester_name: str, guild_id: int, target_div: str):
         super().__init__(timeout=300)
         self.requester_id = requester_id
@@ -1453,10 +1453,10 @@ class TangoXrayRequestView(discord.ui.View):
             item.disabled = True
         await interaction.message.edit(view=self)
 
-    @discord.ui.button(label="✅ Accepter", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="âœ… Accepter", style=discord.ButtonStyle.success)
     async def accepter(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.handled:
-            await interaction.response.send_message("Cette demande a déjà été traitée.", ephemeral=True)
+            await interaction.response.send_message("Cette demande a dÃ©jÃ  Ã©tÃ© traitÃ©e.", ephemeral=True)
             return
         self.handled = True
         await interaction.response.defer()
@@ -1467,32 +1467,32 @@ class TangoXrayRequestView(discord.ui.View):
             return
 
         async with dispatch_lock:
-            # Placer l'employé dans la division
+            # Placer l'employÃ© dans la division
             dispatch_state[str(self.requester_id)] = self.target_div
             await _run_dispatch_locked(guild)
 
-        # Notifier l'employé
+        # Notifier l'employÃ©
         member = guild.get_member(self.requester_id)
         if member:
             try:
                 div_type = self.target_div.split()[0]
-                emoji = {"Tango": "🚑", "Xray": "🚒"}.get(div_type, "🚗")
+                emoji = {"Tango": "ðŸš‘", "Xray": "ðŸš’"}.get(div_type, "ðŸš—")
                 await member.send(
-                    f"✅ Votre demande a été **acceptée** par la direction.\n"
-                    f"Vous êtes maintenant assigné à **{emoji} {self.target_div}** !"
+                    f"âœ… Votre demande a Ã©tÃ© **acceptÃ©e** par la direction.\n"
+                    f"Vous Ãªtes maintenant assignÃ© Ã  **{emoji} {self.target_div}** !"
                 )
             except:
                 pass
 
         await interaction.followup.send(
-            f"✅ **{self.requester_name}** a été affecté à **{self.target_div}**.",
+            f"âœ… **{self.requester_name}** a Ã©tÃ© affectÃ© Ã  **{self.target_div}**.",
             ephemeral=True
         )
 
-    @discord.ui.button(label="❌ Refuser", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="âŒ Refuser", style=discord.ButtonStyle.danger)
     async def refuser(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.handled:
-            await interaction.response.send_message("Cette demande a déjà été traitée.", ephemeral=True)
+            await interaction.response.send_message("Cette demande a dÃ©jÃ  Ã©tÃ© traitÃ©e.", ephemeral=True)
             return
         self.handled = True
         await interaction.response.defer()
@@ -1503,19 +1503,19 @@ class TangoXrayRequestView(discord.ui.View):
         if member:
             try:
                 await member.send(
-                    f"❌ Votre demande de rejoindre **{self.target_div}** a été **refusée** par la direction."
+                    f"âŒ Votre demande de rejoindre **{self.target_div}** a Ã©tÃ© **refusÃ©e** par la direction."
                 )
             except:
                 pass
 
         await interaction.followup.send(
-            f"❌ Demande de **{self.requester_name}** refusée.",
+            f"âŒ Demande de **{self.requester_name}** refusÃ©e.",
             ephemeral=True
         )
 
 
 class DispatchDivisionView(discord.ui.View):
-    """Vue avec boutons de sélection de division pour le dispatch."""
+    """Vue avec boutons de sÃ©lection de division pour le dispatch."""
     def __init__(self):
         super().__init__(timeout=None)
 
@@ -1528,14 +1528,14 @@ class DispatchDivisionView(discord.ui.View):
         guild = interaction.guild
         user_id = str(interaction.user.id)
 
-        # Vérifier que l'employé est en service
+        # VÃ©rifier que l'employÃ© est en service
         if user_id not in active_services:
-            await interaction.followup.send("❌ Vous devez être en service pour rejoindre une division.", ephemeral=True)
+            await interaction.followup.send("âŒ Vous devez Ãªtre en service pour rejoindre une division.", ephemeral=True)
             return
 
-        # Vérifier si déjà dans cette division
+        # VÃ©rifier si dÃ©jÃ  dans cette division
         if dispatch_state.get(user_id) == div_name:
-            await interaction.followup.send(f"✅ Vous êtes déjà dans **{div_name}**.", ephemeral=True)
+            await interaction.followup.send(f"âœ… Vous Ãªtes dÃ©jÃ  dans **{div_name}**.", ephemeral=True)
             return
 
         # Compter les membres actuels dans la division
@@ -1543,7 +1543,7 @@ class DispatchDivisionView(discord.ui.View):
 
         if len(current_members) >= capacity:
             await interaction.followup.send(
-                f"❌ **{div_name}** est déjà pleine ({capacity}/{capacity} pers.).",
+                f"âŒ **{div_name}** est dÃ©jÃ  pleine ({capacity}/{capacity} pers.).",
                 ephemeral=True
             )
             return
@@ -1553,11 +1553,11 @@ class DispatchDivisionView(discord.ui.View):
         dispatch_state[user_id] = div_name
 
         await interaction.followup.send(
-            f"✅ Vous avez rejoint **{div_name}** !",
+            f"âœ… Vous avez rejoint **{div_name}** !",
             ephemeral=True
         )
 
-        # Mise à jour embed dispatch
+        # Mise Ã  jour embed dispatch
         await _run_dispatch_locked(guild)
 
         # Si la division est maintenant multi-personnes (Adam/Tango), notifier dans les channels
@@ -1573,7 +1573,7 @@ class DispatchDivisionView(discord.ui.View):
                 clean = get_clean_name(member)
                 clean_norm = normalize_employee_key(clean)
                 for ch in guild.text_channels:
-                    if ch.name and len(ch.name) > 1 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+                    if ch.name and len(ch.name) > 1 and ch.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
                         if get_channel_employee_key(ch) == clean_norm:
                             coequipiers = [f"<@{uid}>" for uid in new_members if uid != member_uid]
                             co_str = " \u00b7 ".join(coequipiers)
@@ -1583,45 +1583,45 @@ class DispatchDivisionView(discord.ui.View):
                             )
                             break
 
-    @discord.ui.button(label="🚗 Lincoln 01", style=discord.ButtonStyle.secondary, custom_id="div_lincoln_01", row=0)
+    @discord.ui.button(label="ðŸš— Lincoln 01", style=discord.ButtonStyle.secondary, custom_id="div_lincoln_01", row=0)
     async def lincoln_01(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._join_division(interaction, "Lincoln 01", 1)
 
-    @discord.ui.button(label="🚗 Lincoln 02", style=discord.ButtonStyle.secondary, custom_id="div_lincoln_02", row=0)
+    @discord.ui.button(label="ðŸš— Lincoln 02", style=discord.ButtonStyle.secondary, custom_id="div_lincoln_02", row=0)
     async def lincoln_02(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._join_division(interaction, "Lincoln 02", 1)
 
-    @discord.ui.button(label="🚗 Lincoln 03", style=discord.ButtonStyle.secondary, custom_id="div_lincoln_03", row=0)
+    @discord.ui.button(label="ðŸš— Lincoln 03", style=discord.ButtonStyle.secondary, custom_id="div_lincoln_03", row=0)
     async def lincoln_03(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._join_division(interaction, "Lincoln 03", 1)
 
-    @discord.ui.button(label="🚙 Adam 01", style=discord.ButtonStyle.primary, custom_id="div_adam_01", row=1)
+    @discord.ui.button(label="ðŸš™ Adam 01", style=discord.ButtonStyle.primary, custom_id="div_adam_01", row=1)
     async def adam_01(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._join_division(interaction, "Adam 01", 2)
 
-    @discord.ui.button(label="🚙 Adam 02", style=discord.ButtonStyle.primary, custom_id="div_adam_02", row=1)
+    @discord.ui.button(label="ðŸš™ Adam 02", style=discord.ButtonStyle.primary, custom_id="div_adam_02", row=1)
     async def adam_02(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._join_division(interaction, "Adam 02", 2)
 
-    @discord.ui.button(label="🚙 Adam 03", style=discord.ButtonStyle.primary, custom_id="div_adam_03", row=1)
+    @discord.ui.button(label="ðŸš™ Adam 03", style=discord.ButtonStyle.primary, custom_id="div_adam_03", row=1)
     async def adam_03(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._join_division(interaction, "Adam 03", 2)
 
-    @discord.ui.button(label="🚑 Tango / 🚒 Xray → Demander direction", style=discord.ButtonStyle.danger, custom_id="div_tango_xray", row=2)
+    @discord.ui.button(label="ðŸš‘ Tango / ðŸš’ Xray â†’ Demander direction", style=discord.ButtonStyle.danger, custom_id="div_tango_xray", row=2)
     async def tango_xray(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
         guild = interaction.guild
         user_id = str(interaction.user.id)
 
         if user_id not in active_services:
-            await interaction.followup.send("❌ Vous devez être en service.", ephemeral=True)
+            await interaction.followup.send("âŒ Vous devez Ãªtre en service.", ephemeral=True)
             return
 
-        # DM direct à la direction (user ID fixe)
+        # DM direct Ã  la direction (user ID fixe)
         DIR_USER_ID = 699589324705890334
         dir_member = guild.get_member(DIR_USER_ID)
         if not dir_member:
-            await interaction.followup.send("❌ Impossible de joindre la direction.", ephemeral=True)
+            await interaction.followup.send("âŒ Impossible de joindre la direction.", ephemeral=True)
             return
 
         # Choisir la division Tango/Xray disponible
@@ -1636,10 +1636,10 @@ class DispatchDivisionView(discord.ui.View):
                 break
 
         if not target_div:
-            await interaction.followup.send("❌ Toutes les divisions Tango/Xray sont pleines.", ephemeral=True)
+            await interaction.followup.send("âŒ Toutes les divisions Tango/Xray sont pleines.", ephemeral=True)
             return
 
-        # Envoyer dans le channel direction avec ping rôle
+        # Envoyer dans le channel direction avec ping rÃ´le
         TANGO_REQUEST_CHANNEL_ID = 1485278000986587333
         TANGO_PING_ROLE_ID = 838120186585940010
 
@@ -1651,15 +1651,15 @@ class DispatchDivisionView(discord.ui.View):
         )
 
         request_embed = discord.Embed(
-            title="📋 Demande d'affectation Tango/Xray",
+            title="ðŸ“‹ Demande d'affectation Tango/Xray",
             description=(
-                f"**{interaction.user.display_name}** ({interaction.user.mention}) demande à rejoindre **{target_div}**.\n\n"
+                f"**{interaction.user.display_name}** ({interaction.user.mention}) demande Ã  rejoindre **{target_div}**.\n\n"
                 f"Il est actuellement en service.\n\n"
                 f"Acceptez ou refusez cette demande :"
             ),
             color=EMS_RED
         )
-        request_embed.set_footer(text="🚑 EMS System | Dispatch")
+        request_embed.set_footer(text="ðŸš‘ EMS System | Dispatch")
 
         tango_channel = guild.get_channel(TANGO_REQUEST_CHANNEL_ID)
         sent = False
@@ -1674,16 +1674,16 @@ class DispatchDivisionView(discord.ui.View):
 
         if sent:
             await interaction.followup.send(
-                f"✅ Demande envoyée à la direction pour rejoindre **{target_div}**. En attente de validation.",
+                f"âœ… Demande envoyÃ©e Ã  la direction pour rejoindre **{target_div}**. En attente de validation.",
                 ephemeral=True
             )
         else:
-            await interaction.followup.send("❌ Impossible de joindre la direction (channel introuvable).", ephemeral=True)
+            await interaction.followup.send("âŒ Impossible de joindre la direction (channel introuvable).", ephemeral=True)
 
 
 
 async def run_dispatch(guild: discord.Guild):
-    """Met à jour le dispatch en ajustant intelligemment les assignations existantes."""
+    """Met Ã  jour le dispatch en ajustant intelligemment les assignations existantes."""
     async with dispatch_lock:
         await _run_dispatch_locked(guild)
 
@@ -1738,24 +1738,24 @@ async def _run_dispatch_locked(guild: discord.Guild):
             g.setdefault(div, []).append(uid)
         return g
 
-    # Ne pas assigner automatiquement — l'employé choisit via les boutons
-    # Juste retirer ceux qui ont fait FDS (déjà fait au-dessus)
+    # Ne pas assigner automatiquement â€” l'employÃ© choisit via les boutons
+    # Juste retirer ceux qui ont fait FDS (dÃ©jÃ  fait au-dessus)
 
     # Construire l'embed
     groups = get_groups()
-    div_emojis = {"Lincoln": "🚗", "Adam": "🚙", "Tango": "🚑", "Xray": "🚒"}
+    div_emojis = {"Lincoln": "ðŸš—", "Adam": "ðŸš™", "Tango": "ðŸš‘", "Xray": "ðŸš’"}
 
     if count == 0:
         embed = discord.Embed(
-            title="🚨 DISPATCH EMS",
-            description="Aucun employé en service actuellement.\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            title="ðŸš¨ DISPATCH EMS",
+            description="Aucun employÃ© en service actuellement.\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”",
             color=discord.Color.dark_gray()
         )
-        embed.set_footer(text="🚑 EMS System | En attente de prise de service...")
+        embed.set_footer(text="ðŸš‘ EMS System | En attente de prise de service...")
     else:
         embed = discord.Embed(
-            title="🚨 DISPATCH EMS",
-            description=f"**{count} employé(s) en service**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            title="ðŸš¨ DISPATCH EMS",
+            description=f"**{count} employÃ©(s) en service**\nâ”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”",
             color=EMS_RED
         )
         first_lincoln = next((d for d, _ in all_divisions if d.startswith("Lincoln") and d in groups), None)
@@ -1765,17 +1765,17 @@ async def _run_dispatch_locked(guild: discord.Guild):
             if div_name not in groups:
                 continue
             group = groups[div_name]
-            emoji = div_emojis.get(div_name.split()[0], "🚗")
-            mentions = " · ".join([f"<@{uid}>" for uid in group])
+            emoji = div_emojis.get(div_name.split()[0], "ðŸš—")
+            mentions = " Â· ".join([f"<@{uid}>" for uid in group])
             extras = []
             if div_name == first_lincoln:
-                extras.append("☎️ Priorité appels téléphone")
+                extras.append("â˜Žï¸ PrioritÃ© appels tÃ©lÃ©phone")
             if div_name == first_adam:
-                extras.append("🏆 Priorité KOTH")
-            val = mentions + ("\n> " + " · ".join(extras) if extras else "")
+                extras.append("ðŸ† PrioritÃ© KOTH")
+            val = mentions + ("\n> " + " Â· ".join(extras) if extras else "")
             embed.add_field(name=f"{emoji} {div_name} ({len(group)}/{cap})", value=val, inline=False)
 
-        embed.set_footer(text="🚑 EMS System | Mis à jour automatiquement · /redispatch pour relancer")
+        embed.set_footer(text="ðŸš‘ EMS System | Mis Ã  jour automatiquement Â· /redispatch pour relancer")
 
     try:
         if dispatch_message_id:
@@ -1787,7 +1787,7 @@ async def _run_dispatch_locked(guild: discord.Guild):
             except discord.NotFound:
                 dispatch_message_id = None
             except discord.Forbidden:
-                print("Erreur dispatch: permissions insuffisantes pour éditer le message")
+                print("Erreur dispatch: permissions insuffisantes pour Ã©diter le message")
                 return
 
         async for old_msg in channel.history(limit=10):
@@ -1806,10 +1806,10 @@ async def _run_dispatch_locked(guild: discord.Guild):
         except Exception as e:
             print(f"Erreur dispatch envoi: {e}")
     except Exception as e:
-        print(f"Erreur dispatch générale: {e}")
+        print(f"Erreur dispatch gÃ©nÃ©rale: {e}")
 
 async def update_avert_board(guild: discord.Guild):
-    """Met à jour (ou crée) l'embed des avertissements dans le salon dédié."""
+    """Met Ã  jour (ou crÃ©e) l'embed des avertissements dans le salon dÃ©diÃ©."""
     global avert_board_message_id
 
     channel = guild.get_channel(AVERT_CHANNEL_ID)
@@ -1836,7 +1836,7 @@ async def update_avert_board(guild: discord.Guild):
     if changed:
         save_avertissements(data)
 
-    # Récupérer les membres avec le rôle EMS
+    # RÃ©cupÃ©rer les membres avec le rÃ´le EMS
     role_ems = guild.get_role(838102445095256068)
     members_ems = role_ems.members if role_ems else []
 
@@ -1850,37 +1850,37 @@ async def update_avert_board(guild: discord.Guild):
         emoji = get_avert_emoji(count)
         clean = get_clean_name(m)
         if count == 0:
-            lines.append(f"{emoji} **{clean}** — Aucun avertissement")
+            lines.append(f"{emoji} **{clean}** â€” Aucun avertissement")
         else:
-            raisons = " · ".join([av.get("raison", "?") for av in user_averts])
-            lines.append(f"{emoji} **{clean}** — {count} avert. : {raisons}")
+            raisons = " Â· ".join([av.get("raison", "?") for av in user_averts])
+            lines.append(f"{emoji} **{clean}** â€” {count} avert. : {raisons}")
             if count >= 3:
                 has_alerts = True
 
     if not lines:
-        lines = ["*Aucun employé trouvé.*"]
+        lines = ["*Aucun employÃ© trouvÃ©.*"]
 
     embed = discord.Embed(
-        title="⚠️ TABLEAU DES AVERTISSEMENTS EMS",
+        title="âš ï¸ TABLEAU DES AVERTISSEMENTS EMS",
         description=(
-            "🟢 Aucun · 🟡 1 · 🟠 2 · 🔴 3+\n"
-            "Les avertissements se réinitialisent automatiquement après **30 jours**.\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            "ðŸŸ¢ Aucun Â· ðŸŸ¡ 1 Â· ðŸŸ  2 Â· ðŸ”´ 3+\n"
+            "Les avertissements se rÃ©initialisent automatiquement aprÃ¨s **30 jours**.\n"
+            "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”"
         ),
         color=discord.Color.red() if has_alerts else EMS_RED
     )
 
-    # Découper si trop long
+    # DÃ©couper si trop long
     chunk_size = 20
     chunks_list = [lines[i:i+chunk_size] for i in range(0, len(lines), chunk_size)]
     for idx, chunk in enumerate(chunks_list):
         embed.add_field(
-            name="👥 Employés" if idx == 0 else "​",
+            name="ðŸ‘¥ EmployÃ©s" if idx == 0 else "â€‹",
             value="\n".join(chunk),
             inline=False
         )
 
-    embed.set_footer(text=f"🚑 EMS System | Mis à jour automatiquement · {now.strftime('%d/%m/%Y %H:%M')} UTC")
+    embed.set_footer(text=f"ðŸš‘ EMS System | Mis Ã  jour automatiquement Â· {now.strftime('%d/%m/%Y %H:%M')} UTC")
 
     try:
         if avert_board_message_id:
@@ -1913,34 +1913,34 @@ class EMSBot(commands.Bot):
         super().__init__(
             command_prefix="!",
             intents=intents,
-            # Heartbeat plus tolérant pour réduire les déconnexions (logs montrent ~3/h)
+            # Heartbeat plus tolÃ©rant pour rÃ©duire les dÃ©connexions (logs montrent ~3/h)
             heartbeat_timeout=150.0,
         )
 
     async def setup_hook(self):
         await self.tree.sync()
         self.add_view(CVButton())
-        # self.add_view(FormulaireCVButton())  # Désactivé - on utilise l'ancien système
+        # self.add_view(FormulaireCVButton())  # DÃ©sactivÃ© - on utilise l'ancien systÃ¨me
         self.add_view(RoleRequestButton())
         self.add_view(AppointmentButton())
         self.add_view(ResetMemberButton())
         self.add_view(ServiceView())
-        # Démarrer les tâches automatisées
+        # DÃ©marrer les tÃ¢ches automatisÃ©es
         weekly_taxi_announcement.start()
         check_giveaways.start()
 
 bot = EMSBot()
 
 # --- SUIVI DES RECONNEXIONS ---
-BOT_START_TIME = None  # Sera fixé dans on_ready (heure de connexion effective)
+BOT_START_TIME = None  # Sera fixÃ© dans on_ready (heure de connexion effective)
 reconnect_count = 0
-reconnect_timestamps = []  # Timestamps des reconnexions récentes (fenêtre glissante 1h)
+reconnect_timestamps = []  # Timestamps des reconnexions rÃ©centes (fenÃªtre glissante 1h)
 RECONNECT_ALERT_THRESHOLD = 5   # Alerter si plus de 5 reconnexions en 1 heure
-RECONNECT_WINDOW_SECONDS = 3600  # Fenêtre glissante en secondes (1 heure)
+RECONNECT_WINDOW_SECONDS = 3600  # FenÃªtre glissante en secondes (1 heure)
 
 # --- GESTION DES STATS ---
 def load_stats():
-    # Retourner juste ce qui est dans le fichier, sans valeurs par défaut
+    # Retourner juste ce qui est dans le fichier, sans valeurs par dÃ©faut
     data = robust_load_json(STATS_FILE, {})
     return data if data else {}
 
@@ -1949,14 +1949,14 @@ def save_stats(stats):
 
 # --- GESTION DES SERVICES ---
 def load_services():
-    """Charge l'historique des services (heures cumulées par employé)"""
+    """Charge l'historique des services (heures cumulÃ©es par employÃ©)"""
     return robust_load_json(SERVICE_FILE, {})
 
 def save_services(data):
     atomic_write_json(SERVICE_FILE, data)
 
 def add_service_hours(employee_key: str, hours: float, reas_count: int):
-    """Ajoute des heures de service pour un employé"""
+    """Ajoute des heures de service pour un employÃ©"""
     services = load_services()
     week = get_week_start()
     if week not in services:
@@ -1969,14 +1969,14 @@ def add_service_hours(employee_key: str, hours: float, reas_count: int):
     save_services(services)
 
 def add_daily_rea(employee_key: str, count: int = 1):
-    """Incrémente le compteur de réas du jour pour un employé (pour le graphique journalier du dashboard)"""
+    """IncrÃ©mente le compteur de rÃ©as du jour pour un employÃ© (pour le graphique journalier du dashboard)"""
     try:
         daily = robust_load_json(DAILY_REAS_FILE, {})
         today_key = now_paris().strftime("%Y-%m-%d")
         if today_key not in daily:
             daily[today_key] = {}
         daily[today_key][employee_key] = daily[today_key].get(employee_key, 0) + count
-        # Garder seulement les 120 derniers jours pour ne pas grossir indéfiniment
+        # Garder seulement les 120 derniers jours pour ne pas grossir indÃ©finiment
         if len(daily) > 120:
             for old_key in sorted(daily.keys())[:-120]:
                 del daily[old_key]
@@ -1985,7 +1985,7 @@ def add_daily_rea(employee_key: str, count: int = 1):
         print(f"Erreur add_daily_rea: {_daily_err}")
 
 def set_embauche_date(employee_key: str):
-    """Enregistre la date d'embauche d'un employé (uniquement si pas déjà définie)"""
+    """Enregistre la date d'embauche d'un employÃ© (uniquement si pas dÃ©jÃ  dÃ©finie)"""
     try:
         emb = robust_load_json(EMBAUCHE_FILE, {})
         if employee_key not in emb:
@@ -1995,20 +1995,20 @@ def set_embauche_date(employee_key: str):
         print(f"Erreur set_embauche_date: {_emb_err}")
 
 # --- GESTION DES BONUSES CUMULATIFS PAR SEMAINE ---
-# Seuils d'inactivité (fin de service auto) configurables selon le moment de la journée.
+# Seuils d'inactivitÃ© (fin de service auto) configurables selon le moment de la journÃ©e.
 # Chaque tuple = (heure_debut_incluse, heure_fin_exclue, minutes_avant_fin_auto)
-# NOTE: le critère "nombre de morts" n'est pas suivi par le bot actuellement — seul le moment
-# de la journée est pris en compte ici. Si besoin de conditionner aussi sur les morts, il
-# faudrait d'abord ajouter un tracking dédié (pas encore existant).
+# NOTE: le critÃ¨re "nombre de morts" n'est pas suivi par le bot actuellement â€” seul le moment
+# de la journÃ©e est pris en compte ici. Si besoin de conditionner aussi sur les morts, il
+# faudrait d'abord ajouter un tracking dÃ©diÃ© (pas encore existant).
 INACTIVITY_THRESHOLDS = [
     (6, 14, 60),    # Matin (6h-14h) : plus calme, on laisse 1h avant fin auto
-    (14, 20, 30),   # Après-midi (14h-20h) : 30 min (défaut)
+    (14, 20, 30),   # AprÃ¨s-midi (14h-20h) : 30 min (dÃ©faut)
     (20, 24, 30),   # Soir (20h-minuit) : 30 min
     (0, 6, 30),     # Nuit (0h-6h) : 30 min
 ]
 
 def get_inactivity_threshold_seconds() -> int:
-    """Retourne le délai (en secondes) avant fin de service automatique,
+    """Retourne le dÃ©lai (en secondes) avant fin de service automatique,
     selon l'heure actuelle (Paris). Voir INACTIVITY_THRESHOLDS pour ajuster les plages."""
     current_hour = now_paris().hour
     for start_h, end_h, minutes in INACTIVITY_THRESHOLDS:
@@ -2055,7 +2055,7 @@ def award_bonus_week(employee_key):
     """
     now = now_paris()
     
-    # Vérifier que c'est entre 21h et 23h
+    # VÃ©rifier que c'est entre 21h et 23h
     if not (21 <= now.hour < 23):
         return 0
     
@@ -2068,7 +2068,7 @@ def award_bonus_week(employee_key):
     if key not in bonuses:
         bonuses[key] = []
     
-    # Ajouter la date d'aujourd'hui si pas déjà présente
+    # Ajouter la date d'aujourd'hui si pas dÃ©jÃ  prÃ©sente
     if today not in bonuses[key]:
         bonuses[key].append(today)
     
@@ -2079,7 +2079,7 @@ def award_bonus_week(employee_key):
     return len(set(bonuses[key]))
 
 def get_week_bonus_summary():
-    """Retourne un résumé des bonuses cette semaine: {employee_key: bonus_count}"""
+    """Retourne un rÃ©sumÃ© des bonuses cette semaine: {employee_key: bonus_count}"""
     bonuses = load_bonuses_week()
     week_start = get_week_start()
     result = {}
@@ -2101,24 +2101,24 @@ def find_member_by_key(guild: discord.Guild, employee_key: str):
     return None
 
 def slugify_patient_id(text: str) -> str:
-    """Génère un slug strictement sûr pour une URL (uniquement a-z, 0-9, tirets).
-    Contrairement à normalize_employee_key, retire TOUT caractère spécial
+    """GÃ©nÃ¨re un slug strictement sÃ»r pour une URL (uniquement a-z, 0-9, tirets).
+    Contrairement Ã  normalize_employee_key, retire TOUT caractÃ¨re spÃ©cial
     (?, #, /, &, %, etc.) qui casserait l'URL de l'API patients."""
     import re as _re_slug
     import unicodedata as _ud
     if not text:
         return "patient"
     s = text.strip().lower()
-    # Translittérer les accents (é -> e, etc.) pour un slug propre
+    # TranslittÃ©rer les accents (Ã© -> e, etc.) pour un slug propre
     s = _ud.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
     s = _re_slug.sub(r'[^a-z0-9]+', '-', s)
     s = s.strip('-')
     return s or "patient"
 
 def normalize_employee_key(name: str) -> str:
-    """Normalise un identifiant d'employé pour correspondre aux clés de stats.json.
+    """Normalise un identifiant d'employÃ© pour correspondre aux clÃ©s de stats.json.
     - met en minuscules
-    - supprime les préfixes de rôle (dir-, cds-, med-, int-, emt-, ads-, inf-, rh-, drh-)
+    - supprime les prÃ©fixes de rÃ´le (dir-, cds-, med-, int-, emt-, ads-, inf-, rh-, drh-)
     - remplace les espaces par des tirets
     - retire les crochets/espaces parasites
     """
@@ -2130,8 +2130,8 @@ def normalize_employee_key(name: str) -> str:
         s = s.replace(br, "")
     s = s.replace("[", "").replace("]", "").replace("(", "").replace(")", "")
     s = s.replace("_", "-")
-    # Supprimer TOUS les préfixes de grade connus (avec tiret OU espace)
-    # Ordre important: dir- avant drh- pour éviter confusion
+    # Supprimer TOUS les prÃ©fixes de grade connus (avec tiret OU espace)
+    # Ordre important: dir- avant drh- pour Ã©viter confusion
     prefixes = [
         "dir-", "dir ", 
         "cds-", "cds ", 
@@ -2143,7 +2143,7 @@ def normalize_employee_key(name: str) -> str:
         "drh-", "drh ", 
         "rh-", "rh "
     ]
-    # Boucler jusqu'à ce qu'aucun préfixe ne soit détecté (au cas où il y en aurait plusieurs)
+    # Boucler jusqu'Ã  ce qu'aucun prÃ©fixe ne soit dÃ©tectÃ© (au cas oÃ¹ il y en aurait plusieurs)
     changed = True
     while changed:
         changed = False
@@ -2157,7 +2157,7 @@ def normalize_employee_key(name: str) -> str:
     # Nettoyer tirets multiples
     while "--" in s:
         s = s.replace("--", "-")
-    # Supprimer tirets au début/fin
+    # Supprimer tirets au dÃ©but/fin
     s = s.strip("-")
     return s
 
@@ -2168,21 +2168,21 @@ def save_channel_map(mapping: dict):
     atomic_write_json(CHANNEL_MAP_FILE, mapping)
 
 def get_channel_employee_key(channel: discord.abc.GuildChannel) -> str:
-    """Retourne la clé employé pour un channel donné en s'appuyant sur un mapping persistant.
-    Si absente, la déduit du nom du channel et persiste le mapping.
-    Force toujours la normalisation pour garantir la cohérence.
+    """Retourne la clÃ© employÃ© pour un channel donnÃ© en s'appuyant sur un mapping persistant.
+    Si absente, la dÃ©duit du nom du channel et persiste le mapping.
+    Force toujours la normalisation pour garantir la cohÃ©rence.
     """
     mapping = load_channel_map()
     
     # Extraire le nom du channel (enlever l'emoji couleur)
     raw = channel.name[1:].strip() if channel.name and len(channel.name) > 1 else channel.name
-    # TOUJOURS normaliser le nom pour garantir la cohérence
+    # TOUJOURS normaliser le nom pour garantir la cohÃ©rence
     key = normalize_employee_key(raw or "")
     
-    # Vérifier si un mapping existe déjà pour ce channel
+    # VÃ©rifier si un mapping existe dÃ©jÃ  pour ce channel
     existing_key = mapping.get(str(channel.id))
     
-    # Si le mapping existe MAIS la clé est différente, mettre à jour avec la clé normalisée
+    # Si le mapping existe MAIS la clÃ© est diffÃ©rente, mettre Ã  jour avec la clÃ© normalisÃ©e
     if existing_key != key:
         mapping[str(channel.id)] = key
         save_channel_map(mapping)
@@ -2190,20 +2190,20 @@ def get_channel_employee_key(channel: discord.abc.GuildChannel) -> str:
     return key
 
 def extract_employee_name(channel_name):
-    """Extrait le nom normalisé de l'employé à partir du nom du channel (sans l'emoji)."""
+    """Extrait le nom normalisÃ© de l'employÃ© Ã  partir du nom du channel (sans l'emoji)."""
     if len(channel_name) > 1:
         raw = channel_name[1:].strip()
         return normalize_employee_key(raw)
     return None
 
 def get_color_emoji(count):
-    """Retourne l'emoji couleur en fonction du nombre de réactions"""
+    """Retourne l'emoji couleur en fonction du nombre de rÃ©actions"""
     if count >= 100:
-        return "🟢"
+        return "ðŸŸ¢"
     elif count >= 75:
-        return "🟠"
+        return "ðŸŸ "
     else:
-        return "🔴"
+        return "ðŸ”´"
 
 # --- GESTION DES STATS TAXI ---
 def load_taxi_stats():
@@ -2213,7 +2213,7 @@ def save_taxi_stats(stats):
     atomic_write_json(TAXI_STATS_FILE, stats)
 
 def reset_taxi_week():
-    """Réinitialise les stats taxi pour la nouvelle semaine"""
+    """RÃ©initialise les stats taxi pour la nouvelle semaine"""
     stats = {"count": 0, "week_start": now_paris().isoformat()}
     save_taxi_stats(stats)
     return stats
@@ -2226,7 +2226,7 @@ def save_burgershot_stats(stats):
     atomic_write_json(BURGERSHOT_STATS_FILE, stats)
 
 def reset_burgershot_week():
-    """Réinitialise les stats BurgerShot pour la nouvelle semaine"""
+    """RÃ©initialise les stats BurgerShot pour la nouvelle semaine"""
     stats = {"count": 0, "week_start": now_paris().isoformat()}
     save_burgershot_stats(stats)
     return stats
@@ -2238,7 +2238,7 @@ def load_giveaways():
 def save_giveaways(giveaways):
     atomic_write_json(GIVEAWAY_FILE, giveaways)
 
-# --- SYSTEME DE RÉACTIONS ET COMPTAGE TAXI ---
+# --- SYSTEME DE RÃ‰ACTIONS ET COMPTAGE TAXI ---
 
 def load_bonuses():
     """Charge les bonus journaliers (format: {'employee-key_YYYY-MM-DD': 1})"""
@@ -2250,15 +2250,15 @@ def save_bonuses(bonuses):
     atomic_write_json(os.path.join(DATA_DIR, "bonuses.json"), bonuses, make_backup=True)
 
 def get_today_bonus(employee_key: str) -> int:
-    """Retourne le bonus total d'aujourd'hui pour cet employé (0 ou 1M)"""
+    """Retourne le bonus total d'aujourd'hui pour cet employÃ© (0 ou 1M)"""
     bonuses = load_bonuses()
     today = now_paris().strftime("%Y-%m-%d")
     bonus_key = f"{employee_key}_{today}"
-    # Retourne 1 si la clé existe, sinon 0
+    # Retourne 1 si la clÃ© existe, sinon 0
     return 1 if bonus_key in bonuses else 0
 
 def award_bonus(employee_key: str) -> bool:
-    """Attribue le bonus 1M de la soirée si pas déjà donné aujourd'hui"""
+    """Attribue le bonus 1M de la soirÃ©e si pas dÃ©jÃ  donnÃ© aujourd'hui"""
     bonuses = load_bonuses()
     today = now_paris().strftime("%Y-%m-%d")
     bonus_key = f"{employee_key}_{today}"
@@ -2266,11 +2266,11 @@ def award_bonus(employee_key: str) -> bool:
     if bonus_key not in bonuses:
         bonuses[bonus_key] = 1
         save_bonuses(bonuses)
-        return True  # Bonus attribué
-    return False  # Bonus déjà reçu
+        return True  # Bonus attribuÃ©
+    return False  # Bonus dÃ©jÃ  reÃ§u
 
 def get_total_bonuses(employee_key: str) -> int:
-    """Retourne le nombre total de primes jamais reçues par cet employé"""
+    """Retourne le nombre total de primes jamais reÃ§ues par cet employÃ©"""
     bonuses = load_bonuses()
     total = 0
     for key, value in bonuses.items():
@@ -2279,7 +2279,7 @@ def get_total_bonuses(employee_key: str) -> int:
     return total
 
 async def update_channel_description(channel: discord.TextChannel, count: int):
-    """Met � jour la description du channel avec r�a et prime soir 1M"""
+    """Met ï¿½ jour la description du channel avec rï¿½a et prime soir 1M"""
     try:
         emoji = get_color_emoji(count)
         employee_key = get_channel_employee_key(channel)
@@ -2287,18 +2287,18 @@ async def update_channel_description(channel: discord.TextChannel, count: int):
         if not employee_key:
             return
         
-        # Toujours afficher le total des primes accumulées
+        # Toujours afficher le total des primes accumulÃ©es
         total_bonuses = get_total_bonuses(employee_key)
-        bonus_text = f" | 💰 {total_bonuses}M" if total_bonuses > 0 else ""
+        bonus_text = f" | ðŸ’° {total_bonuses}M" if total_bonuses > 0 else ""
 
         description = f"{emoji} {count}/100{bonus_text}"
         await channel.edit(topic=description)
     except Exception as e:
         print(f"Erreur update_channel_description: {e}")
-# (1er on_message supprimé - fusionné dans le handler principal)
+# (1er on_message supprimÃ© - fusionnÃ© dans le handler principal)
 
 # --- COMMANDES ADMIN ---
-@bot.tree.command(name="total", description="Affiche le total des réactions + primes")
+@bot.tree.command(name="total", description="Affiche le total des rÃ©actions + primes")
 @app_commands.checks.has_permissions(administrator=True)
 async def total(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -2307,18 +2307,18 @@ async def total(interaction: discord.Interaction):
     
     if not stats:
         embed = discord.Embed(
-            title="🚑 Statistiques",
-            description="Aucune donnée",
+            title="ðŸš‘ Statistiques",
+            description="Aucune donnÃ©e",
             color=EMS_RED
         )
-        embed.set_footer(text="🚑 EMS System")
+        embed.set_footer(text="ðŸš‘ EMS System")
         await interaction.followup.send(embed=embed)
         return
     
-    # Regrouper les stats par nom normalisé (sans préfixes de grade)
+    # Regrouper les stats par nom normalisÃ© (sans prÃ©fixes de grade)
     grouped_stats = {}
     for name, count in stats.items():
-        # Normaliser le nom pour supprimer les préfixes (dir-, cds-, etc.)
+        # Normaliser le nom pour supprimer les prÃ©fixes (dir-, cds-, etc.)
         normalized = normalize_employee_key(name)
         if normalized not in grouped_stats:
             grouped_stats[normalized] = 0
@@ -2326,30 +2326,30 @@ async def total(interaction: discord.Interaction):
     
     sorted_stats = sorted(grouped_stats.items(), key=lambda x: x[1], reverse=True)
     
-    # Créer plusieurs embeds si nécessaire (25 champs max par embed)
+    # CrÃ©er plusieurs embeds si nÃ©cessaire (25 champs max par embed)
     embeds = []
     current_embed = None
     field_count = 0
     
     for name, count in sorted_stats:
         if field_count >= 25:
-            # Ajouter l'embed courant à la liste AVANT de créer un nouveau
+            # Ajouter l'embed courant Ã  la liste AVANT de crÃ©er un nouveau
             embeds.append(current_embed)
-            # Créer un nouvel embed
+            # CrÃ©er un nouvel embed
             current_embed = discord.Embed(
-                title=f"🚑 📊 Statistiques (suite)",
+                title=f"ðŸš‘ ðŸ“Š Statistiques (suite)",
                 color=EMS_RED
             )
             field_count = 0
         
         if current_embed is None:
             current_embed = discord.Embed(
-                title="🚑 📊 Statistiques",
+                title="ðŸš‘ ðŸ“Š Statistiques",
                 color=EMS_RED
             )
         
         emoji = get_color_emoji(count)
-        # Afficher le nom joliment formaté
+        # Afficher le nom joliment formatÃ©
         display_name = ' '.join([p.capitalize() for p in name.split('-')])
         # Ajouter les primes totales
         total_bonuses = get_total_bonuses(name)
@@ -2359,10 +2359,10 @@ async def total(interaction: discord.Interaction):
     
     # Ajouter le dernier embed avec le footer
     if current_embed:
-        current_embed.set_footer(text="🚑 EMS System")
+        current_embed.set_footer(text="ðŸš‘ EMS System")
         embeds.append(current_embed)
     
-    # Calculer le total des réactions et primes
+    # Calculer le total des rÃ©actions et primes
     total_reactions = sum(grouped_stats.values())
     total_all_bonuses = sum(get_total_bonuses(name) for name, _ in grouped_stats.items())
     
@@ -2371,65 +2371,65 @@ async def total(interaction: discord.Interaction):
     week = get_week_start()
     week_services = services.get(week, {})
     
-    # Ajouter un dernier embed avec le résumé avec heures
-    summary_text = f"**Total des réactions :** `{total_reactions}` 🎯\n**Total des primes :** `{total_all_bonuses}M` 💰"
+    # Ajouter un dernier embed avec le rÃ©sumÃ© avec heures
+    summary_text = f"**Total des rÃ©actions :** `{total_reactions}` ðŸŽ¯\n**Total des primes :** `{total_all_bonuses}M` ðŸ’°"
     
     if week_services:
-        summary_text += "\n\n**⏱️ Heures de service cette semaine :**\n"
+        summary_text += "\n\n**â±ï¸ Heures de service cette semaine :**\n"
         sorted_svc = sorted(week_services.items(), key=lambda x: x[1]['total_hours'], reverse=True)
         total_week_hours = 0
         for emp_key, data in sorted_svc:
             h = int(data['total_hours'])
             m = int((data['total_hours'] - h) * 60)
             display = emp_key.replace('-', ' ').title()
-            summary_text += f"• **{display}** : `{h}h{m:02d}` ({data['total_reas']} réas / {data['sessions']} services)\n"
+            summary_text += f"â€¢ **{display}** : `{h}h{m:02d}` ({data['total_reas']} rÃ©as / {data['sessions']} services)\n"
             total_week_hours += data['total_hours']
         # Ajouter le total des heures
         total_h = int(total_week_hours)
         total_m = int((total_week_hours - total_h) * 60)
-        summary_text += f"\n**➕ TOTAL HEURES SEMAINE:** `{total_h}h{total_m:02d}`"
+        summary_text += f"\n**âž• TOTAL HEURES SEMAINE:** `{total_h}h{total_m:02d}`"
     
     # En service actuellement
     if active_services:
-        summary_text += "\n**🟢 En service actuellement :**\n"
+        summary_text += "\n**ðŸŸ¢ En service actuellement :**\n"
         for uid, svc in active_services.items():
             start_t = datetime.fromisoformat(svc['start'])
             mins = int((now_paris() - start_t).total_seconds() // 60)
             name = svc.get('display_name', svc['employee_key'])
-            summary_text += f"• **{name}** (<@{uid}>) - {mins} min ({svc.get('reas_count', 0)} réas)\n"
+            summary_text += f"â€¢ **{name}** (<@{uid}>) - {mins} min ({svc.get('reas_count', 0)} rÃ©as)\n"
     
     summary_embed = discord.Embed(
-        title="📊 RÉSUMÉ DE CETTE SEMAINE",
+        title="ðŸ“Š RÃ‰SUMÃ‰ DE CETTE SEMAINE",
         description=summary_text,
         color=EMS_RED
     )
-    summary_embed.set_footer(text="🚑 EMS System")
+    summary_embed.set_footer(text="ðŸš‘ EMS System")
     embeds.append(summary_embed)
     
     # Envoyer tous les embeds
     for embed in embeds:
         await interaction.followup.send(embed=embed)
 
-@bot.tree.command(name="reset", description="Réinitialise les compteurs")
+@bot.tree.command(name="reset", description="RÃ©initialise les compteurs")
 @app_commands.checks.has_permissions(administrator=True)
 async def reset(interaction: discord.Interaction):
     await interaction.response.defer()
     save_stats({})
     
     embed = discord.Embed(
-        title="🚑 ✅ Réinitialisation",
-        description="Compteurs réinitialisés",
+        title="ðŸš‘ âœ… RÃ©initialisation",
+        description="Compteurs rÃ©initialisÃ©s",
         color=EMS_RED
     )
-    embed.set_footer(text="🚑 EMS System")
+    embed.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=embed)
 
-@bot.tree.command(name="info", description="Envoie les informations EMS dans le channel d�di�")
+@bot.tree.command(name="info", description="Envoie les informations EMS dans le channel dï¿½diï¿½")
 @app_commands.checks.has_permissions(administrator=True)
 async def info(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
-    # Channel et r�le cibles
+    # Channel et rï¿½le cibles
     target_channel_id = 1306021673912238142
     ping_role_id = 838102445095256068
 
@@ -2441,30 +2441,30 @@ async def info(interaction: discord.Interaction):
     role = interaction.guild.get_role(ping_role_id)
     role_mention = f"<@&{ping_role_id}>" if role else "@everyone"
 
-    # Cr�er l'embed principal
+    # Crï¿½er l'embed principal
     embed = discord.Embed(
-        title=" :EMS: Fr�quence EMS : 9",
-        description="Toutes les infos utiles � savoir",
+        title=" :EMS: Frï¿½quence EMS : 9",
+        description="Toutes les infos utiles ï¿½ savoir",
         color=EMS_RED
     )
 
-    # Section conformit�
+    # Section conformitï¿½
     embed.add_field(
-        name=" Conformit�",
+        name=" Conformitï¿½",
         value=(
-            "Avant de d�buter votre formation, assurez-vous d'�tre en conformit� avec le r�glement int�rieur. "
-            "Ne pas respecter les r�gles peut entra�ner un licenciement sans frais.\n\n"
-            "Vous devez repr�senter l'institution publique m�dicale des EMS avec s�rieux et fiert�."
+            "Avant de dï¿½buter votre formation, assurez-vous d'ï¿½tre en conformitï¿½ avec le rï¿½glement intï¿½rieur. "
+            "Ne pas respecter les rï¿½gles peut entraï¿½ner un licenciement sans frais.\n\n"
+            "Vous devez reprï¿½senter l'institution publique mï¿½dicale des EMS avec sï¿½rieux et fiertï¿½."
         ),
         inline=False
     )
 
-    # Section syst�me de paie
+    # Section systï¿½me de paie
     embed.add_field(
-        name=" Syst�me de Paie",
+        name=" Systï¿½me de Paie",
         value=(
-            "La paye d�pend du nombre de r�animations effectu�es.\n"
-            " **Paye maximale :** jusqu'� 10 000 000$ selon le nombre de r�animations."
+            "La paye dï¿½pend du nombre de rï¿½animations effectuï¿½es.\n"
+            " **Paye maximale :** jusqu'ï¿½ 10 000 000$ selon le nombre de rï¿½animations."
         ),
         inline=False
     )
@@ -2473,22 +2473,22 @@ async def info(interaction: discord.Interaction):
     embed.add_field(
         name=" Quota Hebdomadaire",
         value=(
-            "**Chaque semaine, vous devez effectuer un minimum de 75 r�animations.**\n\n"
-            "** Syst�me de couleurs (�mojis) :**\n"
-            " **Rouge** : Moins de 75 r�animations\n"
-            " **Orange** : 75 r�animations (quota atteint)\n"
-            " **Vert** : 100 r�animations et plus (augmentation de grade)"
+            "**Chaque semaine, vous devez effectuer un minimum de 75 rï¿½animations.**\n\n"
+            "** Systï¿½me de couleurs (ï¿½mojis) :**\n"
+            " **Rouge** : Moins de 75 rï¿½animations\n"
+            " **Orange** : 75 rï¿½animations (quota atteint)\n"
+            " **Vert** : 100 rï¿½animations et plus (augmentation de grade)"
         ),
         inline=False
     )
 
-    # Section prime soir�e
+    # Section prime soirï¿½e
     embed.add_field(
-        name=" Prime d'Activit� Soir�e",
+        name=" Prime d'Activitï¿½ Soirï¿½e",
         value=(
             "**Bonus 1M par soir entre 21h-23h**\n"
-            " Effectuez au moins 1 r�animation entre 21h et 23h\n"
-            " Gagnez automatiquement +1M (primes � la fin de la semaine)\n"
+            " Effectuez au moins 1 rï¿½animation entre 21h et 23h\n"
+            " Gagnez automatiquement +1M (primes ï¿½ la fin de la semaine)\n"
             " Consultez votre progression dans la **description de votre channel personnel**\n"
             " La progression s'affiche comme :  75/100 1M"
         ),
@@ -2507,32 +2507,32 @@ async def info(interaction: discord.Interaction):
     embed.add_field(
         name=" Prix des Soins",
         value=(
-            "**R�animation :** Pr�lev� automatiquement\n"
+            "**Rï¿½animation :** Prï¿½levï¿½ automatiquement\n"
             "**Bandage :** 5 000 $"
         ),
         inline=False
     )
 
-    # Section r�gles importantes
+    # Section rï¿½gles importantes
     embed.add_field(
-        name=" R�gles Importantes",
+        name=" Rï¿½gles Importantes",
         value=(
-            " Il est fortement recommand� d'�tre dans une radio Discord en service (Radio Chill)\n"
-            " Toute erreur ou quota non respect� sera sanctionn�\n"
-            " Pas de vente de medikits ou bandages � usage personnel, uniquement professionnel\n"
-            "  **IMPORTANT : Envoyez la preuve (screenshot) de chaque r�animation d�s que vous r�animez !**"
+            " Il est fortement recommandï¿½ d'ï¿½tre dans une radio Discord en service (Radio Chill)\n"
+            " Toute erreur ou quota non respectï¿½ sera sanctionnï¿½\n"
+            " Pas de vente de medikits ou bandages ï¿½ usage personnel, uniquement professionnel\n"
+            "  **IMPORTANT : Envoyez la preuve (screenshot) de chaque rï¿½animation dï¿½s que vous rï¿½animez !**"
         ),
         inline=False
     )
 
-    # Section captures d'�cran
+    # Section captures d'ï¿½cran
     embed.add_field(
-        name=" Captures d'�cran obligatoires",
+        name=" Captures d'ï¿½cran obligatoires",
         value="Voir les images ci-dessous",
         inline=False
     )
 
-    embed.set_footer(text=" EMS System | Respectez ces r�gles pour garantir votre carri�re au sein des EMS")
+    embed.set_footer(text=" EMS System | Respectez ces rï¿½gles pour garantir votre carriï¿½re au sein des EMS")
 
     # Envoyer le ping + embed
     await target_channel.send(
@@ -2546,7 +2546,7 @@ async def info(interaction: discord.Interaction):
     await target_channel.send("https://media.discordapp.net/attachments/1306021673912238142/1454172154315804846/Grade_4.png")
 
     # Confirmation
-    await interaction.followup.send(f" Informations EMS envoy�es dans {target_channel.mention}!", ephemeral=True)
+    await interaction.followup.send(f" Informations EMS envoyï¿½es dans {target_channel.mention}!", ephemeral=True)
 @app_commands.checks.has_permissions(administrator=True)
 async def stats_info(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -2563,20 +2563,20 @@ async def stats_info(interaction: discord.Interaction):
         mod_datetime = datetime.fromtimestamp(mod_time)
         
         embed = discord.Embed(
-            title="💾 INFORMATIONS DE SAUVEGARDE",
-            description="État actuel du système de statistiques",
+            title="ðŸ’¾ INFORMATIONS DE SAUVEGARDE",
+            description="Ã‰tat actuel du systÃ¨me de statistiques",
             color=EMS_RED
         )
         
         embed.add_field(
-            name="📊 Données chargées",
-            value=f"**Employés enregistrés :** {len(stats)}\n**Total des réas :** {sum(stats.values())}",
+            name="ðŸ“Š DonnÃ©es chargÃ©es",
+            value=f"**EmployÃ©s enregistrÃ©s :** {len(stats)}\n**Total des rÃ©as :** {sum(stats.values())}",
             inline=False
         )
         
         embed.add_field(
-            name="📁 Fichier stats.json",
-            value=f"**Taille :** {file_size} octets\n**Dernière modification :** {mod_datetime.strftime('%d/%m/%Y %H:%M:%S')}",
+            name="ðŸ“ Fichier stats.json",
+            value=f"**Taille :** {file_size} octets\n**DerniÃ¨re modification :** {mod_datetime.strftime('%d/%m/%Y %H:%M:%S')}",
             inline=False
         )
         
@@ -2585,25 +2585,25 @@ async def stats_info(interaction: discord.Interaction):
             top_5 = sorted(stats.items(), key=lambda x: x[1], reverse=True)[:5]
             top_text = "\n".join([f"{get_color_emoji(count)} **{name}** : {count}" for name, count in top_5])
             embed.add_field(
-                name="🏆 Top 5",
+                name="ðŸ† Top 5",
                 value=top_text,
                 inline=False
             )
         
         embed.add_field(
-            name="✅ Statut",
-            value="**Sauvegarde automatique :** Activée ✓\n**Backup au démarrage :** Activé ✓\n**Système :** Opérationnel",
+            name="âœ… Statut",
+            value="**Sauvegarde automatique :** ActivÃ©e âœ“\n**Backup au dÃ©marrage :** ActivÃ© âœ“\n**SystÃ¨me :** OpÃ©rationnel",
             inline=False
         )
         
-        embed.set_footer(text="🚑 EMS System | Les stats sont sauvegardées à chaque modification")
+        embed.set_footer(text="ðŸš‘ EMS System | Les stats sont sauvegardÃ©es Ã  chaque modification")
         
         await interaction.followup.send(embed=embed)
         
     except Exception as e:
         error_embed = discord.Embed(
-            title="❌ Erreur",
-            description=f"Impossible de récupérer les informations:\n```{e}```",
+            title="âŒ Erreur",
+            description=f"Impossible de rÃ©cupÃ©rer les informations:\n```{e}```",
             color=EMS_DARK_RED
         )
         await interaction.followup.send(embed=error_embed)
@@ -2618,17 +2618,17 @@ async def sync_rea(interaction: discord.Interaction):
     synced_count = 0
     channels_synced = []
     
-    # Parcourir tous les channels de réanimation
+    # Parcourir tous les channels de rÃ©animation
     for channel in guild.text_channels:
-        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+        if len(channel.name) > 0 and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
             channel_synced = 0
             
-            # Récupérer l'employé associé au channel
+            # RÃ©cupÃ©rer l'employÃ© associÃ© au channel
             employee_key = get_channel_employee_key(channel)
             if not employee_key:
                 continue
             
-            # Chercher le dernier message de /semaine (NOUVELLE SEMAINE) pour ne traiter que les messages après
+            # Chercher le dernier message de /semaine (NOUVELLE SEMAINE) pour ne traiter que les messages aprÃ¨s
             last_semaine_date = None
             try:
                 async for msg in channel.history(limit=200):
@@ -2642,22 +2642,22 @@ async def sync_rea(interaction: discord.Interaction):
             except:
                 pass
             
-            # Récupérer les messages (limité aux 100 derniers pour éviter les timeouts)
+            # RÃ©cupÃ©rer les messages (limitÃ© aux 100 derniers pour Ã©viter les timeouts)
             try:
                 async for message in channel.history(limit=100):
-                    # Si on a trouvé un message de /semaine, ignorer les messages avant cette date
+                    # Si on a trouvÃ© un message de /semaine, ignorer les messages avant cette date
                     if last_semaine_date and message.created_at < last_semaine_date:
                         continue
                     
-                    # Vérifier si le message a des pièces jointes
+                    # VÃ©rifier si le message a des piÃ¨ces jointes
                     if not message.attachments or message.author.bot:
                         continue
                     
-                    # Vérifier si le bot a déjà réagi avec ✅
+                    # VÃ©rifier si le bot a dÃ©jÃ  rÃ©agi avec âœ…
                     bot_reacted = False
                     for reaction in message.reactions:
-                        if str(reaction.emoji) == "✅":
-                            # Vérifier si c'est le bot qui a réagi
+                        if str(reaction.emoji) == "âœ…":
+                            # VÃ©rifier si c'est le bot qui a rÃ©agi
                             async for user in reaction.users():
                                 if user.id == bot.user.id:
                                     bot_reacted = True
@@ -2665,9 +2665,9 @@ async def sync_rea(interaction: discord.Interaction):
                             if bot_reacted:
                                 break
                     
-                    # Si le bot n'a pas encore réagi, traiter le message
+                    # Si le bot n'a pas encore rÃ©agi, traiter le message
                     if not bot_reacted:
-                        # Incrémenter le compteur
+                        # IncrÃ©menter le compteur
                         if employee_key not in stats:
                             stats[employee_key] = 0
                         
@@ -2675,9 +2675,9 @@ async def sync_rea(interaction: discord.Interaction):
                         channel_synced += 1
                         synced_count += 1
                         
-                        # Ajouter la réaction
+                        # Ajouter la rÃ©action
                         try:
-                            await message.add_reaction("✅")
+                            await message.add_reaction("âœ…")
                         except:
                             pass
                         
@@ -2686,7 +2686,7 @@ async def sync_rea(interaction: discord.Interaction):
                         if log_channel:
                             current_count = stats[employee_key]
                             emoji = get_color_emoji(current_count)
-                            message_text = f"🔄 **{employee_key}** | {current_count} réas (sync)"
+                            message_text = f"ðŸ”„ **{employee_key}** | {current_count} rÃ©as (sync)"
                             
                             try:
                                 await log_channel.send(message_text)
@@ -2697,7 +2697,7 @@ async def sync_rea(interaction: discord.Interaction):
                 print(f"Erreur sync channel {channel.name}: {e}")
                 continue
             
-            # Mettre à jour la couleur du channel si des messages ont été synchronisés
+            # Mettre Ã  jour la couleur du channel si des messages ont Ã©tÃ© synchronisÃ©s
             if channel_synced > 0:
                 channels_synced.append(f"{channel.mention} (+{channel_synced})")
                 current_count = stats.get(employee_key, 0)
@@ -2717,35 +2717,35 @@ async def sync_rea(interaction: discord.Interaction):
     # Message de confirmation
     if synced_count > 0:
         embed = discord.Embed(
-            title="🔄 SYNCHRONISATION COMPLÉTÉE",
-            description=f"**{synced_count} réanimation(s) récupérée(s) et ajoutée(s) aux quotas**",
+            title="ðŸ”„ SYNCHRONISATION COMPLÃ‰TÃ‰E",
+            description=f"**{synced_count} rÃ©animation(s) rÃ©cupÃ©rÃ©e(s) et ajoutÃ©e(s) aux quotas**",
             color=EMS_RED
         )
         
         if channels_synced:
-            channels_text = "\n".join(channels_synced[:25])  # Limiter à 25 pour éviter les embeds trop longs
-            embed.add_field(name="📊 Channels synchronisés", value=channels_text, inline=False)
+            channels_text = "\n".join(channels_synced[:25])  # Limiter Ã  25 pour Ã©viter les embeds trop longs
+            embed.add_field(name="ðŸ“Š Channels synchronisÃ©s", value=channels_text, inline=False)
         
         embed.add_field(
-            name="✅ Actions effectuées",
-            value="• Messages cochés avec ✅\n• Compteurs mis à jour\n• Couleurs des channels actualisées\n• Logs envoyés\n• ⏱️ Uniquement les réas après /semaine",
+            name="âœ… Actions effectuÃ©es",
+            value="â€¢ Messages cochÃ©s avec âœ…\nâ€¢ Compteurs mis Ã  jour\nâ€¢ Couleurs des channels actualisÃ©es\nâ€¢ Logs envoyÃ©s\nâ€¢ â±ï¸ Uniquement les rÃ©as aprÃ¨s /semaine",
             inline=False
         )
-        embed.set_footer(text="🚑 EMS System | Synchronisation automatique")
+        embed.set_footer(text="ðŸš‘ EMS System | Synchronisation automatique")
     else:
         embed = discord.Embed(
-            title="✅ SYNCHRONISATION COMPLÉTÉE",
-            description="Aucune réanimation à rattraper. Tous les messages ont déjà été traités !",
+            title="âœ… SYNCHRONISATION COMPLÃ‰TÃ‰E",
+            description="Aucune rÃ©animation Ã  rattraper. Tous les messages ont dÃ©jÃ  Ã©tÃ© traitÃ©s !",
             color=EMS_RED
         )
-        embed.set_footer(text="🚑 EMS System")
+        embed.set_footer(text="ðŸš‘ EMS System")
     
     await interaction.followup.send(embed=embed)
 
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(
-    member="Le membre à mettre à jour",
-    value="La nouvelle valeur de réanimations"
+    member="Le membre Ã  mettre Ã  jour",
+    value="La nouvelle valeur de rÃ©animations"
 )
 async def force_update(interaction: discord.Interaction, member: discord.Member, value: int):
     await interaction.response.defer()
@@ -2753,7 +2753,7 @@ async def force_update(interaction: discord.Interaction, member: discord.Member,
     stats = load_stats()
     member_name = f"{member.name}".lower().replace(" ", "-")
     
-    # Chercher la clé dans stats
+    # Chercher la clÃ© dans stats
     found_key = None
     for key in stats.keys():
         if member.name.lower() in key or key.lower() in member.name.lower():
@@ -2765,7 +2765,7 @@ async def force_update(interaction: discord.Interaction, member: discord.Member,
         stats[found_key] = value
         save_stats(stats)
         
-        # Mettre à jour la description du channel si applicable
+        # Mettre Ã  jour la description du channel si applicable
         if member.name in [ch.name for ch in interaction.guild.text_channels]:
             channel = discord.utils.get(interaction.guild.text_channels, name=member.name)
             if channel:
@@ -2777,14 +2777,14 @@ async def force_update(interaction: discord.Interaction, member: discord.Member,
                     pass
         
         embed = discord.Embed(
-            title="✅ STATS MISES À JOUR",
+            title="âœ… STATS MISES Ã€ JOUR",
             description=f"**{member.name}**\nAncienne valeur: `{old_value}`\nNouvelle valeur: `{value}`",
             color=EMS_RED
         )
-        embed.set_footer(text="🚑 EMS System | Force Update")
+        embed.set_footer(text="ðŸš‘ EMS System | Force Update")
     else:
         embed = discord.Embed(
-            title="❌ ERREUR",
+            title="âŒ ERREUR",
             description=f"Impossible de trouver les stats de `{member.name}`",
             color=0xFF0000
         )
@@ -2795,7 +2795,7 @@ async def force_update(interaction: discord.Interaction, member: discord.Member,
 async def force_update_all(interaction: discord.Interaction):
     await interaction.response.defer()
     
-    # Mise à jour forcée de toutes les stats
+    # Mise Ã  jour forcÃ©e de toutes les stats
     new_stats = {
         "balake-andrew": 234,
         "marc-zenter": 204,
@@ -2822,7 +2822,7 @@ async def force_update_all(interaction: discord.Interaction):
     
     save_stats(new_stats)
     
-    # Mettre à jour les descriptions des channels
+    # Mettre Ã  jour les descriptions des channels
     guild = interaction.guild
     updated_count = 0
     
@@ -2841,15 +2841,15 @@ async def force_update_all(interaction: discord.Interaction):
                 pass
     
     embed = discord.Embed(
-        title="✅ TOUS LES STATS MIS À JOUR",
-        description=f"**{len(new_stats)} employés mises à jour**\n**{updated_count} channels descriptions mises à jour**",
+        title="âœ… TOUS LES STATS MIS Ã€ JOUR",
+        description=f"**{len(new_stats)} employÃ©s mises Ã  jour**\n**{updated_count} channels descriptions mises Ã  jour**",
         color=EMS_RED
     )
     
-    # Ajouter les détails
+    # Ajouter les dÃ©tails
     stats_text = "\n".join([f"`{k}`: {v}/100" for k, v in list(new_stats.items())[:10]])
-    embed.add_field(name="Premiers 10 employés", value=stats_text, inline=False)
-    embed.set_footer(text="🚑 EMS System | Force Update All")
+    embed.add_field(name="Premiers 10 employÃ©s", value=stats_text, inline=False)
+    embed.set_footer(text="ðŸš‘ EMS System | Force Update All")
     
     await interaction.followup.send(embed=embed)
 
@@ -2864,7 +2864,7 @@ async def fix_emojis(interaction: discord.Interaction):
     failed_count = 0
     skipped_count = 0
     
-    # Délai entre chaque mise à jour pour éviter le rate limiting
+    # DÃ©lai entre chaque mise Ã  jour pour Ã©viter le rate limiting
     DELAY_BETWEEN_UPDATES = 1.5  # secondes
     
     for key, value in stats.items():
@@ -2879,27 +2879,27 @@ async def fix_emojis(interaction: discord.Interaction):
                     description = f"{emoji} {value}/100"
                     await channel.edit(topic=description)
                     updated_count += 1
-                    # Délai pour éviter le rate limiting
+                    # DÃ©lai pour Ã©viter le rate limiting
                     await asyncio.sleep(DELAY_BETWEEN_UPDATES)
                 except Exception as e:
                     failed_count += 1
-                    print(f"❌ Erreur mise à jour {key}: {e}")
+                    print(f"âŒ Erreur mise Ã  jour {key}: {e}")
             else:
                 skipped_count += 1
                 
         except Exception as e:
             failed_count += 1
-            print(f"❌ Erreur traitement {key}: {e}")
+            print(f"âŒ Erreur traitement {key}: {e}")
     
     embed = discord.Embed(
-        title="✅ CORRECTION DES EMOJIS COMPLÉTÉE",
-        description=f"Mise à jour des descriptions de salons",
+        title="âœ… CORRECTION DES EMOJIS COMPLÃ‰TÃ‰E",
+        description=f"Mise Ã  jour des descriptions de salons",
         color=EMS_RED
     )
-    embed.add_field(name="✅ Mis à jour", value=f"{updated_count} salons", inline=True)
-    embed.add_field(name="⏭️ Ignorés", value=f"{skipped_count} salons", inline=True)
-    embed.add_field(name="❌ Erreurs", value=f"{failed_count} salons", inline=True)
-    embed.set_footer(text="🚑 EMS System | Fix Emojis")
+    embed.add_field(name="âœ… Mis Ã  jour", value=f"{updated_count} salons", inline=True)
+    embed.add_field(name="â­ï¸ IgnorÃ©s", value=f"{skipped_count} salons", inline=True)
+    embed.add_field(name="âŒ Erreurs", value=f"{failed_count} salons", inline=True)
+    embed.set_footer(text="ðŸš‘ EMS System | Fix Emojis")
     
     await interaction.followup.send(embed=embed)
 
@@ -2915,53 +2915,53 @@ async def update_colors(interaction: discord.Interaction):
     
     # Parcourir tous les channels avec emoji
     for channel in guild.text_channels:
-        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+        if len(channel.name) > 0 and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
             try:
-                # Récupérer la clé employé
+                # RÃ©cupÃ©rer la clÃ© employÃ©
                 employee_key = get_channel_employee_key(channel)
                 if not employee_key:
                     continue
                 
-                # Récupérer le compteur
+                # RÃ©cupÃ©rer le compteur
                 current_count = stats.get(employee_key, 0)
                 
                 # Calculer la nouvelle couleur
                 new_emoji = get_color_emoji(current_count)
                 current_emoji = channel.name[0]
                 
-                # Mettre à jour si différent
+                # Mettre Ã  jour si diffÃ©rent
                 if current_emoji != new_emoji:
                     new_channel_name = f"{new_emoji}{channel.name[1:]}"
                     await channel.edit(name=new_channel_name)
                     updated_count += 1
                     
             except Exception as e:
-                errors.append(f"❌ {channel.name}: {str(e)[:50]}")
+                errors.append(f"âŒ {channel.name}: {str(e)[:50]}")
     
     # Message de confirmation
     embed = discord.Embed(
-        title="🎨 MISE À JOUR DES COULEURS",
-        description=f"**{updated_count} channel(s) mis à jour**",
+        title="ðŸŽ¨ MISE Ã€ JOUR DES COULEURS",
+        description=f"**{updated_count} channel(s) mis Ã  jour**",
         color=EMS_RED
     )
     
     if errors:
         embed.add_field(
-            name="⚠️ Erreurs",
+            name="âš ï¸ Erreurs",
             value="\n".join(errors[:10]),
             inline=False
         )
     
     embed.add_field(
-        name="📊 Légende",
-        value="🔴 Moins de 50 réas\n🟠 Entre 50 et 99 réas\n🟢 100 réas ou plus",
+        name="ðŸ“Š LÃ©gende",
+        value="ðŸ”´ Moins de 50 rÃ©as\nðŸŸ  Entre 50 et 99 rÃ©as\nðŸŸ¢ 100 rÃ©as ou plus",
         inline=False
     )
     
-    embed.set_footer(text="🚑 EMS System")
+    embed.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=embed)
 
-@bot.tree.command(name="semaine", description="Réinitialise la semaine - Remet tout à 0 et met en rouge")
+@bot.tree.command(name="semaine", description="RÃ©initialise la semaine - Remet tout Ã  0 et met en rouge")
 @app_commands.checks.has_permissions(administrator=True)
 async def semaine(interaction: discord.Interaction):
     global evening_reas
@@ -2989,12 +2989,12 @@ async def semaine(interaction: discord.Interaction):
         for name_key, count in ordered:
             if current_embed is None or field_count >= 25:
                 if current_embed is not None:
-                    current_embed.set_footer(text=f"🚑 EMS System | Page {page_index}")
+                    current_embed.set_footer(text=f"ðŸš‘ EMS System | Page {page_index}")
                     embeds.append(current_embed)
                     page_index += 1
                 current_embed = discord.Embed(
-                    title="📊 BILAN HEBDOMADAIRE EMS",
-                    description="Récapitulatif des réanimations par employé (semaine)",
+                    title="ðŸ“Š BILAN HEBDOMADAIRE EMS",
+                    description="RÃ©capitulatif des rÃ©animations par employÃ© (semaine)",
                     color=EMS_RED
                 )
                 field_count = 0
@@ -3002,7 +3002,7 @@ async def semaine(interaction: discord.Interaction):
             emoji = get_color_emoji(count)
             display_name = pretty_name(name_key)
             total_bonuses = get_total_bonuses(name_key)
-            bonus_str = f" | 💰 {total_bonuses}M primes" if total_bonuses > 0 else ""
+            bonus_str = f" | ðŸ’° {total_bonuses}M primes" if total_bonuses > 0 else ""
             current_embed.add_field(
                 name=f"{emoji} {display_name}",
                 value=f"{count}/100{bonus_str}",
@@ -3011,33 +3011,33 @@ async def semaine(interaction: discord.Interaction):
             field_count += 1
 
         if current_embed is not None:
-            current_embed.set_footer(text=f"🚑 EMS System | Page {page_index}")
+            current_embed.set_footer(text=f"ðŸš‘ EMS System | Page {page_index}")
             embeds.append(current_embed)
 
-        # Résumé heures de service
+        # RÃ©sumÃ© heures de service
         svc_data = load_services()
         week_svc = svc_data.get(week_key, {})
         svc_summary = ""
         if week_svc:
-            svc_summary = "\n\n**⏱️ Heures de service :**\n"
+            svc_summary = "\n\n**â±ï¸ Heures de service :**\n"
             sorted_svc = sorted(week_svc.items(), key=lambda x: x[1]['total_hours'], reverse=True)
             total_h_all = 0
             for emp_key, d in sorted_svc:
                 h = int(d['total_hours'])
                 m = int((d['total_hours'] - h) * 60)
                 display = emp_key.replace('-', ' ').title()
-                svc_summary += f"• **{display}** : {h}h{m:02d} ({d['total_reas']} réas / {d['sessions']} services)\n"
+                svc_summary += f"â€¢ **{display}** : {h}h{m:02d} ({d['total_reas']} rÃ©as / {d['sessions']} services)\n"
                 total_h_all += d['total_hours']
             h_t = int(total_h_all)
             m_t = int((total_h_all - h_t) * 60)
             svc_summary += f"\n**Total heures :** {h_t}h{m_t:02d}"
 
         summary_embed = discord.Embed(
-            title="📊 RÉSUMÉ SEMAINE EMS",
-            description=f"**Total réanimations :** `{total_reactions}` 🎯{svc_summary}",
+            title="ðŸ“Š RÃ‰SUMÃ‰ SEMAINE EMS",
+            description=f"**Total rÃ©animations :** `{total_reactions}` ðŸŽ¯{svc_summary}",
             color=EMS_RED
         )
-        summary_embed.set_footer(text="🚑 EMS System")
+        summary_embed.set_footer(text="ðŸš‘ EMS System")
         embeds.append(summary_embed)
 
         for e in embeds:
@@ -3046,10 +3046,10 @@ async def semaine(interaction: discord.Interaction):
             except:
                 pass
 
-    # 1.5) Sauvegarder un instantané de la semaine AVANT tout reset,
-    # pour que le récap du dashboard (onglet Réunion) puisse toujours
+    # 1.5) Sauvegarder un instantanÃ© de la semaine AVANT tout reset,
+    # pour que le rÃ©cap du dashboard (onglet RÃ©union) puisse toujours
     # afficher les infos de la semaine qui vient de se terminer,
-    # même si /semaine a déjà été lancée entre-temps.
+    # mÃªme si /semaine a dÃ©jÃ  Ã©tÃ© lancÃ©e entre-temps.
     try:
         snapshot = {
             'week_key': week_key,
@@ -3063,13 +3063,13 @@ async def semaine(interaction: discord.Interaction):
     except Exception as _snap_err:
         print(f"Erreur sauvegarde week_snapshot: {_snap_err}")
 
-    # 2) Reset stats réas
+    # 2) Reset stats rÃ©as
     save_stats({})
     # Reset historique dispatch pour le dashboard
     dispatch_history.clear()
     coffre_tracking.clear()
 
-    # 3) Reset primes soirée (evening_reas)
+    # 3) Reset primes soirÃ©e (evening_reas)
     evening_reas = {}
     atomic_write_json(EVENING_REAS_FILE, evening_reas)
 
@@ -3089,19 +3089,19 @@ async def semaine(interaction: discord.Interaction):
         del bonuses_week_reset[k]
     save_bonuses_week(bonuses_week_reset)
 
-    # 7) Mettre tous les channels en 🔴 0/100
+    # 7) Mettre tous les channels en ðŸ”´ 0/100
     announcement_channels = []
     for channel in guild.text_channels:
-        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
-            new_name = f"🔴{channel.name[1:]}"
+        if len(channel.name) > 0 and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
+            new_name = f"ðŸ”´{channel.name[1:]}"
             try:
-                await channel.edit(name=new_name, topic="🔴 0/100")
+                await channel.edit(name=new_name, topic="ðŸ”´ 0/100")
                 announcement_channels.append(channel)
                 await asyncio.sleep(2)
             except:
                 pass
 
-    # 8) Bannière nouvelle semaine
+    # 8) BanniÃ¨re nouvelle semaine
     banner_url = "https://media.discordapp.net/attachments/1432501937085087896/1457439823215460487/image.png?ex=695ea51b&is=695d539b&hm=73669ae578193fac7bb528589592facb8ffa94a53f6521f1fad68165e393d32c&=&format=webp&quality=lossless&width=1872&height=571"
     banner_data = None
     try:
@@ -3110,14 +3110,14 @@ async def semaine(interaction: discord.Interaction):
                 if resp.status == 200:
                     banner_data = await resp.read()
     except Exception as e:
-        print(f"Erreur bannière: {e}")
+        print(f"Erreur banniÃ¨re: {e}")
 
     embed = discord.Embed(
-        title="🚑 NOUVELLE SEMAINE !",
-        description="**✅ Réinitialisation complète de la semaine**\n\n• Tous les compteurs remis à 0\n• Toutes les primes remises à 0\n• Tous les channels en 🔴\n• C'est repartit de zéro !\n\n**Bonne chance à tous ! 💪**",
+        title="ðŸš‘ NOUVELLE SEMAINE !",
+        description="**âœ… RÃ©initialisation complÃ¨te de la semaine**\n\nâ€¢ Tous les compteurs remis Ã  0\nâ€¢ Toutes les primes remises Ã  0\nâ€¢ Tous les channels en ðŸ”´\nâ€¢ C'est repartit de zÃ©ro !\n\n**Bonne chance Ã  tous ! ðŸ’ª**",
         color=EMS_RED
     )
-    embed.set_footer(text="🚑 EMS System | Nouvelle semaine, nouveau challenge !")
+    embed.set_footer(text="ðŸš‘ EMS System | Nouvelle semaine, nouveau challenge !")
 
     if banner_data:
         embed.set_image(url=f"attachment://nouvelle_semaine.png")
@@ -3141,19 +3141,19 @@ async def semaine(interaction: discord.Interaction):
             pass
 
     embed_confirm = discord.Embed(
-        title="✅ SEMAINE RÉINITIALISÉE",
+        title="âœ… SEMAINE RÃ‰INITIALISÃ‰E",
         description=(
-            "✅ Stats réas remises à 0\n"
-            "✅ Primes quotidiennes remises à 0\n"
-            "✅ Primes semaine remises à 0\n"
-            "✅ Heures de service remises à 0\n"
-            "✅ Channels mis en 🔴 0/100\n"
-            "✅ Bilan posté dans les logs\n\n"
-            "C'est parti pour une nouvelle semaine ! 🚀"
+            "âœ… Stats rÃ©as remises Ã  0\n"
+            "âœ… Primes quotidiennes remises Ã  0\n"
+            "âœ… Primes semaine remises Ã  0\n"
+            "âœ… Heures de service remises Ã  0\n"
+            "âœ… Channels mis en ðŸ”´ 0/100\n"
+            "âœ… Bilan postÃ© dans les logs\n\n"
+            "C'est parti pour une nouvelle semaine ! ðŸš€"
         ),
         color=EMS_RED
     )
-    embed_confirm.set_footer(text="🚑 EMS System")
+    embed_confirm.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=embed_confirm)
 @app_commands.checks.has_permissions(administrator=True)
 async def reset_silent(interaction: discord.Interaction):
@@ -3161,17 +3161,17 @@ async def reset_silent(interaction: discord.Interaction):
     
     guild = interaction.guild
     
-    # 1) Réinitialiser stats
+    # 1) RÃ©initialiser stats
     save_stats({})
     
-    # Réinitialiser les heures de service de la semaine
+    # RÃ©initialiser les heures de service de la semaine
     svc_data_reset = load_services()
     week_key = get_week_start()
     if week_key in svc_data_reset:
         del svc_data_reset[week_key]
     save_services(svc_data_reset)
     
-    # Réinitialiser les bonus de la semaine
+    # RÃ©initialiser les bonus de la semaine
     bonuses_week_reset = load_bonuses_week()
     week_start = get_week_start()
     keys_to_delete = [k for k in bonuses_week_reset.keys() if k.endswith(f"_{week_start}")]
@@ -3179,21 +3179,21 @@ async def reset_silent(interaction: discord.Interaction):
         del bonuses_week_reset[k]
     save_bonuses_week(bonuses_week_reset)
     
-    # Mettre à jour les descriptions des channels à 🔴 0/100 (sans changer les noms)
+    # Mettre Ã  jour les descriptions des channels Ã  ðŸ”´ 0/100 (sans changer les noms)
     for channel in guild.text_channels:
-        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+        if len(channel.name) > 0 and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
             try:
-                await channel.edit(topic="🔴 0/100")
+                await channel.edit(topic="ðŸ”´ 0/100")
             except:
                 pass
     
-    # Répondre avec un simple message de confirmation
+    # RÃ©pondre avec un simple message de confirmation
     embed_confirm = discord.Embed(
-        title="🚑 ✅ RESET SILENCIEUX EFFECTUÉ",
-        description="✅ Tous les compteurs remis à 0\n✅ Jean-dan: 15 réas\n✅ Heures remises à 0\n✅ Bonus remis à 0\n✅ Descriptions remises à 🔴 0/100",
+        title="ðŸš‘ âœ… RESET SILENCIEUX EFFECTUÃ‰",
+        description="âœ… Tous les compteurs remis Ã  0\nâœ… Jean-dan: 15 rÃ©as\nâœ… Heures remises Ã  0\nâœ… Bonus remis Ã  0\nâœ… Descriptions remises Ã  ðŸ”´ 0/100",
         color=EMS_RED
     )
-    embed_confirm.set_footer(text="🚑 EMS System")
+    embed_confirm.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=embed_confirm)
 
 @app_commands.checks.has_permissions(administrator=True)
@@ -3203,27 +3203,27 @@ async def force_red(interaction: discord.Interaction):
     guild = interaction.guild
     updated_count = 0
     
-    # Parcourir tous les channels et remplacer l'emoji par 🔴
+    # Parcourir tous les channels et remplacer l'emoji par ðŸ”´
     for channel in guild.text_channels:
-        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
-            # Remplacer le premier emoji par 🔴
-            new_name = f"🔴{channel.name[1:]}"
+        if len(channel.name) > 0 and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
+            # Remplacer le premier emoji par ðŸ”´
+            new_name = f"ðŸ”´{channel.name[1:]}"
             try:
                 await channel.edit(name=new_name)
                 updated_count += 1
-                await asyncio.sleep(2)  # Délai pour éviter rate limit
+                await asyncio.sleep(2)  # DÃ©lai pour Ã©viter rate limit
             except Exception as e:
-                print(f"Erreur mise à jour {channel.name}: {e}")
+                print(f"Erreur mise Ã  jour {channel.name}: {e}")
     
     embed = discord.Embed(
-        title="🚑 ✅ TOUS LES CHANNELS EN ROUGE",
-        description=f"✅ {updated_count} channels remis à 🔴",
+        title="ðŸš‘ âœ… TOUS LES CHANNELS EN ROUGE",
+        description=f"âœ… {updated_count} channels remis Ã  ðŸ”´",
         color=EMS_RED
     )
-    embed.set_footer(text="🚑 EMS System")
+    embed.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=embed)
 
-## Commandes de couleur supprimées (sync_colors, update_color)
+## Commandes de couleur supprimÃ©es (sync_colors, update_color)
 
 # --- COMMANDE TAXI ---
 @app_commands.checks.has_permissions(administrator=True)
@@ -3239,11 +3239,11 @@ async def taxi(interaction: discord.Interaction):
     test_count = taxi_data.get("test_aptitude_taxi", 0)
     
     embed = discord.Embed(
-        title="🚕 Tests d'Aptitude Taxi",
-        description=f"**Nombre de tests complétés :** {test_count}",
+        title="ðŸš• Tests d'Aptitude Taxi",
+        description=f"**Nombre de tests complÃ©tÃ©s :** {test_count}",
         color=EMS_RED
     )
-    embed.set_footer(text="🚑 EMS System")
+    embed.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=embed)
 
 @app_commands.checks.has_permissions(administrator=True)
@@ -3252,9 +3252,9 @@ async def taxi_announce(interaction: discord.Interaction):
     
     try:
         await send_weekly_taxi_announcement()
-        await interaction.followup.send("✅ Annonce hebdomadaire envoyée et compteurs réinitialisés !", ephemeral=True)
+        await interaction.followup.send("âœ… Annonce hebdomadaire envoyÃ©e et compteurs rÃ©initialisÃ©s !", ephemeral=True)
     except Exception as e:
-        await interaction.followup.send(f"❌ Erreur : {e}", ephemeral=True)
+        await interaction.followup.send(f"âŒ Erreur : {e}", ephemeral=True)
 
 # --- COMMANDE BURGERSHOT ---
 @app_commands.checks.has_permissions(administrator=True)
@@ -3266,64 +3266,64 @@ async def burgershot(interaction: discord.Interaction):
     revenus = count * 300000
     
     embed = discord.Embed(
-        title="🍔 Tests d'Aptitude BurgerShot",
-        description=f"**Nombre de tests complétés :** {count}\n**Revenus générés :** ${revenus:,}",
+        title="ðŸ” Tests d'Aptitude BurgerShot",
+        description=f"**Nombre de tests complÃ©tÃ©s :** {count}\n**Revenus gÃ©nÃ©rÃ©s :** ${revenus:,}",
         color=discord.Color.from_rgb(255, 165, 0)  # Orange
     )
-    embed.add_field(name="💰 Tarif", value="300 000$ par test", inline=False)
-    embed.set_footer(text="🍔 BurgerShot System")
+    embed.add_field(name="ðŸ’° Tarif", value="300 000$ par test", inline=False)
+    embed.set_footer(text="ðŸ” BurgerShot System")
     await interaction.followup.send(embed=embed)
 
 # --- QUESTIONS DU CV ---
 QUESTIONS = [
-    "📄 **Candidature EMS**\nNom et Prénom ?",
-    "🔹 **Informations personnelles**\nQuel est votre âge ?",
-    "🚗 **Permis de conduire**\nAvez-vous le permis de conduire (si oui, le(s)quel(s) ?)",
-    "⏳ **Présence en ville**\nDepuis quand êtes-vous en ville ?",
-    "💼 **Expérience professionnelle**\nMétier actuelle ?",
-    "📚 **Parcours**\nQuels métiers avez-vous déjà exercés ?",
-    "🏥 **Compétences médicales**\nAvez-vous des compétences dans le domaine médical ?",
-    "🔥 **Motivations**\nQuelles sont vos motivations à entrer chez les EMS ?",
-    "⭐ **Pourquoi vous ?**\nPourquoi devrions-nous vous prendre et pas quelqu'un d'autre ?",
-    "👍 **Qualités**\nDonnez-nous 3 qualités qui vous caractérisent",
-    "⚠️ **Défauts**\nDonnez-nous 3 défauts qui vous caractérisent",
-    "📅 **Disponibilités - Semaine**\nDu lundi au vendredi : [Horaire]",
-    "📅 **Disponibilités - Week-end**\nWeek-end : [Horaire]"
+    "ðŸ“„ **Candidature EMS**\nNom et PrÃ©nom ?",
+    "ðŸ”¹ **Informations personnelles**\nQuel est votre Ã¢ge ?",
+    "ðŸš— **Permis de conduire**\nAvez-vous le permis de conduire (si oui, le(s)quel(s) ?)",
+    "â³ **PrÃ©sence en ville**\nDepuis quand Ãªtes-vous en ville ?",
+    "ðŸ’¼ **ExpÃ©rience professionnelle**\nMÃ©tier actuelle ?",
+    "ðŸ“š **Parcours**\nQuels mÃ©tiers avez-vous dÃ©jÃ  exercÃ©s ?",
+    "ðŸ¥ **CompÃ©tences mÃ©dicales**\nAvez-vous des compÃ©tences dans le domaine mÃ©dical ?",
+    "ðŸ”¥ **Motivations**\nQuelles sont vos motivations Ã  entrer chez les EMS ?",
+    "â­ **Pourquoi vous ?**\nPourquoi devrions-nous vous prendre et pas quelqu'un d'autre ?",
+    "ðŸ‘ **QualitÃ©s**\nDonnez-nous 3 qualitÃ©s qui vous caractÃ©risent",
+    "âš ï¸ **DÃ©fauts**\nDonnez-nous 3 dÃ©fauts qui vous caractÃ©risent",
+    "ðŸ“… **DisponibilitÃ©s - Semaine**\nDu lundi au vendredi : [Horaire]",
+    "ðŸ“… **DisponibilitÃ©s - Week-end**\nWeek-end : [Horaire]"
 ]
 
-# --- SYSTÈME DE CV ---
+# --- SYSTÃˆME DE CV ---
 class ReviewView(discord.ui.View):
     def __init__(self, target_user: discord.User):
         super().__init__(timeout=None)
         self.target_user = target_user
         self.message = None
 
-    @discord.ui.button(label="✅ Accepter", style=discord.ButtonStyle.green, custom_id="accept_cv")
+    @discord.ui.button(label="âœ… Accepter", style=discord.ButtonStyle.green, custom_id="accept_cv")
     async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # DEFER IMMÉDIATEMENT - AVANT TOUT (garantit pas d'erreur d'interaction)
+        # DEFER IMMÃ‰DIATEMENT - AVANT TOUT (garantit pas d'erreur d'interaction)
         await interaction.response.defer(ephemeral=True)
         
-        # Vérifier les permissions
+        # VÃ©rifier les permissions
         if not interaction.user.guild_permissions.administrator:
-            await interaction.followup.send("❌ Permission refusée", ephemeral=True)
+            await interaction.followup.send("âŒ Permission refusÃ©e", ephemeral=True)
             return
         
         guild = interaction.guild
         member = guild.get_member(self.target_user.id)
         
         if not member:
-            await interaction.followup.send("❌ Le candidat n'est plus sur le serveur.", ephemeral=True)
+            await interaction.followup.send("âŒ Le candidat n'est plus sur le serveur.", ephemeral=True)
             return
         
-        # Ajouter le rôle en attente
+        # Ajouter le rÃ´le en attente
         try:
             role = guild.get_role(896103247096471613)
             if role:
                 await member.add_roles(role)
         except Exception as e:
-            print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur ajout rôle CV: {e}")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] âš ï¸ Erreur ajout rÃ´le CV: {e}")
         
-        # Désactiver les boutons
+        # DÃ©sactiver les boutons
         self.disable_all_items()
         if self.message:
             try:
@@ -3334,31 +3334,31 @@ class ReviewView(discord.ui.View):
         # Envoyer le DM d'acceptation
         try:
             embed_accept = discord.Embed(
-                title="🎉 FÉLICITATIONS !",
-                description="✅ Votre candidature a été **ACCEPTÉE** !\n\n"
-                           "Bienvenue dans la famille des **EMS** ! 🚑\n\n"
-                           "📝 **Étape suivante :**\n"
-                           "Merci de mettre vos disponibilités dans le channel <#1482838723656941829>.\n\n"
+                title="ðŸŽ‰ FÃ‰LICITATIONS !",
+                description="âœ… Votre candidature a Ã©tÃ© **ACCEPTÃ‰E** !\n\n"
+                           "Bienvenue dans la famille des **EMS** ! ðŸš‘\n\n"
+                           "ðŸ“ **Ã‰tape suivante :**\n"
+                           "Merci de mettre vos disponibilitÃ©s dans le channel <#1482838723656941829>.\n\n"
                            "Nous nous chargerons de faire un recrutement.\n\n"
-                           "Cordialement,\n**La Direction des EMS** 🚑",
+                           "Cordialement,\n**La Direction des EMS** ðŸš‘",
                 color=discord.Color.green()
             )
-            embed_accept.set_footer(text="🚑 EMS System | Direction")
+            embed_accept.set_footer(text="ðŸš‘ EMS System | Direction")
             await member.send(embed=embed_accept)
         except Exception as e:
-            print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur DM CV accepté: {e}")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] âš ï¸ Erreur DM CV acceptÃ©: {e}")
             pass
         
         # Envoyer les logs
         try:
             embed = discord.Embed(
-                title="✅ CV ACCEPTÉ",
+                title="âœ… CV ACCEPTÃ‰",
                 description=f"**Candidat :** {member.mention}\n**Validateur :** {interaction.user.mention}",
                 color=EMS_RED
             )
-            embed.add_field(name="✅ Statut", value="Candidature approuvée ✓", inline=False)
-            embed.add_field(name="👤 Rôle attribué", value="Attente d'onboarding", inline=False)
-            embed.set_footer(text="🚑 EMS System")
+            embed.add_field(name="âœ… Statut", value="Candidature approuvÃ©e âœ“", inline=False)
+            embed.add_field(name="ðŸ‘¤ RÃ´le attribuÃ©", value="Attente d'onboarding", inline=False)
+            embed.set_footer(text="ðŸš‘ EMS System")
             cv_track_update(str(self.target_user.id), 'accepted')
             
             # Envoyer dans le channel de logs CV (1458956197796515979)
@@ -3368,7 +3368,7 @@ class ReviewView(discord.ui.View):
                 
                 # Chercher et copier le CV original
                 try:
-                    cv_channel = bot.get_channel(1460755743228825641)
+                    cv_channel = bot.get_channel(1539697901540745317)
                     if cv_channel:
                         async for cv_msg in cv_channel.history(limit=200):
                             if cv_msg.embeds and member.display_name.lower() in str(cv_msg.embeds[0].title).lower():
@@ -3382,22 +3382,22 @@ class ReviewView(discord.ui.View):
             if image_channel and member.avatar:
                 try:
                     avatar_embed = discord.Embed(
-                        title=f"✅ {member.display_name}",
-                        description=f"Accepté par {interaction.user.mention}",
+                        title=f"âœ… {member.display_name}",
+                        description=f"AcceptÃ© par {interaction.user.mention}",
                         color=EMS_RED
                     )
                     avatar_embed.set_image(url=member.avatar.url)
-                    avatar_embed.set_footer(text="🚑 EMS System")
+                    avatar_embed.set_footer(text="ðŸš‘ EMS System")
                     await image_channel.send(embed=avatar_embed)
                 except:
                     pass
         except:
             pass
         
-        # Confirmation à l'admin
-        await interaction.followup.send(f"✅ **{member.display_name}** accepté avec succès", ephemeral=True)
+        # Confirmation Ã  l'admin
+        await interaction.followup.send(f"âœ… **{member.display_name}** acceptÃ© avec succÃ¨s", ephemeral=True)
         
-        # Supprimer le message après 3 secondes
+        # Supprimer le message aprÃ¨s 3 secondes
         try:
             if self.message:
                 await asyncio.sleep(3)
@@ -3405,17 +3405,17 @@ class ReviewView(discord.ui.View):
         except:
             pass
 
-    @discord.ui.button(label="❌ Refuser", style=discord.ButtonStyle.red, custom_id="refuse_cv")
+    @discord.ui.button(label="âŒ Refuser", style=discord.ButtonStyle.red, custom_id="refuse_cv")
     async def refuse(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # DEFER IMMÉDIATEMENT - AVANT TOUT (garantit pas d'erreur d'interaction)
+        # DEFER IMMÃ‰DIATEMENT - AVANT TOUT (garantit pas d'erreur d'interaction)
         await interaction.response.defer(ephemeral=True)
         
-        # Vérifier les permissions
+        # VÃ©rifier les permissions
         if not interaction.user.guild_permissions.administrator:
-            await interaction.followup.send("❌ Permission refusée", ephemeral=True)
+            await interaction.followup.send("âŒ Permission refusÃ©e", ephemeral=True)
             return
         
-        # Désactiver les boutons
+        # DÃ©sactiver les boutons
         self.disable_all_items()
         if self.message:
             try:
@@ -3426,14 +3426,14 @@ class ReviewView(discord.ui.View):
         # Envoyer le DM au candidat
         try:
             await self.target_user.send(
-                "❌ **Candidature Refusée**\n\n"
-                "Nous regrettons de vous informer que votre candidature n'a pas été retenue.\n\n"
-                "Nous vous encourageons à postuler à nouveau dans le futur.\n\n"
-                "Cordialement,\n**La Direction des EMS** 🚑"
+                "âŒ **Candidature RefusÃ©e**\n\n"
+                "Nous regrettons de vous informer que votre candidature n'a pas Ã©tÃ© retenue.\n\n"
+                "Nous vous encourageons Ã  postuler Ã  nouveau dans le futur.\n\n"
+                "Cordialement,\n**La Direction des EMS** ðŸš‘"
             )
         except:
             pass
-        cv_track_update(str(self.target_user.id), 'refused', 'Refusé par la direction')
+        cv_track_update(str(self.target_user.id), 'refused', 'RefusÃ© par la direction')
         
         # Envoyer le log
         try:
@@ -3441,19 +3441,19 @@ class ReviewView(discord.ui.View):
             cv_log_channel = bot.get_channel(1458956197796515979)
             if cv_log_channel:
                 embed = discord.Embed(
-                    title="❌ CV REFUSÉ",
+                    title="âŒ CV REFUSÃ‰",
                     description=f"**Candidat :** {self.target_user.mention}\n**Validateur :** {interaction.user.mention}",
                     color=EMS_DARK_RED
                 )
-                embed.set_footer(text="🚑 EMS System")
+                embed.set_footer(text="ðŸš‘ EMS System")
                 await cv_log_channel.send(embed=embed)
         except:
             pass
         
-        # Confirmation à l'admin
-        await interaction.followup.send("✅ CV refusé avec succès", ephemeral=True)
+        # Confirmation Ã  l'admin
+        await interaction.followup.send("âœ… CV refusÃ© avec succÃ¨s", ephemeral=True)
         
-        # Supprimer le message après 3 secondes
+        # Supprimer le message aprÃ¨s 3 secondes
         try:
             if self.message:
                 await asyncio.sleep(3)
@@ -3469,20 +3469,20 @@ class CVButton(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Dépose ton CV", style=discord.ButtonStyle.primary, emoji="📝", custom_id="start_cv")
+    @discord.ui.button(label="DÃ©pose ton CV", style=discord.ButtonStyle.primary, emoji="ðŸ“", custom_id="start_cv")
     async def start_cv(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("📋 Dossier en création...", ephemeral=True)
+        await interaction.response.send_message("ðŸ“‹ Dossier en crÃ©ation...", ephemeral=True)
         
         guild = interaction.guild
         user_id = interaction.user.id
         
-        # Vérifier si existe
+        # VÃ©rifier si existe
         for ch in guild.text_channels:
             if ch.name == f"cv-{user_id}":
-                await interaction.followup.send(f"❌ Dossier existe : {ch.mention}", ephemeral=True)
+                await interaction.followup.send(f"âŒ Dossier existe : {ch.mention}", ephemeral=True)
                 return
         
-        # Créer channel
+        # CrÃ©er channel
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
             interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
@@ -3497,27 +3497,27 @@ class CVButton(discord.ui.View):
                 topic=f"CV {interaction.user.name}"
             )
         except:
-            await interaction.followup.send("❌ Erreur création", ephemeral=True)
+            await interaction.followup.send("âŒ Erreur crÃ©ation", ephemeral=True)
             return
         
-        await interaction.followup.send(f"📋 Channel créé : {channel.mention}", ephemeral=True)
+        await interaction.followup.send(f"ðŸ“‹ Channel crÃ©Ã© : {channel.mention}", ephemeral=True)
         
         # Welcome
         welcome = discord.Embed(
-            title="🚑 RECRUTEMENT EMS - FORMULAIRE DE CANDIDATURE",
+            title="ðŸš‘ RECRUTEMENT EMS - FORMULAIRE DE CANDIDATURE",
             description=(
-                f"Bienvenue **{interaction.user.mention}** ! 👋\n\n"
-                f"Vous êtes sur le point de participer à notre processus de sélection pour l'équipe EMS.\n\n"
-                f"**📋 Informations importantes :**\n"
-                f"• {len(QUESTIONS)} questions à répondre\n"
-                f"⏱️ 10 minutes par question\n"
-                f"📝 Répondez de manière claire et détaillée\n"
-                f"📸 Préparez vos documents (CV, diplômes, etc.)\n\n"
-                f"**Bonne chance ! 💪**"
+                f"Bienvenue **{interaction.user.mention}** ! ðŸ‘‹\n\n"
+                f"Vous Ãªtes sur le point de participer Ã  notre processus de sÃ©lection pour l'Ã©quipe EMS.\n\n"
+                f"**ðŸ“‹ Informations importantes :**\n"
+                f"â€¢ {len(QUESTIONS)} questions Ã  rÃ©pondre\n"
+                f"â±ï¸ 10 minutes par question\n"
+                f"ðŸ“ RÃ©pondez de maniÃ¨re claire et dÃ©taillÃ©e\n"
+                f"ðŸ“¸ PrÃ©parez vos documents (CV, diplÃ´mes, etc.)\n\n"
+                f"**Bonne chance ! ðŸ’ª**"
             ),
             color=EMS_RED
         )
-        welcome.set_footer(text="🚑 EMS Management System | Let's go!")
+        welcome.set_footer(text="ðŸš‘ EMS Management System | Let's go!")
         await channel.send(embed=welcome)
         await asyncio.sleep(2)
         
@@ -3527,12 +3527,12 @@ class CVButton(discord.ui.View):
         
         for i, question in enumerate(QUESTIONS, 1):
             q_embed = discord.Embed(
-                title=f"❓ QUESTION {i}/{len(QUESTIONS)}",
+                title=f"â“ QUESTION {i}/{len(QUESTIONS)}",
                 description=question,
                 color=EMS_RED
             )
-            q_embed.add_field(name="⏱️ Temps", value="Vous avez **10 minutes** pour répondre", inline=False)
-            q_embed.set_footer(text="🚑 EMS System | Envoyez votre réponse ci-dessous")
+            q_embed.add_field(name="â±ï¸ Temps", value="Vous avez **10 minutes** pour rÃ©pondre", inline=False)
+            q_embed.set_footer(text="ðŸš‘ EMS System | Envoyez votre rÃ©ponse ci-dessous")
             for attempt in range(3):
                 try:
                     await channel.send(embed=q_embed)
@@ -3542,7 +3542,7 @@ class CVButton(discord.ui.View):
                         await asyncio.sleep(3)
                     else:
                         try:
-                            await channel.send("⚠️ Discord rencontre des problèmes temporaires. Veuillez recliquer sur le bouton de candidature plus tard.")
+                            await channel.send("âš ï¸ Discord rencontre des problÃ¨mes temporaires. Veuillez recliquer sur le bouton de candidature plus tard.")
                         except:
                             pass
                         return
@@ -3559,15 +3559,15 @@ class CVButton(discord.ui.View):
                         member = guild.get_member(user_id)
                         if member:
                             await member.edit(nick=user_fullname)
-                            print(f"✅ Membre renommé: {interaction.user.name} -> {user_fullname}")
+                            print(f"âœ… Membre renommÃ©: {interaction.user.name} -> {user_fullname}")
                         else:
-                            print(f"❌ Membre non trouvé pour renommer: {user_id}")
+                            print(f"âŒ Membre non trouvÃ© pour renommer: {user_id}")
                     except Exception as e:
-                        print(f"❌ Erreur renommage membre: {e}")
+                        print(f"âŒ Erreur renommage membre: {e}")
                 
                 answers.append(f"**{question}**\n{msg.content}")
 
-                # --- DÉTECTION IA (questions 4+, pas nom/âge/permis) ---
+                # --- DÃ‰TECTION IA (questions 4+, pas nom/Ã¢ge/permis) ---
                 if i >= 4:
                     analyse = _detect_ia(msg.content)
                     uid_int = interaction.user.id
@@ -3578,30 +3578,30 @@ class CVButton(discord.ui.View):
 
                         if warn_count >= 2:
                             ia_close = discord.Embed(
-                                title="🤖 DÉTECTION IA — FERMETURE AUTOMATIQUE",
+                                title="ðŸ¤– DÃ‰TECTION IA â€” FERMETURE AUTOMATIQUE",
                                 description=(
-                                    f"{interaction.user.mention} votre candidature a été **fermée automatiquement**.\n\n"
-                                    "**Motif :** Présence d'intelligence artificielle détectée sur plusieurs réponses.\n\n"
-                                    "Les candidatures doivent être **rédigées personnellement**.\n"
+                                    f"{interaction.user.mention} votre candidature a Ã©tÃ© **fermÃ©e automatiquement**.\n\n"
+                                    "**Motif :** PrÃ©sence d'intelligence artificielle dÃ©tectÃ©e sur plusieurs rÃ©ponses.\n\n"
+                                    "Les candidatures doivent Ãªtre **rÃ©digÃ©es personnellement**.\n"
                                     "L'utilisation d'IA est strictement interdite.\n\n"
-                                    "⛔ Ce channel sera supprimé dans **10 secondes**."
+                                    "â›” Ce channel sera supprimÃ© dans **10 secondes**."
                                 ),
                                 color=discord.Color.red()
                             )
-                            ia_close.set_footer(text="🚑 EMS System | Candidature refusée automatiquement")
+                            ia_close.set_footer(text="ðŸš‘ EMS System | Candidature refusÃ©e automatiquement")
                             try:
                                 await channel.send(embed=ia_close)
                             except:
                                 pass
                             # Log dans le channel CV
-                            cv_log = bot.get_channel(1460755743228825641)
+                            cv_log = bot.get_channel(1539697901540745317)
                             if cv_log:
                                 log_e = discord.Embed(
-                                    title="🤖 CANDIDATURE FERMÉE — IA",
-                                    description=f"**{interaction.user.name}** (`{uid_int}`) fermé pour usage d'IA.",
+                                    title="ðŸ¤– CANDIDATURE FERMÃ‰E â€” IA",
+                                    description=f"**{interaction.user.name}** (`{uid_int}`) fermÃ© pour usage d'IA.",
                                     color=discord.Color.red()
                                 )
-                                log_e.add_field(name="Indices", value="\n".join(analyse["indices"]) or "—", inline=False)
+                                log_e.add_field(name="Indices", value="\n".join(analyse["indices"]) or "â€”", inline=False)
                                 log_e.add_field(name="Score IA", value=f"{analyse['score']*100:.0f}%", inline=True)
                                 try:
                                     await cv_log.send(embed=log_e)
@@ -3616,31 +3616,31 @@ class CVButton(discord.ui.View):
                             return
                         else:
                             ia_warn = discord.Embed(
-                                title="⚠️ DÉTECTION IA — Avertissement",
+                                title="âš ï¸ DÃ‰TECTION IA â€” Avertissement",
                                 description=(
-                                    f"{interaction.user.mention} notre système a détecté une possible utilisation d'**intelligence artificielle** dans votre réponse.\n\n"
-                                    "Les candidatures doivent être **rédigées entièrement par vous-même**.\n\n"
-                                    "⚠️ **En cas de nouvelle détection, votre candidature sera fermée automatiquement.**"
+                                    f"{interaction.user.mention} notre systÃ¨me a dÃ©tectÃ© une possible utilisation d'**intelligence artificielle** dans votre rÃ©ponse.\n\n"
+                                    "Les candidatures doivent Ãªtre **rÃ©digÃ©es entiÃ¨rement par vous-mÃªme**.\n\n"
+                                    "âš ï¸ **En cas de nouvelle dÃ©tection, votre candidature sera fermÃ©e automatiquement.**"
                                 ),
                                 color=discord.Color.orange()
                             )
-                            ia_warn.set_footer(text="🚑 EMS System | Avertissement 1/2")
+                            ia_warn.set_footer(text="ðŸš‘ EMS System | Avertissement 1/2")
                             try:
                                 await channel.send(embed=ia_warn)
                             except:
                                 pass
             except asyncio.TimeoutError:
                 timeout_msg = discord.Embed(
-                    title="⏱️ TEMPS ÉCOULÉ - FERMETURE AUTOMATIQUE",
+                    title="â±ï¸ TEMPS Ã‰COULÃ‰ - FERMETURE AUTOMATIQUE",
                     description=(
-                        "❌ **Aucune réponse reçue dans les 10 minutes.**\n\n"
-                        "Votre dossier de candidature va être **fermé automatiquement**.\n\n"
-                        "Si vous souhaitez postuler à nouveau, cliquez sur le bouton de candidature.\n\n"
-                        "🚑 **Fermeture dans 5 secondes...**"
+                        "âŒ **Aucune rÃ©ponse reÃ§ue dans les 10 minutes.**\n\n"
+                        "Votre dossier de candidature va Ãªtre **fermÃ© automatiquement**.\n\n"
+                        "Si vous souhaitez postuler Ã  nouveau, cliquez sur le bouton de candidature.\n\n"
+                        "ðŸš‘ **Fermeture dans 5 secondes...**"
                     ),
                     color=EMS_DARK_RED
                 )
-                timeout_msg.set_footer(text="🚑 EMS System | Session expirée")
+                timeout_msg.set_footer(text="ðŸš‘ EMS System | Session expirÃ©e")
                 try:
                     await channel.send(embed=timeout_msg)
                 except:
@@ -3654,38 +3654,38 @@ class CVButton(discord.ui.View):
         
         # Documents
         docs = discord.Embed(
-            title="📎 DERNIÈRE ÉTAPE",
+            title="ðŸ“Ž DERNIÃˆRE Ã‰TAPE",
             description=(
-                "Merci d'avoir complété le formulaire ! 🎉\n\n"
+                "Merci d'avoir complÃ©tÃ© le formulaire ! ðŸŽ‰\n\n"
                 "**Il ne manque plus que :**\n"
-                "🆔 Votre carte d'identité (IMAGE)\n"
-                "🚗 Votre permis de conduire (IMAGE)\n\n"
-                "⚠️ **IMPORTANT : Envoyez des IMAGES uniquement**\n\n"
-                "Envoyez-les ci-dessous et nous nous en chargerons ! 🚑\n\n"
-                "⏱️ Vous avez un temps illimité pour envoyer les documents."
+                "ðŸ†” Votre carte d'identitÃ© (IMAGE)\n"
+                "ðŸš— Votre permis de conduire (IMAGE)\n\n"
+                "âš ï¸ **IMPORTANT : Envoyez des IMAGES uniquement**\n\n"
+                "Envoyez-les ci-dessous et nous nous en chargerons ! ðŸš‘\n\n"
+                "â±ï¸ Vous avez un temps illimitÃ© pour envoyer les documents."
             ),
             color=EMS_RED
         )
-        docs.set_footer(text="🚑 EMS System | Envoyez les IMAGES ci-dessous")
+        docs.set_footer(text="ðŸš‘ EMS System | Envoyez les IMAGES ci-dessous")
         await channel.send(embed=docs)
         
         attachments = []
         downloaded_files = []
-        photos_b64 = []  # pour le dashboard (carte identité / permis en base64)
+        photos_b64 = []  # pour le dashboard (carte identitÃ© / permis en base64)
         
         def check_doc(m):
             return m.author == interaction.user and m.channel == channel
         
-        # Boucle jusqu'à ce qu'au moins un document soit envoyé
+        # Boucle jusqu'Ã  ce qu'au moins un document soit envoyÃ©
         documents_received = False
         while not documents_received:
             try:
                 msg = await bot.wait_for('message', check=check_doc, timeout=None)
                 
                 if msg.attachments:
-                    # Documents trouvés, on peut continuer
+                    # Documents trouvÃ©s, on peut continuer
                     for att in msg.attachments:
-                        # Télécharger l'image
+                        # TÃ©lÃ©charger l'image
                         try:
                             async with aiohttp.ClientSession() as session:
                                 async with session.get(att.url) as resp:
@@ -3693,7 +3693,7 @@ class CVButton(discord.ui.View):
                                         data = await resp.read()
                                         downloaded_files.append(discord.File(io.BytesIO(data), filename=att.filename))
                                         attachments.append(att.url)
-                                        # Encoder en base64 pour affichage dashboard (carte identité / permis)
+                                        # Encoder en base64 pour affichage dashboard (carte identitÃ© / permis)
                                         try:
                                             if len(data) < 5 * 1024 * 1024:  # limite 5 Mo par image
                                                 ctype = att.content_type or 'image/png'
@@ -3707,61 +3707,61 @@ class CVButton(discord.ui.View):
                 else:
                     # Pas de document, redemander
                     error_embed = discord.Embed(
-                        title="❌ DOCUMENTS REQUIS",
+                        title="âŒ DOCUMENTS REQUIS",
                         description=(
-                            "⚠️ **Aucun document détecté !**\n\n"
+                            "âš ï¸ **Aucun document dÃ©tectÃ© !**\n\n"
                             "Vous devez **obligatoirement** envoyer vos documents :\n"
-                            "🆔 Carte d'identité (IMAGE)\n"
-                            "🚗 Permis de conduire (IMAGE)\n\n"
-                            "**Veuillez réessayer en envoyant vos images.**"
+                            "ðŸ†” Carte d'identitÃ© (IMAGE)\n"
+                            "ðŸš— Permis de conduire (IMAGE)\n\n"
+                            "**Veuillez rÃ©essayer en envoyant vos images.**"
                         ),
                         color=EMS_DARK_RED
                     )
-                    error_embed.set_footer(text="🚑 EMS System | Documents obligatoires")
+                    error_embed.set_footer(text="ðŸš‘ EMS System | Documents obligatoires")
                     await channel.send(embed=error_embed)
             except:
                 pass
         
         confirm = discord.Embed(
-            title="✅ CANDIDATURE COMPLÈTE",
+            title="âœ… CANDIDATURE COMPLÃˆTE",
             description=(
-                "🎉 Excellent ! Nous avons reçu votre candidature complète !\n\n"
-                f"**Documents reçus :** {len(attachments)}\n\n"
-                "👀 **Prochaines étapes :**\n"
-                "• La direction examinera votre candidature\n"
-                "• Vous recevrez une réponse dans vos messages privés\n"
-                "• N'hésitez pas à nous contacter en cas de questions\n\n"
-                "⏱️ Ce channel se fermera dans **2 minutes**\n\n"
-                "**Merci pour votre intérêt envers les EMS !** 🚑"
+                "ðŸŽ‰ Excellent ! Nous avons reÃ§u votre candidature complÃ¨te !\n\n"
+                f"**Documents reÃ§us :** {len(attachments)}\n\n"
+                "ðŸ‘€ **Prochaines Ã©tapes :**\n"
+                "â€¢ La direction examinera votre candidature\n"
+                "â€¢ Vous recevrez une rÃ©ponse dans vos messages privÃ©s\n"
+                "â€¢ N'hÃ©sitez pas Ã  nous contacter en cas de questions\n\n"
+                "â±ï¸ Ce channel se fermera dans **2 minutes**\n\n"
+                "**Merci pour votre intÃ©rÃªt envers les EMS !** ðŸš‘"
             ),
             color=EMS_RED
         )
-        confirm.set_footer(text="🚑 EMS System | Bon courage !")
+        confirm.set_footer(text="ðŸš‘ EMS System | Bon courage !")
         await channel.send(embed=confirm)
         
         # Envoyer le DM au candidat
         try:
             await interaction.user.send(
-                "🚑 **Candidature envoyée** 🚑\n\n"
-                "Nous avons bien reçu votre candidature.\n\n"
-                "Nous vous recontacterons bientôt.\n\n"
-                "Merci pour votre intérêt ! 👨‍⚕️"
+                "ðŸš‘ **Candidature envoyÃ©e** ðŸš‘\n\n"
+                "Nous avons bien reÃ§u votre candidature.\n\n"
+                "Nous vous recontacterons bientÃ´t.\n\n"
+                "Merci pour votre intÃ©rÃªt ! ðŸ‘¨â€âš•ï¸"
             )
         except:
             pass
         
-        # Envoyer au channel CV (en arrière-plan pendant que le timer commence)
-        cv_channel = bot.get_channel(1460755743228825641)
+        # Envoyer au channel CV (en arriÃ¨re-plan pendant que le timer commence)
+        cv_channel = bot.get_channel(1539697901540745317)
         if cv_channel:
             full_text = "\n\n".join(answers)
             cv_embed = discord.Embed(
-                title=f"📋 CV - {user_fullname if user_fullname else interaction.user.name}",
+                title=f"ðŸ“‹ CV - {user_fullname if user_fullname else interaction.user.name}",
                 description=full_text[:2000],
                 color=EMS_RED
             )
             
             cv_embed.set_thumbnail(url=interaction.user.avatar.url if interaction.user.avatar else None)
-            cv_embed.set_footer(text=f"🚑 EMS System | ID: {user_id}")
+            cv_embed.set_footer(text=f"ðŸš‘ EMS System | ID: {user_id}")
             
             view = ReviewView(interaction.user)
             
@@ -3769,52 +3769,52 @@ class CVButton(discord.ui.View):
             direction_role = guild.get_role(config.get("ROLE_DIRECTION_ID"))
             ping_content = direction_role.mention if direction_role and config.get("ROLE_DIRECTION_ID") != 0 else None
             
-            # Envoyer l'embed avec les fichiers téléchargés
+            # Envoyer l'embed avec les fichiers tÃ©lÃ©chargÃ©s
             try:
                 if downloaded_files:
                     msg = await cv_channel.send(content=ping_content, embed=cv_embed, files=downloaded_files, view=view)
                 else:
                     if attachments:
-                        cv_embed.add_field(name="📎 Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
+                        cv_embed.add_field(name="ðŸ“Ž Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
                     msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
                 view.message = msg
                 cv_track_add(interaction.user, 'pending', photos_b64=photos_b64, cv_text=full_text)
-                print(f"✅ CV envoyé dans le channel {cv_channel.name} pour {interaction.user.name}")
+                print(f"âœ… CV envoyÃ© dans le channel {cv_channel.name} pour {interaction.user.name}")
             except Exception as e:
-                print(f"❌ Erreur envoi CV: {e}")
+                print(f"âŒ Erreur envoi CV: {e}")
         else:
-            print(f"❌ Channel CV non trouvé (ID: 1460755743228825641)")
+            print(f"âŒ Channel CV non trouvÃ© (ID: 1539697901540745317)")
         
-        # Fermer le channel après 2 minutes
+        # Fermer le channel aprÃ¨s 2 minutes
         await asyncio.sleep(120)
         try:
             await channel.delete()
         except:
             pass
 
-# --- NOUVEAU SYSTÈME CV (FORMULAIRECV) ---
+# --- NOUVEAU SYSTÃˆME CV (FORMULAIRECV) ---
 class FormulaireCVValidation(discord.ui.View):
     def __init__(self, target_user: discord.User):
         super().__init__(timeout=None)
         self.target_user = target_user
         self.message = None
 
-    @discord.ui.button(label="✅ Accepter", style=discord.ButtonStyle.green, custom_id="accept_formulaire_cv")
+    @discord.ui.button(label="âœ… Accepter", style=discord.ButtonStyle.green, custom_id="accept_formulaire_cv")
     async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
         
         if not interaction.user.guild_permissions.administrator:
-            await interaction.followup.send("❌ Permission refusée", ephemeral=True)
+            await interaction.followup.send("âŒ Permission refusÃ©e", ephemeral=True)
             return
         
         guild = interaction.guild
         member = guild.get_member(self.target_user.id)
         
         if not member:
-            await interaction.followup.send("❌ Le candidat n'est plus sur le serveur.", ephemeral=True)
+            await interaction.followup.send("âŒ Le candidat n'est plus sur le serveur.", ephemeral=True)
             return
         
-        # Désactiver les boutons
+        # DÃ©sactiver les boutons
         for item in self.children:
             item.disabled = True
         
@@ -3824,7 +3824,7 @@ class FormulaireCVValidation(discord.ui.View):
         except:
             pass
         
-        # Ajouter le rôle 896103247096471613
+        # Ajouter le rÃ´le 896103247096471613
         try:
             role = guild.get_role(896103247096471613)
             if role:
@@ -3835,13 +3835,13 @@ class FormulaireCVValidation(discord.ui.View):
         # Envoyer le DM
         try:
             await member.send(
-                "🎉 **FÉLICITATIONS !**\n\n"
-                "✅ Votre candidature a été **ACCEPTÉE** !\n\n"
-                "Bienvenue dans la famille des **EMS** ! 🚑\n\n"
-                "📝 **Étape suivante :**\n"
-                "Merci de mettre vos disponibilités dans le channel <#1482838723656941829>.\n\n"
+                "ðŸŽ‰ **FÃ‰LICITATIONS !**\n\n"
+                "âœ… Votre candidature a Ã©tÃ© **ACCEPTÃ‰E** !\n\n"
+                "Bienvenue dans la famille des **EMS** ! ðŸš‘\n\n"
+                "ðŸ“ **Ã‰tape suivante :**\n"
+                "Merci de mettre vos disponibilitÃ©s dans le channel <#1482838723656941829>.\n\n"
                 "Nous nous chargerons de faire un recrutement.\n\n"
-                "Cordialement,\n**La Direction des EMS** 🚑"
+                "Cordialement,\n**La Direction des EMS** ðŸš‘"
             )
         except:
             pass
@@ -3849,11 +3849,11 @@ class FormulaireCVValidation(discord.ui.View):
         # Logs
         try:
             embed = discord.Embed(
-                title="✅ CANDIDATURE ACCEPTÉE",
+                title="âœ… CANDIDATURE ACCEPTÃ‰E",
                 description=f"**Candidat :** {member.mention}\n**Validateur :** {interaction.user.mention}",
                 color=EMS_RED
             )
-            embed.set_footer(text="🚑 EMS System")
+            embed.set_footer(text="ðŸš‘ EMS System")
             
             # Envoyer dans le channel de logs CV (1458956197796515979)
             cv_log_channel = bot.get_channel(1458956197796515979)
@@ -3862,7 +3862,7 @@ class FormulaireCVValidation(discord.ui.View):
                 
                 # Chercher et copier le CV original
                 try:
-                    cv_channel = bot.get_channel(1460755743228825641)
+                    cv_channel = bot.get_channel(1539697901540745317)
                     if cv_channel:
                         async for cv_msg in cv_channel.history(limit=200):
                             if cv_msg.embeds and member.display_name.lower() in str(cv_msg.embeds[0].title).lower():
@@ -3876,19 +3876,19 @@ class FormulaireCVValidation(discord.ui.View):
             if image_channel and member.avatar:
                 try:
                     avatar_embed = discord.Embed(
-                        title=f"✅ {member.display_name}",
-                        description=f"Accepté par {interaction.user.mention}",
+                        title=f"âœ… {member.display_name}",
+                        description=f"AcceptÃ© par {interaction.user.mention}",
                         color=EMS_RED
                     )
                     avatar_embed.set_image(url=member.avatar.url)
-                    avatar_embed.set_footer(text="🚑 EMS System")
+                    avatar_embed.set_footer(text="ðŸš‘ EMS System")
                     await image_channel.send(embed=avatar_embed)
                 except:
                     pass
         except:
             pass
         
-        await interaction.followup.send(f"✅ **{member.display_name}** accepté !", ephemeral=True)
+        await interaction.followup.send(f"âœ… **{member.display_name}** acceptÃ© !", ephemeral=True)
         
         # Supprimer le message
         try:
@@ -3898,15 +3898,15 @@ class FormulaireCVValidation(discord.ui.View):
         except:
             pass
 
-    @discord.ui.button(label="❌ Refuser", style=discord.ButtonStyle.red, custom_id="refuse_formulaire_cv")
+    @discord.ui.button(label="âŒ Refuser", style=discord.ButtonStyle.red, custom_id="refuse_formulaire_cv")
     async def refuse(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
         
         if not interaction.user.guild_permissions.administrator:
-            await interaction.followup.send("❌ Permission refusée", ephemeral=True)
+            await interaction.followup.send("âŒ Permission refusÃ©e", ephemeral=True)
             return
         
-        # Désactiver les boutons
+        # DÃ©sactiver les boutons
         for item in self.children:
             item.disabled = True
         
@@ -3919,26 +3919,26 @@ class FormulaireCVValidation(discord.ui.View):
         # DM candidat
         try:
             await self.target_user.send(
-                "❌ **Candidature Refusée**\n\n"
-                "Nous regrettons de vous informer que votre candidature n'a pas été retenue.\n\n"
+                "âŒ **Candidature RefusÃ©e**\n\n"
+                "Nous regrettons de vous informer que votre candidature n'a pas Ã©tÃ© retenue.\n\n"
                 "Vous pourrez re-postuler dans **1 semaine**.\n\n"
-                "Cordialement,\n**La Direction des EMS** 🚑"
+                "Cordialement,\n**La Direction des EMS** ðŸš‘"
             )
         except:
             pass
 
-        # ── BLACKLIST CV automatique sur refus ────────────────────────────────
+        # â”€â”€ BLACKLIST CV automatique sur refus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         try:
             bl = load_blacklist_cv()
             bl[str(self.target_user.id)] = {
                 "date": datetime.utcnow().isoformat(),
-                "raison": "Candidature refusée par la direction",
+                "raison": "Candidature refusÃ©e par la direction",
                 "blacklisted_by": str(interaction.user.id),
             }
             save_blacklist_cv(bl)
         except Exception as _bl_err:
             print(f"Erreur blacklist CV refus: {_bl_err}")
-        # ─────────────────────────────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         # Log
         try:
@@ -3946,16 +3946,16 @@ class FormulaireCVValidation(discord.ui.View):
             cv_log_channel = bot.get_channel(1458956197796515979)
             if cv_log_channel:
                 embed = discord.Embed(
-                    title="❌ CANDIDATURE REFUSÉE + BLACKLIST",
-                    description=f"**Candidat :** {self.target_user.mention}\n**Validateur :** {interaction.user.mention}\n🚫 Blacklisté 1 semaine automatiquement.",
+                    title="âŒ CANDIDATURE REFUSÃ‰E + BLACKLIST",
+                    description=f"**Candidat :** {self.target_user.mention}\n**Validateur :** {interaction.user.mention}\nðŸš« BlacklistÃ© 1 semaine automatiquement.",
                     color=EMS_DARK_RED
                 )
-                embed.set_footer(text="🚑 EMS System")
+                embed.set_footer(text="ðŸš‘ EMS System")
                 await cv_log_channel.send(embed=embed)
         except:
             pass
 
-        await interaction.followup.send("✅ CV refusé — candidat blacklisté 1 semaine automatiquement.", ephemeral=True)
+        await interaction.followup.send("âœ… CV refusÃ© â€” candidat blacklistÃ© 1 semaine automatiquement.", ephemeral=True)
         
         # Supprimer le message
         try:
@@ -3969,14 +3969,14 @@ class FormulaireCVButton(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="📝 Déposer ma candidature", style=discord.ButtonStyle.primary, custom_id="start_formulaire_cv")
+    @discord.ui.button(label="ðŸ“ DÃ©poser ma candidature", style=discord.ButtonStyle.primary, custom_id="start_formulaire_cv")
     async def start_formulaire(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("📋 Vérification en cours...", ephemeral=True)
+        await interaction.response.send_message("ðŸ“‹ VÃ©rification en cours...", ephemeral=True)
 
         guild = interaction.guild
         user_id = interaction.user.id
 
-        # ── VÉRIFICATION BLACKLIST CV ──────────────────────────────────────────
+        # â”€â”€ VÃ‰RIFICATION BLACKLIST CV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         bl_entry = is_blacklisted_cv(user_id)
         if bl_entry:
             blacklisted_at = datetime.fromisoformat(bl_entry["date"])
@@ -3984,26 +3984,26 @@ class FormulaireCVButton(discord.ui.View):
             remaining = unlock_at - datetime.utcnow()
             days_left = remaining.days
             hours_left = remaining.seconds // 3600
-            raison = bl_entry.get("raison", "Non précisée")
+            raison = bl_entry.get("raison", "Non prÃ©cisÃ©e")
             await interaction.followup.send(
-                f"🚫 **Candidature refusée — Blacklist CV**\n\n"
-                f"Votre candidature a été **refusée ou votre contrat a été résilié** et vous êtes actuellement "
+                f"ðŸš« **Candidature refusÃ©e â€” Blacklist CV**\n\n"
+                f"Votre candidature a Ã©tÃ© **refusÃ©e ou votre contrat a Ã©tÃ© rÃ©siliÃ©** et vous Ãªtes actuellement "
                 f"sur liste noire.\n\n"
                 f"**Raison :** {raison}\n"
-                f"**Déblocage dans :** {days_left}j {hours_left}h\n\n"
-                f"Vous pourrez re-postuler après ce délai.",
+                f"**DÃ©blocage dans :** {days_left}j {hours_left}h\n\n"
+                f"Vous pourrez re-postuler aprÃ¨s ce dÃ©lai.",
                 ephemeral=True
             )
             return
-        # ──────────────────────────────────────────────────────────────────────
+        # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        # Vérifier si existe
+        # VÃ©rifier si existe
         for ch in guild.text_channels:
             if ch.name == f"candidature-{user_id}":
-                await interaction.followup.send(f"❌ Vous avez déjà un dossier : {ch.mention}", ephemeral=True)
+                await interaction.followup.send(f"âŒ Vous avez dÃ©jÃ  un dossier : {ch.mention}", ephemeral=True)
                 return
         
-        # Créer channel
+        # CrÃ©er channel
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
             interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
@@ -4017,25 +4017,25 @@ class FormulaireCVButton(discord.ui.View):
                 category=interaction.channel.category
             )
         except:
-            await interaction.followup.send("❌ Erreur lors de la création du channel", ephemeral=True)
+            await interaction.followup.send("âŒ Erreur lors de la crÃ©ation du channel", ephemeral=True)
             return
         
-        await interaction.followup.send(f"✅ Votre dossier : {channel.mention}", ephemeral=True)
+        await interaction.followup.send(f"âœ… Votre dossier : {channel.mention}", ephemeral=True)
         
         # Message de bienvenue
         welcome = discord.Embed(
-            title="🚑 FORMULAIRE DE CANDIDATURE EMS",
+            title="ðŸš‘ FORMULAIRE DE CANDIDATURE EMS",
             description=(
-                f"Bienvenue **{interaction.user.mention}** ! 👋\n\n"
-                f"**📋 Informations :**\n"
-                f"• {len(QUESTIONS)} questions\n"
-                f"• 10 minutes par question\n"
-                f"• Documents requis à la fin\n\n"
-                f"**Bonne chance ! 💪**"
+                f"Bienvenue **{interaction.user.mention}** ! ðŸ‘‹\n\n"
+                f"**ðŸ“‹ Informations :**\n"
+                f"â€¢ {len(QUESTIONS)} questions\n"
+                f"â€¢ 10 minutes par question\n"
+                f"â€¢ Documents requis Ã  la fin\n\n"
+                f"**Bonne chance ! ðŸ’ª**"
             ),
             color=EMS_RED
         )
-        welcome.set_footer(text="🚑 EMS System")
+        welcome.set_footer(text="ðŸš‘ EMS System")
         await channel.send(embed=welcome)
         await asyncio.sleep(2)
         
@@ -4045,12 +4045,12 @@ class FormulaireCVButton(discord.ui.View):
         
         for i, question in enumerate(QUESTIONS, 1):
             q_embed = discord.Embed(
-                title=f"❓ QUESTION {i}/{len(QUESTIONS)}",
+                title=f"â“ QUESTION {i}/{len(QUESTIONS)}",
                 description=question,
                 color=EMS_RED
             )
-            q_embed.add_field(name="⏱️ Temps", value="10 minutes", inline=False)
-            q_embed.set_footer(text="🚑 EMS System")
+            q_embed.add_field(name="â±ï¸ Temps", value="10 minutes", inline=False)
+            q_embed.set_footer(text="ðŸš‘ EMS System")
             await channel.send(embed=q_embed)
             
             def check(m):
@@ -4065,16 +4065,16 @@ class FormulaireCVButton(discord.ui.View):
                 answers.append(f"**{question}**\n{msg.content}")
             except asyncio.TimeoutError:
                 timeout_embed = discord.Embed(
-                    title="⏱️ TEMPS ÉCOULÉ - FERMETURE AUTOMATIQUE",
+                    title="â±ï¸ TEMPS Ã‰COULÃ‰ - FERMETURE AUTOMATIQUE",
                     description=(
-                        "❌ **Aucune réponse reçue dans les 10 minutes.**\n\n"
-                        "Votre dossier de candidature va être **fermé automatiquement**.\n\n"
-                        "Si vous souhaitez postuler à nouveau, cliquez sur le bouton de candidature.\n\n"
-                        "🚑 **Fermeture dans 5 secondes...**"
+                        "âŒ **Aucune rÃ©ponse reÃ§ue dans les 10 minutes.**\n\n"
+                        "Votre dossier de candidature va Ãªtre **fermÃ© automatiquement**.\n\n"
+                        "Si vous souhaitez postuler Ã  nouveau, cliquez sur le bouton de candidature.\n\n"
+                        "ðŸš‘ **Fermeture dans 5 secondes...**"
                     ),
                     color=EMS_DARK_RED
                 )
-                timeout_embed.set_footer(text="🚑 EMS System | Session expirée")
+                timeout_embed.set_footer(text="ðŸš‘ EMS System | Session expirÃ©e")
                 await channel.send(embed=timeout_embed)
                 await asyncio.sleep(5)
                 try:
@@ -4085,17 +4085,17 @@ class FormulaireCVButton(discord.ui.View):
         
         # Documents
         docs_embed = discord.Embed(
-            title="📎 DOCUMENTS REQUIS",
+            title="ðŸ“Ž DOCUMENTS REQUIS",
             description=(
-                "Merci pour vos réponses ! 🎉\n\n"
+                "Merci pour vos rÃ©ponses ! ðŸŽ‰\n\n"
                 "**Il manque :**\n"
-                "🆔 Carte d'identité\n"
-                "🚗 Permis de conduire\n\n"
+                "ðŸ†” Carte d'identitÃ©\n"
+                "ðŸš— Permis de conduire\n\n"
                 "Envoyez-les maintenant !"
             ),
             color=EMS_RED
         )
-        docs_embed.set_footer(text="🚑 EMS System")
+        docs_embed.set_footer(text="ðŸš‘ EMS System")
         await channel.send(embed=docs_embed)
         
         attachments = []
@@ -4123,46 +4123,46 @@ class FormulaireCVButton(discord.ui.View):
                         pass
             
             confirm_embed = discord.Embed(
-                title="✅ CANDIDATURE COMPLÈTE",
+                title="âœ… CANDIDATURE COMPLÃˆTE",
                 description=(
-                    "🎉 Candidature reçue !\n\n"
+                    "ðŸŽ‰ Candidature reÃ§ue !\n\n"
                     f"**Documents :** {len(attachments)}\n\n"
                     "La direction va examiner votre dossier.\n"
-                    "Vous recevrez une réponse en DM.\n\n"
-                    "⏱️ Ce channel se fermera dans **2 minutes**\n\n"
-                    "Merci ! 🚑"
+                    "Vous recevrez une rÃ©ponse en DM.\n\n"
+                    "â±ï¸ Ce channel se fermera dans **2 minutes**\n\n"
+                    "Merci ! ðŸš‘"
                 ),
                 color=EMS_RED
             )
-            confirm_embed.set_footer(text="🚑 EMS System")
+            confirm_embed.set_footer(text="ðŸš‘ EMS System")
             await channel.send(embed=confirm_embed)
             
             # DM candidat
             try:
                 await interaction.user.send(
-                    "🚑 **Candidature envoyée** 🚑\n\n"
-                    "Nous avons bien reçu votre candidature.\n\n"
-                    "Réponse prochainement.\n\n"
-                    "Merci ! 👨‍⚕️"
+                    "ðŸš‘ **Candidature envoyÃ©e** ðŸš‘\n\n"
+                    "Nous avons bien reÃ§u votre candidature.\n\n"
+                    "RÃ©ponse prochainement.\n\n"
+                    "Merci ! ðŸ‘¨â€âš•ï¸"
                 )
             except:
                 pass
             
-            # Envoyer au channel CV (pendant que le timer démarre)
-            cv_channel = bot.get_channel(1460755743228825641)
+            # Envoyer au channel CV (pendant que le timer dÃ©marre)
+            cv_channel = bot.get_channel(1539697901540745317)
             if cv_channel:
                 full_text = "\n\n".join(answers)
                 cv_embed = discord.Embed(
-                    title=f"📋 CANDIDATURE - {user_fullname if user_fullname else interaction.user.name}",
+                    title=f"ðŸ“‹ CANDIDATURE - {user_fullname if user_fullname else interaction.user.name}",
                     description=full_text[:2000],
                     color=EMS_RED
                 )
                 
                 if attachments:
-                    cv_embed.add_field(name="📎 Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
+                    cv_embed.add_field(name="ðŸ“Ž Documents", value="\n".join([f"[Doc {i}]({url})" for i, url in enumerate(attachments, 1)]), inline=False)
                 
                 cv_embed.set_thumbnail(url=interaction.user.avatar.url if interaction.user.avatar else None)
-                cv_embed.set_footer(text=f"🚑 EMS System | ID: {user_id}")
+                cv_embed.set_footer(text=f"ðŸš‘ EMS System | ID: {user_id}")
                 
                 view = FormulaireCVValidation(interaction.user)
                 
@@ -4174,93 +4174,93 @@ class FormulaireCVButton(discord.ui.View):
                     msg = await cv_channel.send(content=ping_content, embed=cv_embed, view=view)
                     view.message = msg
                     cv_track_add(interaction.user, 'pending', photos_b64=photos_b64, cv_text=full_text)
-                    print(f"✅ FormulaireCVButton: CV envoyé dans {cv_channel.name} pour {interaction.user.name}")
+                    print(f"âœ… FormulaireCVButton: CV envoyÃ© dans {cv_channel.name} pour {interaction.user.name}")
                 except Exception as e:
-                    print(f"❌ FormulaireCVButton: Erreur envoi CV: {e}")
+                    print(f"âŒ FormulaireCVButton: Erreur envoi CV: {e}")
             else:
-                print(f"❌ FormulaireCVButton: Channel CV non trouvé (ID: 1460755743228825641)")
+                print(f"âŒ FormulaireCVButton: Channel CV non trouvÃ© (ID: 1539697901540745317)")
             
-            # Fermer le channel après 2 minutes
+            # Fermer le channel aprÃ¨s 2 minutes
             await asyncio.sleep(120)
             try:
                 await channel.delete()
             except:
                 pass
         except:
-            # En cas d'erreur, fermer quand même après 2 min
+            # En cas d'erreur, fermer quand mÃªme aprÃ¨s 2 min
             await asyncio.sleep(120)
             try:
                 await channel.delete()
             except:
                 pass
 
-@bot.tree.command(name="setup_cv", description="Affiche le bouton de dépôt de CV")
+@bot.tree.command(name="setup_cv", description="Affiche le bouton de dÃ©pÃ´t de CV")
 @app_commands.checks.has_permissions(administrator=True)
 async def setup_cv(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     
     embed = discord.Embed(
-        title="🚑 RECRUTEMENT EMS",
+        title="ðŸš‘ RECRUTEMENT EMS",
         description=(
-            "**Rejoignez notre équipe !**\n\n"
-            "Cliquez sur le bouton ci-dessous pour déposer votre candidature.\n\n"
-            "**📋 Processus de recrutement :**\n"
-            "1️⃣ Cliquez sur le bouton\n"
-            "2️⃣ Répondez aux 13 questions\n"
-            "3️⃣ Envoyez vos documents (ID, permis)\n"
-            "4️⃣ Attendez la validation de la direction\n\n"
-            "**Bonne chance ! 🚑💪**"
+            "**Rejoignez notre Ã©quipe !**\n\n"
+            "Cliquez sur le bouton ci-dessous pour dÃ©poser votre candidature.\n\n"
+            "**ðŸ“‹ Processus de recrutement :**\n"
+            "1ï¸âƒ£ Cliquez sur le bouton\n"
+            "2ï¸âƒ£ RÃ©pondez aux 13 questions\n"
+            "3ï¸âƒ£ Envoyez vos documents (ID, permis)\n"
+            "4ï¸âƒ£ Attendez la validation de la direction\n\n"
+            "**Bonne chance ! ðŸš‘ðŸ’ª**"
         ),
         color=EMS_RED
     )
     embed.set_thumbnail(url="https://media.discordapp.net/attachments/1458228261166518293/1458240230001086524/ambulance-emoji.png")
-    embed.set_footer(text="🚑 EMS Management System")
+    embed.set_footer(text="ðŸš‘ EMS Management System")
     
     view = CVButton()
     
     try:
         await interaction.channel.send(embed=embed, view=view)
-        await interaction.followup.send("✅ Bouton de CV posté !", ephemeral=True)
+        await interaction.followup.send("âœ… Bouton de CV postÃ© !", ephemeral=True)
     except Exception as e:
-        await interaction.followup.send(f"❌ Erreur: {e}", ephemeral=True)
+        await interaction.followup.send(f"âŒ Erreur: {e}", ephemeral=True)
 
 @bot.tree.command(name="formulairecv", description="Affiche le nouveau formulaire de candidature")
 @app_commands.checks.has_permissions(administrator=True)
 async def formulairecv(interaction: discord.Interaction):
-    # Defer immédiatement pour éviter le timeout
+    # Defer immÃ©diatement pour Ã©viter le timeout
     await interaction.response.defer(ephemeral=True)
     
     embed = discord.Embed(
-        title="🚑 RECRUTEMENT EMS",
+        title="ðŸš‘ RECRUTEMENT EMS",
         description=(
-            "**Rejoignez notre équipe !**\n\n"
-            "Cliquez sur le bouton pour déposer votre candidature.\n\n"
-            "**📋 Processus :**\n"
-            "1️⃣ Cliquez sur le bouton\n"
-            "2️⃣ Répondez aux 13 questions\n"
-            "3️⃣ Envoyez vos documents\n"
-            "4️⃣ Attendez la validation\n\n"
-            "**Bonne chance ! 🚑💪**"
+            "**Rejoignez notre Ã©quipe !**\n\n"
+            "Cliquez sur le bouton pour dÃ©poser votre candidature.\n\n"
+            "**ðŸ“‹ Processus :**\n"
+            "1ï¸âƒ£ Cliquez sur le bouton\n"
+            "2ï¸âƒ£ RÃ©pondez aux 13 questions\n"
+            "3ï¸âƒ£ Envoyez vos documents\n"
+            "4ï¸âƒ£ Attendez la validation\n\n"
+            "**Bonne chance ! ðŸš‘ðŸ’ª**"
         ),
         color=EMS_RED
     )
     embed.set_thumbnail(url="https://media.discordapp.net/attachments/1458228261166518293/1458240230001086524/ambulance-emoji.png")
-    embed.set_footer(text="🚑 EMS System")
+    embed.set_footer(text="ðŸš‘ EMS System")
     
     view = FormulaireCVButton()
     
     try:
         await interaction.channel.send(embed=embed, view=view)
-        await interaction.followup.send("✅ Formulaire posté !", ephemeral=True)
+        await interaction.followup.send("âœ… Formulaire postÃ© !", ephemeral=True)
     except Exception as e:
-        await interaction.followup.send(f"❌ Erreur: {e}", ephemeral=True)
+        await interaction.followup.send(f"âŒ Erreur: {e}", ephemeral=True)
 
-# --- SYSTÈME DE RESET MEMBRE ---
+# --- SYSTÃˆME DE RESET MEMBRE ---
 class ResetMemberButton(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="🔄 Réinitialiser mon compte", style=discord.ButtonStyle.danger, custom_id="reset_member")
+    @discord.ui.button(label="ðŸ”„ RÃ©initialiser mon compte", style=discord.ButtonStyle.danger, custom_id="reset_member")
     async def reset_member(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
         
@@ -4274,78 +4274,78 @@ class ResetMemberButton(discord.ui.View):
             except:
                 pass
             
-            # Récupérer tous les rôles sauf @everyone et le rôle de base
+            # RÃ©cupÃ©rer tous les rÃ´les sauf @everyone et le rÃ´le de base
             roles_to_remove = [role for role in member.roles if role.id != guild.default_role.id and role.id != ROLE_BASE_ID]
             
-            # Retirer tous les rôles sauf le rôle de base
+            # Retirer tous les rÃ´les sauf le rÃ´le de base
             if roles_to_remove:
-                await member.remove_roles(*roles_to_remove, reason="Réinitialisation du compte")
+                await member.remove_roles(*roles_to_remove, reason="RÃ©initialisation du compte")
             
             # Confirmation
             embed = discord.Embed(
-                title="✅ COMPTE RÉINITIALISÉ",
+                title="âœ… COMPTE RÃ‰INITIALISÃ‰",
                 description=(
-                    "Votre compte a été réinitialisé avec succès !\n\n"
-                    "**Actions effectuées :**\n"
-                    "✅ Pseudo réinitialisé\n"
-                    f"✅ {len(roles_to_remove)} rôle(s) retiré(s)\n\n"
-                    "Vous pouvez maintenant repartir de zéro ! 🚀"
+                    "Votre compte a Ã©tÃ© rÃ©initialisÃ© avec succÃ¨s !\n\n"
+                    "**Actions effectuÃ©es :**\n"
+                    "âœ… Pseudo rÃ©initialisÃ©\n"
+                    f"âœ… {len(roles_to_remove)} rÃ´le(s) retirÃ©(s)\n\n"
+                    "Vous pouvez maintenant repartir de zÃ©ro ! ðŸš€"
                 ),
                 color=EMS_RED
             )
-            embed.set_footer(text="🚑 EMS System")
+            embed.set_footer(text="ðŸš‘ EMS System")
             await interaction.followup.send(embed=embed, ephemeral=True)
             
             # Log
             log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
             if log_channel:
                 log_embed = discord.Embed(
-                    title="🔄 RÉINITIALISATION MEMBRE",
-                    description=f"**Membre :** {member.mention}\n**Rôles retirés :** {len(roles_to_remove)}",
+                    title="ðŸ”„ RÃ‰INITIALISATION MEMBRE",
+                    description=f"**Membre :** {member.mention}\n**RÃ´les retirÃ©s :** {len(roles_to_remove)}",
                     color=EMS_RED
                 )
-                log_embed.set_footer(text="🚑 EMS System")
+                log_embed.set_footer(text="ðŸš‘ EMS System")
                 await log_channel.send(embed=log_embed)
                 
         except Exception as e:
             error_embed = discord.Embed(
-                title="❌ ERREUR",
-                description=f"Impossible de réinitialiser le compte :\n```{e}```",
+                title="âŒ ERREUR",
+                description=f"Impossible de rÃ©initialiser le compte :\n```{e}```",
                 color=EMS_DARK_RED
             )
             await interaction.followup.send(embed=error_embed, ephemeral=True)
 
-@bot.tree.command(name="setup_reset", description="Affiche le bouton de réinitialisation")
+@bot.tree.command(name="setup_reset", description="Affiche le bouton de rÃ©initialisation")
 @app_commands.checks.has_permissions(administrator=True)
 async def setup_reset(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     
     embed = discord.Embed(
-        title="🔄 RÉINITIALISATION DU COMPTE",
+        title="ðŸ”„ RÃ‰INITIALISATION DU COMPTE",
         description=(
-            "**Attention : Action irréversible !**\n\n"
+            "**Attention : Action irrÃ©versible !**\n\n"
             "En cliquant sur le bouton ci-dessous, vous allez :\n\n"
-            "🔸 **Réinitialiser votre pseudo**\n"
-            "🔸 **Perdre tous vos rôles** (sauf le rôle de base)\n\n"
-            "⚠️ **Cette action est définitive !**\n\n"
-            "Utilisez cette option uniquement si vous souhaitez repartir de zéro."
+            "ðŸ”¸ **RÃ©initialiser votre pseudo**\n"
+            "ðŸ”¸ **Perdre tous vos rÃ´les** (sauf le rÃ´le de base)\n\n"
+            "âš ï¸ **Cette action est dÃ©finitive !**\n\n"
+            "Utilisez cette option uniquement si vous souhaitez repartir de zÃ©ro."
         ),
         color=EMS_DARK_RED
     )
-    embed.set_footer(text="🚑 EMS System | Réfléchissez bien avant de cliquer")
+    embed.set_footer(text="ðŸš‘ EMS System | RÃ©flÃ©chissez bien avant de cliquer")
     
     view = ResetMemberButton()
     
     try:
         await interaction.channel.send(embed=embed, view=view)
-        await interaction.followup.send("✅ Bouton de réinitialisation posté !", ephemeral=True)
+        await interaction.followup.send("âœ… Bouton de rÃ©initialisation postÃ© !", ephemeral=True)
     except Exception as e:
-        await interaction.followup.send(f"❌ Erreur : {e}", ephemeral=True)
+        await interaction.followup.send(f"âŒ Erreur : {e}", ephemeral=True)
 
-# --- SYSTÈME DE GIVEAWAY ---
-@bot.tree.command(name="giveaway", description="Créer un giveaway")
+# --- SYSTÃˆME DE GIVEAWAY ---
+@bot.tree.command(name="giveaway", description="CrÃ©er un giveaway")
 @app_commands.describe(
-    montant="Montant de la récompense en $",
+    montant="Montant de la rÃ©compense en $",
     gagnants="Nombre de gagnants",
     date="Date de fin (format: JJ/MM/AAAA)",
     heure="Heure de fin (format: HH:MM)"
@@ -4366,7 +4366,7 @@ async def giveaway(
         heure_parts = heure.split(':')
         
         if len(date_parts) != 3 or len(heure_parts) != 2:
-            await interaction.followup.send("❌ Format invalide. Utilisez JJ/MM/AAAA pour la date et HH:MM pour l'heure", ephemeral=True)
+            await interaction.followup.send("âŒ Format invalide. Utilisez JJ/MM/AAAA pour la date et HH:MM pour l'heure", ephemeral=True)
             return
         
         day, month, year = int(date_parts[0]), int(date_parts[1]), int(date_parts[2])
@@ -4374,38 +4374,38 @@ async def giveaway(
         
         end_time = datetime(year, month, day, hour, minute)
         
-        # Vérifier que la date est dans le futur
+        # VÃ©rifier que la date est dans le futur
         if end_time <= now_paris():
-            await interaction.followup.send("❌ La date de fin doit être dans le futur", ephemeral=True)
+            await interaction.followup.send("âŒ La date de fin doit Ãªtre dans le futur", ephemeral=True)
             return
         
-        # Créer l'embed du giveaway
+        # CrÃ©er l'embed du giveaway
         timestamp = int(end_time.timestamp())
         
         embed = discord.Embed(
-            title="🎉 GIVEAWAY 🎉",
+            title="ðŸŽ‰ GIVEAWAY ðŸŽ‰",
             description=(
-                f"**💰 Récompense : {montant:,}$**\n\n"
-                f"**🏆 Nombre de gagnants : {gagnants}**\n\n"
-                f"**📅 Fin du giveaway : <t:{timestamp}:F>**\n"
-                f"**⏰ Dans : <t:{timestamp}:R>**\n\n"
+                f"**ðŸ’° RÃ©compense : {montant:,}$**\n\n"
+                f"**ðŸ† Nombre de gagnants : {gagnants}**\n\n"
+                f"**ðŸ“… Fin du giveaway : <t:{timestamp}:F>**\n"
+                f"**â° Dans : <t:{timestamp}:R>**\n\n"
                 f"**Comment participer ?**\n"
-                f"Réagissez avec 🎉 pour participer !\n\n"
-                f"Bonne chance à tous ! 🍀"
+                f"RÃ©agissez avec ðŸŽ‰ pour participer !\n\n"
+                f"Bonne chance Ã  tous ! ðŸ€"
             ),
             color=discord.Color.gold()
         )
-        embed.set_footer(text="🎉 Giveaway System")
+        embed.set_footer(text="ðŸŽ‰ Giveaway System")
         
-        # Ping le rôle
+        # Ping le rÃ´le
         role = interaction.guild.get_role(GIVEAWAY_PING_ROLE_ID)
         ping_content = role.mention if role else None
         
         # Envoyer le message
         msg = await interaction.channel.send(content=ping_content, embed=embed)
         
-        # Ajouter la réaction
-        await msg.add_reaction("🎉")
+        # Ajouter la rÃ©action
+        await msg.add_reaction("ðŸŽ‰")
         
         # Sauvegarder le giveaway
         giveaways = load_giveaways()
@@ -4420,21 +4420,21 @@ async def giveaway(
         }
         save_giveaways(giveaways)
         
-        await interaction.followup.send("✅ Giveaway créé avec succès !", ephemeral=True)
+        await interaction.followup.send("âœ… Giveaway crÃ©Ã© avec succÃ¨s !", ephemeral=True)
         
     except ValueError as e:
-        await interaction.followup.send(f"❌ Erreur de format : {e}", ephemeral=True)
+        await interaction.followup.send(f"âŒ Erreur de format : {e}", ephemeral=True)
     except Exception as e:
-        await interaction.followup.send(f"❌ Erreur : {e}", ephemeral=True)
+        await interaction.followup.send(f"âŒ Erreur : {e}", ephemeral=True)
 
-# Tâche pour vérifier les giveaways actifs
+# TÃ¢che pour vÃ©rifier les giveaways actifs
 @tasks.loop(seconds=30)
 async def check_giveaways():
-    """Vérifie les giveaways actifs et termine ceux qui sont expirés"""
+    """VÃ©rifie les giveaways actifs et termine ceux qui sont expirÃ©s"""
     try:
         giveaways = load_giveaways()
         if not giveaways:
-            return  # Aucun giveaway actif → sortie rapide
+            return  # Aucun giveaway actif â†’ sortie rapide
         now = now_paris()
         
         for msg_id, data in list(giveaways.items()):
@@ -4444,7 +4444,7 @@ async def check_giveaways():
             end_time = datetime.fromisoformat(data["end_time"])
             
             if now >= end_time:
-                # Le giveaway est terminé
+                # Le giveaway est terminÃ©
                 channel = bot.get_channel(data["channel_id"])
                 if not channel:
                     continue
@@ -4454,10 +4454,10 @@ async def check_giveaways():
                 except:
                     continue
                 
-                # Récupérer les participants (ceux qui ont réagi avec 🎉)
+                # RÃ©cupÃ©rer les participants (ceux qui ont rÃ©agi avec ðŸŽ‰)
                 participants = []
                 for reaction in message.reactions:
-                    if str(reaction.emoji) == "🎉":
+                    if str(reaction.emoji) == "ðŸŽ‰":
                         async for user in reaction.users():
                             if not user.bot:
                                 participants.append(user)
@@ -4466,56 +4466,56 @@ async def check_giveaways():
                 if len(participants) == 0:
                     # Aucun participant
                     embed = discord.Embed(
-                        title="🎉 GIVEAWAY TERMINÉ",
+                        title="ðŸŽ‰ GIVEAWAY TERMINÃ‰",
                         description=(
-                            f"**💰 Récompense : {data['montant']:,}$**\n\n"
-                            f"❌ **Aucun participant !**\n\n"
-                            f"Le giveaway n'a pas pu être complété."
+                            f"**ðŸ’° RÃ©compense : {data['montant']:,}$**\n\n"
+                            f"âŒ **Aucun participant !**\n\n"
+                            f"Le giveaway n'a pas pu Ãªtre complÃ©tÃ©."
                         ),
                         color=EMS_DARK_RED
                     )
                     await message.edit(embed=embed)
                 else:
-                    # Sélectionner les gagnants
+                    # SÃ©lectionner les gagnants
                     import random
                     nb_gagnants = min(data["gagnants"], len(participants))
                     winners = random.sample(participants, nb_gagnants)
                     
-                    # Créer l'embed des résultats
-                    winners_mentions = "\n".join([f"🏆 {winner.mention}" for winner in winners])
+                    # CrÃ©er l'embed des rÃ©sultats
+                    winners_mentions = "\n".join([f"ðŸ† {winner.mention}" for winner in winners])
                     
                     embed = discord.Embed(
-                        title="🎉 GIVEAWAY TERMINÉ !",
+                        title="ðŸŽ‰ GIVEAWAY TERMINÃ‰ !",
                         description=(
-                            f"**💰 Récompense : {data['montant']:,}$**\n\n"
-                            f"**🏆 Gagnant(s) :**\n{winners_mentions}\n\n"
-                            f"**Félicitations ! 🎊**"
+                            f"**ðŸ’° RÃ©compense : {data['montant']:,}$**\n\n"
+                            f"**ðŸ† Gagnant(s) :**\n{winners_mentions}\n\n"
+                            f"**FÃ©licitations ! ðŸŽŠ**"
                         ),
                         color=discord.Color.green()
                     )
-                    embed.set_footer(text="🎉 Giveaway System")
+                    embed.set_footer(text="ðŸŽ‰ Giveaway System")
                     await message.edit(embed=embed)
                     
                     # Annoncer les gagnants dans le channel
                     winners_pings = " ".join([winner.mention for winner in winners])
-                    await channel.send(f"🎉 **Félicitations aux gagnants du giveaway !** 🎉\n\n{winners_pings}\n\n💰 Vous avez gagné **{data['montant']:,}$** !")
+                    await channel.send(f"ðŸŽ‰ **FÃ©licitations aux gagnants du giveaway !** ðŸŽ‰\n\n{winners_pings}\n\nðŸ’° Vous avez gagnÃ© **{data['montant']:,}$** !")
                     
-                    # Envoyer un MP à l'hôte
+                    # Envoyer un MP Ã  l'hÃ´te
                     host = bot.get_user(data["host_id"])
                     if host:
-                        winners_list = "\n".join([f"• {winner.name} ({winner.id})" for winner in winners])
+                        winners_list = "\n".join([f"â€¢ {winner.name} ({winner.id})" for winner in winners])
                         try:
                             await host.send(
-                                f"🎉 **Giveaway terminé !**\n\n"
+                                f"ðŸŽ‰ **Giveaway terminÃ© !**\n\n"
                                 f"**Montant :** {data['montant']:,}$\n"
                                 f"**Channel :** {channel.mention}\n\n"
                                 f"**Gagnants ({nb_gagnants}) :**\n{winners_list}\n\n"
-                                f"Les gagnants ont été annoncés dans le channel !"
+                                f"Les gagnants ont Ã©tÃ© annoncÃ©s dans le channel !"
                             )
                         except:
                             pass
                 
-                # Marquer comme terminé
+                # Marquer comme terminÃ©
                 giveaways[msg_id]["ended"] = True
                 save_giveaways(giveaways)
         
@@ -4526,19 +4526,19 @@ async def check_giveaways():
 async def before_check_giveaways():
     await bot.wait_until_ready()
 
-# --- SYSTÈME DE DEMANDE DE RÔLE ---
+# --- SYSTÃˆME DE DEMANDE DE RÃ”LE ---
 class RoleRequestButton(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Demander un rôle", style=discord.ButtonStyle.primary, emoji="👮", custom_id="request_role")
+    @discord.ui.button(label="Demander un rÃ´le", style=discord.ButtonStyle.primary, emoji="ðŸ‘®", custom_id="request_role")
     async def request_role(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("📋 Traitement de votre demande...", ephemeral=True)
+        await interaction.response.send_message("ðŸ“‹ Traitement de votre demande...", ephemeral=True)
         
         guild = interaction.guild
         user_id = interaction.user.id
         
-        # Créer un channel privé pour la demande
+        # CrÃ©er un channel privÃ© pour la demande
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
             interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
@@ -4550,37 +4550,37 @@ class RoleRequestButton(discord.ui.View):
                 f"role-{user_id}",
                 overwrites=overwrites,
                 category=guild.get_channel(TICKET_CATEGORY_ID),
-                topic=f"Demande de rôle - {interaction.user.name}"
+                topic=f"Demande de rÃ´le - {interaction.user.name}"
             )
         except Exception as e:
-            await interaction.followup.send(f"❌ Erreur lors de la création du ticket : {e}", ephemeral=True)
+            await interaction.followup.send(f"âŒ Erreur lors de la crÃ©ation du ticket : {e}", ephemeral=True)
             return
         
-        await interaction.followup.send(f"✅ Ticket créé : {channel.mention}", ephemeral=True)
+        await interaction.followup.send(f"âœ… Ticket crÃ©Ã© : {channel.mention}", ephemeral=True)
         
         # Message de bienvenue
         welcome = discord.Embed(
-            title="👮 DEMANDE DE RÔLE",
-            description=f"Bienvenue **{interaction.user.mention}** !\n\nVeuillez répondre aux questions suivantes pour obtenir votre rôle.",
+            title="ðŸ‘® DEMANDE DE RÃ”LE",
+            description=f"Bienvenue **{interaction.user.mention}** !\n\nVeuillez rÃ©pondre aux questions suivantes pour obtenir votre rÃ´le.",
             color=discord.Color.blue()
         )
-        welcome.set_footer(text="🎯 Système de demande de rôle")
+        welcome.set_footer(text="ðŸŽ¯ SystÃ¨me de demande de rÃ´le")
         await channel.send(embed=welcome)
         await asyncio.sleep(1)
         
         # Question 1 : Organisation
         q1 = discord.Embed(
-            title="❓ QUESTION 1",
-            description="**Quelle organisation rejoignez-vous ?**\n\nRépondez par :\n• `LSPD`\n• `BCSO`\n• `MARSHALL`\n• `TAXI`\n• `BURGERSHOT`",
+            title="â“ QUESTION 1",
+            description="**Quelle organisation rejoignez-vous ?**\n\nRÃ©pondez par :\nâ€¢ `LSPD`\nâ€¢ `BCSO`\nâ€¢ `MARSHALL`\nâ€¢ `TAXI`\nâ€¢ `BURGERSHOT`",
             color=discord.Color.blue()
         )
-        q1.set_footer(text="🎯 Système de demande de rôle")
+        q1.set_footer(text="ðŸŽ¯ SystÃ¨me de demande de rÃ´le")
         await channel.send(embed=q1)
         
         def check(m):
             return m.author == interaction.user and m.channel == channel
         
-        # Attendre réponse organisation
+        # Attendre rÃ©ponse organisation
         organization = None
         role_id = None
         prefix = None
@@ -4613,8 +4613,8 @@ class RoleRequestButton(discord.ui.View):
                 is_burgershot = True
             else:
                 error_msg = discord.Embed(
-                    title="❌ ERREUR",
-                    description="Organisation invalide. Le ticket va être fermé.",
+                    title="âŒ ERREUR",
+                    description="Organisation invalide. Le ticket va Ãªtre fermÃ©.",
                     color=discord.Color.red()
                 )
                 await channel.send(embed=error_msg)
@@ -4622,15 +4622,15 @@ class RoleRequestButton(discord.ui.View):
                 await channel.delete()
                 return
             
-            # Ajouter le rôle de l'organisation
+            # Ajouter le rÃ´le de l'organisation
             role = guild.get_role(role_id)
             if role:
                 await interaction.user.add_roles(role)
             
             # Confirmation
             confirm_org = discord.Embed(
-                title="✅ ORGANISATION CONFIRMÉE",
-                description=f"Vous avez rejoint : **{organization}**\nRôle ajouté avec succès !",
+                title="âœ… ORGANISATION CONFIRMÃ‰E",
+                description=f"Vous avez rejoint : **{organization}**\nRÃ´le ajoutÃ© avec succÃ¨s !",
                 color=discord.Color.green()
             )
             await channel.send(embed=confirm_org)
@@ -4638,8 +4638,8 @@ class RoleRequestButton(discord.ui.View):
             
         except asyncio.TimeoutError:
             timeout_msg = discord.Embed(
-                title="⏱️ TEMPS ÉCOULÉ",
-                description="Vous n'avez pas répondu à temps. Le ticket va être fermé.",
+                title="â±ï¸ TEMPS Ã‰COULÃ‰",
+                description="Vous n'avez pas rÃ©pondu Ã  temps. Le ticket va Ãªtre fermÃ©.",
                 color=discord.Color.red()
             )
             await channel.send(embed=timeout_msg)
@@ -4647,14 +4647,14 @@ class RoleRequestButton(discord.ui.View):
             await channel.delete()
             return
         
-        # Question 2 : Prénom + Nom
+        # Question 2 : PrÃ©nom + Nom
         question_num = 2
         q2 = discord.Embed(
-            title=f"❓ QUESTION {question_num}",
-            description="**Quel est votre prénom et nom ?**\n\nFormat : `Prénom Nom`\nExemple : `Paul Fera`",
+            title=f"â“ QUESTION {question_num}",
+            description="**Quel est votre prÃ©nom et nom ?**\n\nFormat : `PrÃ©nom Nom`\nExemple : `Paul Fera`",
             color=discord.Color.blue()
         )
-        q2.set_footer(text="🎯 Système de demande de rôle")
+        q2.set_footer(text="ðŸŽ¯ SystÃ¨me de demande de rÃ´le")
         await channel.send(embed=q2)
         
         try:
@@ -4662,8 +4662,8 @@ class RoleRequestButton(discord.ui.View):
             full_name = msg.content.strip()
         except asyncio.TimeoutError:
             timeout_msg = discord.Embed(
-                title="⏱️ TEMPS ÉCOULÉ",
-                description="Vous n'avez pas répondu à temps. Le ticket va être fermé.",
+                title="â±ï¸ TEMPS Ã‰COULÃ‰",
+                description="Vous n'avez pas rÃ©pondu Ã  temps. Le ticket va Ãªtre fermÃ©.",
                 color=discord.Color.red()
             )
             await channel.send(embed=timeout_msg)
@@ -4676,11 +4676,11 @@ class RoleRequestButton(discord.ui.View):
         if not is_taxi and not is_burgershot:
             question_num = 3
             q3 = discord.Embed(
-                title=f"❓ QUESTION {question_num}",
+                title=f"â“ QUESTION {question_num}",
                 description="**Quel est votre matricule ?**\n\nFormat : `02`, `15`, etc.",
                 color=discord.Color.blue()
             )
-            q3.set_footer(text="🎯 Système de demande de rôle")
+            q3.set_footer(text="ðŸŽ¯ SystÃ¨me de demande de rÃ´le")
             await channel.send(embed=q3)
             
             try:
@@ -4688,8 +4688,8 @@ class RoleRequestButton(discord.ui.View):
                 matricule = msg.content.strip()
             except asyncio.TimeoutError:
                 timeout_msg = discord.Embed(
-                    title="⏱️ TEMPS ÉCOULÉ",
-                    description="Vous n'avez pas répondu à temps. Le ticket va être fermé.",
+                    title="â±ï¸ TEMPS Ã‰COULÃ‰",
+                    description="Vous n'avez pas rÃ©pondu Ã  temps. Le ticket va Ãªtre fermÃ©.",
                     color=discord.Color.red()
                 )
                 await channel.send(embed=timeout_msg)
@@ -4700,11 +4700,11 @@ class RoleRequestButton(discord.ui.View):
         # Question 4 : Test d'aptitude
         question_num = 3 if (is_taxi or is_burgershot) else 4
         q4 = discord.Embed(
-            title=f"❓ QUESTION {question_num}",
-            description="**Avez-vous le test d'aptitude ?**\n\nRépondez par :\n• `oui`\n• `non`",
+            title=f"â“ QUESTION {question_num}",
+            description="**Avez-vous le test d'aptitude ?**\n\nRÃ©pondez par :\nâ€¢ `oui`\nâ€¢ `non`",
             color=discord.Color.blue()
         )
-        q4.set_footer(text="🎯 Système de demande de rôle")
+        q4.set_footer(text="ðŸŽ¯ SystÃ¨me de demande de rÃ´le")
         await channel.send(embed=q4)
         
         has_test = False
@@ -4718,8 +4718,8 @@ class RoleRequestButton(discord.ui.View):
                 has_test = False
             else:
                 error_msg = discord.Embed(
-                    title="❌ ERREUR",
-                    description="Réponse invalide. Le ticket va être fermé.",
+                    title="âŒ ERREUR",
+                    description="RÃ©ponse invalide. Le ticket va Ãªtre fermÃ©.",
                     color=discord.Color.red()
                 )
                 await channel.send(embed=error_msg)
@@ -4728,8 +4728,8 @@ class RoleRequestButton(discord.ui.View):
                 return
         except asyncio.TimeoutError:
             timeout_msg = discord.Embed(
-                title="⏱️ TEMPS ÉCOULÉ",
-                description="Vous n'avez pas répondu à temps. Le ticket va être fermé.",
+                title="â±ï¸ TEMPS Ã‰COULÃ‰",
+                description="Vous n'avez pas rÃ©pondu Ã  temps. Le ticket va Ãªtre fermÃ©.",
                 color=discord.Color.red()
             )
             await channel.send(embed=timeout_msg)
@@ -4749,95 +4749,95 @@ class RoleRequestButton(discord.ui.View):
         except Exception as e:
             print(f"Erreur changement pseudo: {e}")
         
-        # 2. Ajouter le rôle si pas de test
+        # 2. Ajouter le rÃ´le si pas de test
         if not has_test:
             no_test_role = guild.get_role(ROLE_NO_TEST_ID)
             if no_test_role:
                 try:
                     await interaction.user.add_roles(no_test_role)
                 except Exception as e:
-                    print(f"Erreur ajout rôle sans test: {e}")
+                    print(f"Erreur ajout rÃ´le sans test: {e}")
         
         # Message de confirmation finale
         if is_taxi:
             final_msg = discord.Embed(
-                title="✅ DEMANDE COMPLÉTÉE",
+                title="âœ… DEMANDE COMPLÃ‰TÃ‰E",
                 description=(
-                    f"**Votre profil a été configuré avec succès !**\n\n"
+                    f"**Votre profil a Ã©tÃ© configurÃ© avec succÃ¨s !**\n\n"
                     f"**Organisation :** {organization}\n"
                     f"**Pseudo :** `{new_nickname}`\n"
-                    f"**Test d'aptitude :** {'✅ Oui' if has_test else '❌ Non'}\n\n"
-                    f"Bienvenue dans l'équipe Taxi ! 🚕"
+                    f"**Test d'aptitude :** {'âœ… Oui' if has_test else 'âŒ Non'}\n\n"
+                    f"Bienvenue dans l'Ã©quipe Taxi ! ðŸš•"
                 ),
                 color=discord.Color.green()
             )
         elif is_burgershot:
             final_msg = discord.Embed(
-                title="✅ DEMANDE COMPLÉTÉE",
+                title="âœ… DEMANDE COMPLÃ‰TÃ‰E",
                 description=(
-                    f"**Votre profil a été configuré avec succès !**\n\n"
+                    f"**Votre profil a Ã©tÃ© configurÃ© avec succÃ¨s !**\n\n"
                     f"**Organisation :** {organization}\n"
                     f"**Pseudo :** `{new_nickname}`\n"
-                    f"**Test d'aptitude :** {'✅ Oui' if has_test else '❌ Non'}\n\n"
-                    f"Bienvenue chez BurgerShot ! 🍔"
+                    f"**Test d'aptitude :** {'âœ… Oui' if has_test else 'âŒ Non'}\n\n"
+                    f"Bienvenue chez BurgerShot ! ðŸ”"
                 ),
                 color=discord.Color.green()
             )
         else:
             final_msg = discord.Embed(
-                title="✅ DEMANDE COMPLÉTÉE",
+                title="âœ… DEMANDE COMPLÃ‰TÃ‰E",
                 description=(
-                    f"**Votre profil a été configuré avec succès !**\n\n"
+                    f"**Votre profil a Ã©tÃ© configurÃ© avec succÃ¨s !**\n\n"
                     f"**Organisation :** {organization}\n"
                     f"**Pseudo :** `{new_nickname}`\n"
-                    f"**Test d'aptitude :** {'✅ Oui' if has_test else '❌ Non'}\n\n"
-                    f"Bienvenue dans l'équipe ! 🎉"
+                    f"**Test d'aptitude :** {'âœ… Oui' if has_test else 'âŒ Non'}\n\n"
+                    f"Bienvenue dans l'Ã©quipe ! ðŸŽ‰"
                 ),
                 color=discord.Color.green()
             )
-        final_msg.set_footer(text="🎯 Système de demande de rôle")
+        final_msg.set_footer(text="ðŸŽ¯ SystÃ¨me de demande de rÃ´le")
         await channel.send(embed=final_msg)
         
-        # Fermer le ticket après 10 secondes
+        # Fermer le ticket aprÃ¨s 10 secondes
         await asyncio.sleep(10)
         try:
             await channel.delete()
         except:
             pass
 
-@bot.tree.command(name="setup_role_request", description="Affiche le bouton de demande de rôle")
+@bot.tree.command(name="setup_role_request", description="Affiche le bouton de demande de rÃ´le")
 @app_commands.checks.has_permissions(administrator=True)
 async def setup_role_request(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="👮 DEMANDE DE RÔLE",
+        title="ðŸ‘® DEMANDE DE RÃ”LE",
         description=(
-            "**Obtenez votre rôle d'organisation !**\n\n"
+            "**Obtenez votre rÃ´le d'organisation !**\n\n"
             "Cliquez sur le bouton ci-dessous pour faire votre demande.\n\n"
-            "**📋 Informations requises :**\n"
-            "• Organisation (LSPD/BCSO/MARSHALL/TAXI/BURGERSHOT)\n"
-            "• Prénom et nom\n"
-            "• Matricule (sauf Taxi/BurgerShot)\n"
-            "• Test d'aptitude (oui/non)\n\n"
-            "**Le système configurera automatiquement votre profil !**"
+            "**ðŸ“‹ Informations requises :**\n"
+            "â€¢ Organisation (LSPD/BCSO/MARSHALL/TAXI/BURGERSHOT)\n"
+            "â€¢ PrÃ©nom et nom\n"
+            "â€¢ Matricule (sauf Taxi/BurgerShot)\n"
+            "â€¢ Test d'aptitude (oui/non)\n\n"
+            "**Le systÃ¨me configurera automatiquement votre profil !**"
         ),
         color=discord.Color.blue()
     )
-    embed.set_footer(text="🎯 Système de demande de rôle")
+    embed.set_footer(text="ðŸŽ¯ SystÃ¨me de demande de rÃ´le")
     await interaction.channel.send(embed=embed, view=RoleRequestButton())
-    await interaction.response.send_message("✅ Message de demande de rôle posté !", ephemeral=True)
+    await interaction.response.send_message("âœ… Message de demande de rÃ´le postÃ© !", ephemeral=True)
 
-# --- SYSTÈME DE TICKETS DE RENDEZ-VOUS ---
+# --- SYSTÃˆME DE TICKETS DE RENDEZ-VOUS ---
 class CloseTicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
     
-    @discord.ui.button(label="Fermer le ticket", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="close_ticket")
+    @discord.ui.button(label="Fermer le ticket", style=discord.ButtonStyle.danger, emoji="ðŸ”’", custom_id="close_ticket")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("🔒 Fermeture du ticket...", ephemeral=True)
+        await interaction.response.send_message("ðŸ”’ Fermeture du ticket...", ephemeral=True)
         
         close_msg = discord.Embed(
-            title="🔒 TICKET FERMÉ",
-            description=f"Ce ticket a été fermé par {interaction.user.mention}.\nLe channel sera supprimé dans 5 secondes.",
+            title="ðŸ”’ TICKET FERMÃ‰",
+            description=f"Ce ticket a Ã©tÃ© fermÃ© par {interaction.user.mention}.\nLe channel sera supprimÃ© dans 5 secondes.",
             color=discord.Color.red()
         )
         await interaction.channel.send(embed=close_msg)
@@ -4852,20 +4852,20 @@ class AppointmentButton(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Prendre rendez-vous", style=discord.ButtonStyle.green, emoji="📅", custom_id="appointment_ticket")
+    @discord.ui.button(label="Prendre rendez-vous", style=discord.ButtonStyle.green, emoji="ðŸ“…", custom_id="appointment_ticket")
     async def create_appointment(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("📅 Création de votre ticket...", ephemeral=True)
+        await interaction.response.send_message("ðŸ“… CrÃ©ation de votre ticket...", ephemeral=True)
         
         guild = interaction.guild
         user_id = interaction.user.id
         
-        # Vérifier si l'utilisateur a déjà un ticket ouvert
+        # VÃ©rifier si l'utilisateur a dÃ©jÃ  un ticket ouvert
         for channel in guild.text_channels:
             if channel.name == f"rdv-{user_id}":
-                await interaction.followup.send(f"❌ Vous avez déjà un ticket ouvert : {channel.mention}", ephemeral=True)
+                await interaction.followup.send(f"âŒ Vous avez dÃ©jÃ  un ticket ouvert : {channel.mention}", ephemeral=True)
                 return
         
-        # Créer un channel pour le rendez-vous
+        # CrÃ©er un channel pour le rendez-vous
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
             interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
@@ -4880,62 +4880,62 @@ class AppointmentButton(discord.ui.View):
                 topic=f"Rendez-vous - {interaction.user.name}"
             )
         except Exception as e:
-            await interaction.followup.send(f"❌ Erreur lors de la création du ticket : {e}", ephemeral=True)
+            await interaction.followup.send(f"âŒ Erreur lors de la crÃ©ation du ticket : {e}", ephemeral=True)
             return
         
-        await interaction.followup.send(f"✅ Ticket créé : {channel.mention}", ephemeral=True)
+        await interaction.followup.send(f"âœ… Ticket crÃ©Ã© : {channel.mention}", ephemeral=True)
         
         # Message de bienvenue avec bouton de fermeture
         welcome = discord.Embed(
-            title="📅 PRISE DE RENDEZ-VOUS",
+            title="ðŸ“… PRISE DE RENDEZ-VOUS",
             description=(
                 f"Bienvenue **{interaction.user.mention}** !\n\n"
                 f"Merci d'avoir ouvert un ticket de rendez-vous.\n"
-                f"Un membre de l'équipe vous répondra sous peu.\n\n"
+                f"Un membre de l'Ã©quipe vous rÃ©pondra sous peu.\n\n"
                 f"**En attendant, vous pouvez :**\n"
-                f"• Expliquer la raison de votre demande\n"
-                f"• Indiquer vos disponibilités\n"
-                f"• Poser vos questions\n\n"
+                f"â€¢ Expliquer la raison de votre demande\n"
+                f"â€¢ Indiquer vos disponibilitÃ©s\n"
+                f"â€¢ Poser vos questions\n\n"
                 f"Pour fermer ce ticket, cliquez sur le bouton ci-dessous."
             ),
             color=discord.Color.green()
         )
-        welcome.set_footer(text="📅 Système de tickets")
+        welcome.set_footer(text="ðŸ“… SystÃ¨me de tickets")
         await channel.send(embed=welcome, view=CloseTicketView())
 
 @bot.tree.command(name="setup_appointment", description="Affiche le bouton de prise de rendez-vous")
 @app_commands.checks.has_permissions(administrator=True)
 async def setup_appointment(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="📅 PRISE DE RENDEZ-VOUS",
+        title="ðŸ“… PRISE DE RENDEZ-VOUS",
         description=(
             "**Besoin d'un rendez-vous ?**\n\n"
             "Cliquez sur le bouton ci-dessous pour ouvrir un ticket.\n\n"
-            "**📋 Un membre de l'équipe vous répondra rapidement pour :**\n"
-            "• Fixer une date et heure\n"
-            "• Répondre à vos questions\n"
-            "• Organiser votre rendez-vous\n\n"
-            "**N'hésitez pas à nous contacter ! 📞**"
+            "**ðŸ“‹ Un membre de l'Ã©quipe vous rÃ©pondra rapidement pour :**\n"
+            "â€¢ Fixer une date et heure\n"
+            "â€¢ RÃ©pondre Ã  vos questions\n"
+            "â€¢ Organiser votre rendez-vous\n\n"
+            "**N'hÃ©sitez pas Ã  nous contacter ! ðŸ“ž**"
         ),
         color=discord.Color.green()
     )
-    embed.set_footer(text="📅 Système de tickets")
+    embed.set_footer(text="ðŸ“… SystÃ¨me de tickets")
     await interaction.channel.send(embed=embed, view=AppointmentButton())
-    await interaction.response.send_message("✅ Message de prise de rendez-vous posté !", ephemeral=True)
+    await interaction.response.send_message("âœ… Message de prise de rendez-vous postÃ© !", ephemeral=True)
 
 @bot.event
 async def on_error(event, *args, **kwargs):
-    """Gestionnaire d'erreurs global amélioré"""
+    """Gestionnaire d'erreurs global amÃ©liorÃ©"""
     import traceback
     ts = now_paris().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{ts}] ❌ Erreur dans l'événement '{event}':", file=sys.stderr)
+    print(f"[{ts}] âŒ Erreur dans l'Ã©vÃ©nement '{event}':", file=sys.stderr)
     traceback.print_exc(file=sys.stderr)
 
 @bot.event
 async def on_disconnect():
-    """Logge les déconnexions du bot"""
+    """Logge les dÃ©connexions du bot"""
     ts = now_paris().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"[{ts}] ⚠️ Bot déconnecté de Discord")
+    print(f"[{ts}] âš ï¸ Bot dÃ©connectÃ© de Discord")
 
 @bot.event
 async def on_resumed():
@@ -4945,22 +4945,22 @@ async def on_resumed():
     now = now_paris()
     reconnect_count += 1
     reconnect_timestamps.append(now)
-    # Purger les timestamps hors de la fenêtre glissante
+    # Purger les timestamps hors de la fenÃªtre glissante
     reconnect_timestamps = [t for t in reconnect_timestamps if (now - t).total_seconds() < RECONNECT_WINDOW_SECONDS]
     recent_count = len(reconnect_timestamps)
-    print(f"[{ts}] 🔄 Session reprise (reconnexion #{reconnect_count}, {recent_count} en 1h)")
+    print(f"[{ts}] ðŸ”„ Session reprise (reconnexion #{reconnect_count}, {recent_count} en 1h)")
     if recent_count >= RECONNECT_ALERT_THRESHOLD:
-        print(f"[{ts}] 🚨 ALERTE: {recent_count} reconnexions en moins d'1 heure - problème de stabilité détecté")
+        print(f"[{ts}] ðŸš¨ ALERTE: {recent_count} reconnexions en moins d'1 heure - problÃ¨me de stabilitÃ© dÃ©tectÃ©")
 
-# (2e on_message + 1er on_ready supprimés - fusionnés dans les handlers principaux)
+# (2e on_message + 1er on_ready supprimÃ©s - fusionnÃ©s dans les handlers principaux)
 
-# --- TÂCHE AUTOMATISÉE HEBDOMADAIRE TAXI ---
+# --- TÃ‚CHE AUTOMATISÃ‰E HEBDOMADAIRE TAXI ---
 @tasks.loop(hours=1)
 async def weekly_taxi_announcement():
-    """Vérifie si c'est samedi 19h et envoie l'annonce hebdomadaire"""
+    """VÃ©rifie si c'est samedi 19h et envoie l'annonce hebdomadaire"""
     now = now_paris()
     
-    # Vérifier si c'est samedi (weekday() == 5) et qu'il est 19h
+    # VÃ©rifier si c'est samedi (weekday() == 5) et qu'il est 19h
     if now.weekday() == 5 and now.hour == 19:
         try:
             await send_weekly_taxi_announcement()
@@ -4971,10 +4971,10 @@ async def weekly_taxi_announcement():
 async def before_weekly_announcement():
     await bot.wait_until_ready()
 
-# (1er auto_backup_stats supprimé - doublon du handler principal)
+# (1er auto_backup_stats supprimÃ© - doublon du handler principal)
 
 async def send_weekly_taxi_announcement():
-    """Envoie l'annonce hebdomadaire SIMPLE et réinitialise les compteurs"""
+    """Envoie l'annonce hebdomadaire SIMPLE et rÃ©initialise les compteurs"""
     guild = bot.get_guild(config.get("GUILD_ID"))
     if not guild:
         return
@@ -4989,10 +4989,10 @@ async def send_weekly_taxi_announcement():
     revenus = count * 500000
     
     # Message SIMPLE et DIRECT
-    message = f"🚕 **RAPPORT TAXI - Nouvelle Semaine**\n\n"
-    message += f"✅ Employés acceptés: **{count}**\n"
-    message += f"💰 Revenus: **{revenus:,.0f}$**\n\n"
-    message += f"Nouvelle semaine commence maintenant! 🎯"
+    message = f"ðŸš• **RAPPORT TAXI - Nouvelle Semaine**\n\n"
+    message += f"âœ… EmployÃ©s acceptÃ©s: **{count}**\n"
+    message += f"ðŸ’° Revenus: **{revenus:,.0f}$**\n\n"
+    message += f"Nouvelle semaine commence maintenant! ðŸŽ¯"
     
     # Envoyer le message simple
     try:
@@ -5000,74 +5000,74 @@ async def send_weekly_taxi_announcement():
     except Exception as e:
         print(f"Erreur lors de l'envoi de l'annonce taxi : {e}")
     
-    # Réinitialiser les stats pour la nouvelle semaine
+    # RÃ©initialiser les stats pour la nouvelle semaine
     reset_taxi_week()
-    print(f"✅ Annonce hebdomadaire taxi envoyée")
+    print(f"âœ… Annonce hebdomadaire taxi envoyÃ©e")
 
 
 # --- GESTION DES CANAUX UTILISATEURS ---
 def get_clean_name(member):
-    """Récupère le nom sans le tag entre crochets ni la matricule"""
+    """RÃ©cupÃ¨re le nom sans le tag entre crochets ni la matricule"""
     display_name = member.display_name
     if ']' in display_name:
         try:
             after_bracket = display_name.split(']')[1].strip()
-            # Retirer la matricule (2 chiffres en début)
+            # Retirer la matricule (2 chiffres en dÃ©but)
             after_bracket = _re.sub(r'^\d{2}\s*', '', after_bracket).strip()
             return after_bracket
         except IndexError:
             return display_name
     return display_name
 
-# --- RÉCUPÉRATION DES STATS DEPUIS LES LOGS ---
+# --- RÃ‰CUPÃ‰RATION DES STATS DEPUIS LES LOGS ---
 async def sync_stats_from_logs():
-    """Récupère les stats depuis le channel de logs pour éviter la perte de données au redémarrage"""
+    """RÃ©cupÃ¨re les stats depuis le channel de logs pour Ã©viter la perte de donnÃ©es au redÃ©marrage"""
     try:
         LOGS_SYNC_CHANNEL_ID = 1458464678542970983
         log_channel = bot.get_channel(LOGS_SYNC_CHANNEL_ID)
         
         if not log_channel:
-            print(f"❌ Channel de logs introuvable (ID: {LOGS_SYNC_CHANNEL_ID})")
+            print(f"âŒ Channel de logs introuvable (ID: {LOGS_SYNC_CHANNEL_ID})")
             return
         
-        print("🔄 Synchronisation des stats depuis les logs...")
+        print("ðŸ”„ Synchronisation des stats depuis les logs...")
         
-        # Dictionnaire pour stocker les stats récupérées
+        # Dictionnaire pour stocker les stats rÃ©cupÃ©rÃ©es
         recovered_stats = {}
         
         # Lire les 1000 derniers messages du channel (limite Discord)
         async for message in log_channel.history(limit=1000):
-            # Format attendu: "✅ **employee_key** | X réas"
-            if message.content.startswith("✅ **") and " réas" in message.content:
+            # Format attendu: "âœ… **employee_key** | X rÃ©as"
+            if message.content.startswith("âœ… **") and " rÃ©as" in message.content:
                 try:
-                    # Extraire l'employé et le nombre de réas
+                    # Extraire l'employÃ© et le nombre de rÃ©as
                     parts = message.content.split("**")
                     if len(parts) >= 3:
                         employee_key = parts[1].strip()
                         
-                        # Extraire le nombre de réas
+                        # Extraire le nombre de rÃ©as
                         rea_part = message.content.split("|")[1].strip()
                         rea_count = int(rea_part.split()[0])
                         
-                        # Garder la valeur la plus récente (plus haute)
+                        # Garder la valeur la plus rÃ©cente (plus haute)
                         if employee_key not in recovered_stats or rea_count > recovered_stats[employee_key]:
                             recovered_stats[employee_key] = rea_count
                 except Exception as e:
                     continue
         
         if recovered_stats:
-            # Sauvegarder les stats récupérées
+            # Sauvegarder les stats rÃ©cupÃ©rÃ©es
             save_stats(recovered_stats)
-            print(f"✅ Stats synchronisées depuis les logs: {len(recovered_stats)} employés")
+            print(f"âœ… Stats synchronisÃ©es depuis les logs: {len(recovered_stats)} employÃ©s")
             
-            # Afficher un résumé
+            # Afficher un rÃ©sumÃ©
             total_reas = sum(recovered_stats.values())
-            print(f"📊 Total des réas récupérées: {total_reas}")
+            print(f"ðŸ“Š Total des rÃ©as rÃ©cupÃ©rÃ©es: {total_reas}")
         else:
-            print("⚠️ Aucune stat trouvée dans les logs")
+            print("âš ï¸ Aucune stat trouvÃ©e dans les logs")
             
     except Exception as e:
-        print(f"❌ Erreur lors de la synchronisation des stats: {e}")
+        print(f"âŒ Erreur lors de la synchronisation des stats: {e}")
 
 # --- COMMANDES DE MANAGEMENT EMS ---
 
@@ -5082,32 +5082,32 @@ async def clean_channels(interaction: discord.Interaction):
     
     # Parcourir tous les channels avec emoji
     for channel in guild.text_channels:
-        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+        if len(channel.name) > 0 and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
             try:
                 # Extraire le nom actuel sans l'emoji
                 current_name_without_emoji = channel.name[1:].strip() if len(channel.name) > 1 else channel.name
                 
-                # Normaliser pour obtenir le nom propre (sans préfixe)
+                # Normaliser pour obtenir le nom propre (sans prÃ©fixe)
                 clean_employee_name = normalize_employee_key(current_name_without_emoji)
                 
                 # Nouveau nom: emoji + nom propre
                 current_emoji = channel.name[0]
                 new_name = f"{current_emoji}{clean_employee_name}"
                 
-                # Renommer seulement si différent
+                # Renommer seulement si diffÃ©rent
                 if channel.name != new_name:
                     old_name = channel.name
                     await channel.edit(name=new_name)
                     renamed_count += 1
-                    renamed_list.append(f"• `{old_name}` → `{new_name}`")
+                    renamed_list.append(f"â€¢ `{old_name}` â†’ `{new_name}`")
                     
             except Exception as e:
-                errors.append(f"❌ {channel.name}: {str(e)[:50]}")
+                errors.append(f"âŒ {channel.name}: {str(e)[:50]}")
     
     # Message de confirmation
     embed = discord.Embed(
-        title="🧹 NETTOYAGE DES CHANNELS",
-        description=f"**{renamed_count} channel(s) renommé(s)**\n\nTous les préfixes de grade (emt-, int-, dir-, cds-, etc.) ont été supprimés.",
+        title="ðŸ§¹ NETTOYAGE DES CHANNELS",
+        description=f"**{renamed_count} channel(s) renommÃ©(s)**\n\nTous les prÃ©fixes de grade (emt-, int-, dir-, cds-, etc.) ont Ã©tÃ© supprimÃ©s.",
         color=EMS_RED
     )
     
@@ -5117,19 +5117,19 @@ async def clean_channels(interaction: discord.Interaction):
         if len(renamed_list) > 15:
             display_list.append(f"... et {len(renamed_list) - 15} autres")
         embed.add_field(
-            name="📝 Channels renommés",
+            name="ðŸ“ Channels renommÃ©s",
             value="\n".join(display_list),
             inline=False
         )
     
     if errors:
         embed.add_field(
-            name="⚠️ Erreurs",
+            name="âš ï¸ Erreurs",
             value="\n".join(errors[:10]),
             inline=False
         )
     
-    embed.set_footer(text="🚑 EMS System")
+    embed.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=embed)
 
 @app_commands.checks.has_permissions(administrator=True)
@@ -5138,10 +5138,10 @@ async def setup_categories(interaction: discord.Interaction):
     
     guild = interaction.guild
     
-    # ID de la catégorie cible (on veut positionner au-dessus)
+    # ID de la catÃ©gorie cible (on veut positionner au-dessus)
     TARGET_CATEGORY_ID = 838110173368418325
     
-    # Définir les catégories à créer (ordre inversé : DIR en haut, EMT en bas)
+    # DÃ©finir les catÃ©gories Ã  crÃ©er (ordre inversÃ© : DIR en haut, EMT en bas)
     grade_names = [
         ("DIR", "CATEGORY_DIR_ID"),
         ("CDS", "CATEGORY_CDS_ID"),
@@ -5160,13 +5160,13 @@ async def setup_categories(interaction: discord.Interaction):
     
     for grade_name, key in grade_names:
         try:
-            # Créer la catégorie
+            # CrÃ©er la catÃ©gorie
             category = await guild.create_category(name=grade_name)
             categories_data[key] = category.id
-            created.append(f"✅ {grade_name}: {category.id}")
+            created.append(f"âœ… {grade_name}: {category.id}")
             created_categories.append(category)
         except Exception as e:
-            errors.append(f"❌ {grade_name}: {e}")
+            errors.append(f"âŒ {grade_name}: {e}")
     
     # Sauvegarder les IDs
     if created:
@@ -5184,44 +5184,44 @@ async def setup_categories(interaction: discord.Interaction):
         CATEGORY_CAD_ID = categories_data.get("CATEGORY_CAD_ID", 0)
         CATEGORY_DIR_ID = categories_data.get("CATEGORY_DIR_ID", 0)
         
-        # Positionner les catégories au-dessus de la catégorie cible
+        # Positionner les catÃ©gories au-dessus de la catÃ©gorie cible
         target_category = guild.get_channel(TARGET_CATEGORY_ID)
         if target_category and created_categories:
             try:
-                # Obtenir la position de la catégorie cible
+                # Obtenir la position de la catÃ©gorie cible
                 target_position = target_category.position
                 
-                # Positionner chaque catégorie créée dans l'ordre, juste au-dessus
+                # Positionner chaque catÃ©gorie crÃ©Ã©e dans l'ordre, juste au-dessus
                 for i, category in enumerate(created_categories):
                     new_position = target_position + i
                     try:
                         await category.edit(position=new_position)
                     except Exception as e:
-                        errors.append(f"⚠️ Erreur positionnement {category.name}: {e}")
+                        errors.append(f"âš ï¸ Erreur positionnement {category.name}: {e}")
                 
-                created.append(f"📍 Catégories positionnées au-dessus de la catégorie cible")
+                created.append(f"ðŸ“ CatÃ©gories positionnÃ©es au-dessus de la catÃ©gorie cible")
             except Exception as e:
-                errors.append(f"⚠️ Erreur positionnement global: {e}")
+                errors.append(f"âš ï¸ Erreur positionnement global: {e}")
     
-    # Préparer le message de réponse
+    # PrÃ©parer le message de rÃ©ponse
     embed = discord.Embed(
-        title="🏗️ Configuration des Catégories",
-        description="Création et positionnement des catégories pour chaque grade EMS",
+        title="ðŸ—ï¸ Configuration des CatÃ©gories",
+        description="CrÃ©ation et positionnement des catÃ©gories pour chaque grade EMS",
         color=EMS_RED
     )
     
     if created:
-        embed.add_field(name="✅ Catégories créées et positionnées", value="\n".join(created), inline=False)
+        embed.add_field(name="âœ… CatÃ©gories crÃ©Ã©es et positionnÃ©es", value="\n".join(created), inline=False)
     
     if errors:
-        embed.add_field(name="❌ Erreurs", value="\n".join(errors), inline=False)
+        embed.add_field(name="âŒ Erreurs", value="\n".join(errors), inline=False)
     
-    embed.set_footer(text="🚑 EMS System")
+    embed.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=embed)
 
-# --- CHECK PERSONNALISÉ POUR EMPLOYER ---
+# --- CHECK PERSONNALISÃ‰ POUR EMPLOYER ---
 async def employer_check(interaction: discord.Interaction) -> bool:
-    """Vérifie que l'utilisateur est admin OU a le rôle 891765632717164596"""
+    """VÃ©rifie que l'utilisateur est admin OU a le rÃ´le 891765632717164596"""
     if interaction.user.guild_permissions.administrator:
         return True
     role = interaction.guild.get_role(891765632717164596)
@@ -5229,7 +5229,7 @@ async def employer_check(interaction: discord.Interaction) -> bool:
         return True
     raise app_commands.MissingPermissions(['administrator'])
 
-@bot.tree.command(name="set_categorie_emt", description="Définit la catégorie EMT (admin)")
+@bot.tree.command(name="set_categorie_emt", description="DÃ©finit la catÃ©gorie EMT (admin)")
 @app_commands.checks.has_permissions(administrator=True)
 async def set_categorie_emt(interaction: discord.Interaction, categorie: discord.CategoryChannel):
     global CATEGORY_EMT_ID
@@ -5238,16 +5238,16 @@ async def set_categorie_emt(interaction: discord.Interaction, categorie: discord
     save_categories(categories_data)
     CATEGORY_EMT_ID = categorie.id
     await interaction.response.send_message(
-        f"✅ Catégorie EMT définie sur **{categorie.name}** (`{categorie.id}`).",
+        f"âœ… CatÃ©gorie EMT dÃ©finie sur **{categorie.name}** (`{categorie.id}`).",
         ephemeral=True
     )
 
 
-@bot.tree.command(name="employer", description="Recruter un EMS (Création channel, rôles, rename)")
+@bot.tree.command(name="employer", description="Recruter un EMS (CrÃ©ation channel, rÃ´les, rename)")
 @app_commands.check(employer_check)
 @app_commands.describe(
-    membre="Le membre à employer",
-    matricule="Matricule EMT (0 à 100, ex: 5 → 05)"
+    membre="Le membre Ã  employer",
+    matricule="Matricule EMT (0 Ã  100, ex: 5 â†’ 05)"
 )
 async def employer(interaction: discord.Interaction, membre: discord.Member, matricule: app_commands.Range[int, 1, 99]):
     await interaction.response.defer()
@@ -5256,7 +5256,7 @@ async def employer(interaction: discord.Interaction, membre: discord.Member, mat
     clean_name = get_clean_name(membre)
     matricule_str = str(matricule).zfill(2)
 
-    # Vérifier si la matricule est déjà utilisée par n'importe quel employé EMS
+    # VÃ©rifier si la matricule est dÃ©jÃ  utilisÃ©e par n'importe quel employÃ© EMS
     ROLE_EMS_ID = 838102445095256068
     role_ems = guild.get_role(ROLE_EMS_ID)
     members_to_scan = role_ems.members if role_ems else guild.members
@@ -5267,7 +5267,7 @@ async def employer(interaction: discord.Interaction, membre: discord.Member, mat
         if match and match.group(2) == matricule_str:
             grade_pris = match.group(1)
             await interaction.followup.send(
-                f"❌ La matricule **{matricule_str}** est déjà prise par **{m.display_name}** ({grade_pris}).\n"
+                f"âŒ La matricule **{matricule_str}** est dÃ©jÃ  prise par **{m.display_name}** ({grade_pris}).\n"
                 f"Veuillez choisir une autre matricule entre **01** et **99**.",
                 ephemeral=True
             )
@@ -5280,7 +5280,7 @@ async def employer(interaction: discord.Interaction, membre: discord.Member, mat
     except Exception as e:
         print(f"Erreur changement pseudo {membre}: {e}")
 
-    # 2. Gestion des Rôles
+    # 2. Gestion des RÃ´les
     roles_add_ids = [838102445095256068, 895047492784238652, 838102445095256070]
     role_remove_id = 896103247096471613
     
@@ -5292,9 +5292,9 @@ async def employer(interaction: discord.Interaction, membre: discord.Member, mat
     if role_to_remove:
         await membre.remove_roles(role_to_remove)
 
-    # 3. Création du Channel dans la catégorie EMT (sans matricule dans le nom du channel)
+    # 3. CrÃ©ation du Channel dans la catÃ©gorie EMT (sans matricule dans le nom du channel)
     category = guild.get_channel(CATEGORY_EMT_ID)
-    channel_name = f"🔴{clean_name.lower().replace(' ', '-')}"
+    channel_name = f"ðŸ”´{clean_name.lower().replace(' ', '-')}"
 
     if category:
         overwrites = {
@@ -5304,25 +5304,25 @@ async def employer(interaction: discord.Interaction, membre: discord.Member, mat
         }
         new_channel = await guild.create_text_channel(name=channel_name, category=category, overwrites=overwrites)
         await interaction.followup.send(
-            f"✅ **{membre.mention}** a été employé avec succès !\n"
-            f"📛 Renommé en `{new_nickname}`\n"
-            f"🪪 Matricule : **{matricule_str}**\n"
-            f"📂 Dossier créé : {new_channel.mention}"
+            f"âœ… **{membre.mention}** a Ã©tÃ© employÃ© avec succÃ¨s !\n"
+            f"ðŸ“› RenommÃ© en `{new_nickname}`\n"
+            f"ðŸªª Matricule : **{matricule_str}**\n"
+            f"ðŸ“‚ Dossier crÃ©Ã© : {new_channel.mention}"
         )
         await update_matricule_board(guild)
         # Envoyer dans le channel formation
         formation_ch = guild.get_channel(991076525904367616)
         if formation_ch:
             await formation_ch.send(
-                f"→ formation premier soin [EMT {clean_name}]"
+                f"â†’ formation premier soin [EMT {clean_name}]"
             )
     else:
-        await interaction.followup.send(f"⚠️ Catégorie EMT introuvable, rôles et pseudo mis à jour mais pas le channel.")
+        await interaction.followup.send(f"âš ï¸ CatÃ©gorie EMT introuvable, rÃ´les et pseudo mis Ã  jour mais pas le channel.")
 
 
 @bot.tree.command(name="matricule", description="Modifier votre propre matricule EMS")
 @app_commands.describe(
-    matricule="Nouvelle matricule (0 à 100, ex: 5 → 05)"
+    matricule="Nouvelle matricule (0 Ã  100, ex: 5 â†’ 05)"
 )
 async def set_matricule(interaction: discord.Interaction, matricule: app_commands.Range[int, 1, 99]):
     await interaction.response.defer(ephemeral=True)
@@ -5332,7 +5332,7 @@ async def set_matricule(interaction: discord.Interaction, matricule: app_command
 
     if ROLE_MATRICULE_ID not in member_role_ids:
         await interaction.followup.send(
-            "❌ Vous n'avez pas la permission d'utiliser cette commande.",
+            "âŒ Vous n'avez pas la permission d'utiliser cette commande.",
             ephemeral=True
         )
         return
@@ -5341,7 +5341,7 @@ async def set_matricule(interaction: discord.Interaction, matricule: app_command
     display_name = membre.display_name
     matricule_str = str(matricule).zfill(2)
 
-    # Détecter le grade depuis le pseudo actuel
+    # DÃ©tecter le grade depuis le pseudo actuel
     grade_tags = ["DIR", "CDS", "MED", "PSY", "INF", "ADS", "STG", "EMT"]
     grade_found = None
     for tag in grade_tags:
@@ -5351,13 +5351,13 @@ async def set_matricule(interaction: discord.Interaction, matricule: app_command
 
     if not grade_found:
         await interaction.followup.send(
-            f"❌ Impossible de détecter le grade de **{membre.display_name}**.\n"
+            f"âŒ Impossible de dÃ©tecter le grade de **{membre.display_name}**.\n"
             f"Le pseudo doit contenir un tag de grade comme `[EMT]`, `[STG]`, `[PSY]`, etc.",
             ephemeral=True
         )
         return
 
-    # Vérifier si la matricule est déjà utilisée par n'importe quel employé EMS
+    # VÃ©rifier si la matricule est dÃ©jÃ  utilisÃ©e par n'importe quel employÃ© EMS
     ROLE_EMS_ID = 838102445095256068
     role_ems_check = interaction.guild.get_role(ROLE_EMS_ID)
     members_to_scan = role_ems_check.members if role_ems_check else interaction.guild.members
@@ -5368,16 +5368,16 @@ async def set_matricule(interaction: discord.Interaction, matricule: app_command
         if match and match.group(2) == matricule_str:
             grade_pris = match.group(1)
             await interaction.followup.send(
-                f"❌ La matricule **{matricule_str}** est déjà prise par **{m.display_name}** ({grade_pris}).\n"
+                f"âŒ La matricule **{matricule_str}** est dÃ©jÃ  prise par **{m.display_name}** ({grade_pris}).\n"
                 f"Veuillez choisir une autre matricule entre **01** et **99**.",
                 ephemeral=True
             )
             return
 
-    # Extraire le nom propre : supprimer [GRADE] et l'ancienne matricule si présente
+    # Extraire le nom propre : supprimer [GRADE] et l'ancienne matricule si prÃ©sente
     clean = display_name
     clean = clean.replace(f"[{grade_found}]", "").strip()
-    # Supprimer l'ancienne matricule genre "05 " en début
+    # Supprimer l'ancienne matricule genre "05 " en dÃ©but
     clean = _re.sub(r'^\d{2}\s*', '', clean).strip()
 
     new_nickname = f"[{grade_found}] {matricule_str} {clean}"
@@ -5385,19 +5385,19 @@ async def set_matricule(interaction: discord.Interaction, matricule: app_command
     try:
         await membre.edit(nick=new_nickname)
         await interaction.followup.send(
-            f"✅ Matricule mise à jour pour **{membre.mention}**\n"
-            f"📛 Nouveau pseudo : `{new_nickname}`",
+            f"âœ… Matricule mise Ã  jour pour **{membre.mention}**\n"
+            f"ðŸ“› Nouveau pseudo : `{new_nickname}`",
             ephemeral=True
         )
         await update_matricule_board(interaction.guild)
     except Exception as e:
         await interaction.followup.send(
-            f"❌ Erreur lors de la modification du pseudo : `{e}`",
+            f"âŒ Erreur lors de la modification du pseudo : `{e}`",
             ephemeral=True
         )
 
 
-@bot.tree.command(name="matricules_check", description="Afficher toutes les matricules attribuées et mettre à jour le tableau")
+@bot.tree.command(name="matricules_check", description="Afficher toutes les matricules attribuÃ©es et mettre Ã  jour le tableau")
 @app_commands.checks.has_permissions(administrator=True)
 async def matricules_check(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
@@ -5435,26 +5435,26 @@ async def matricules_check(interaction: discord.Interaction):
             emt_pris[grade][mat] = (None, f"{nom} *(direction)*")
 
     if not emt_pris:
-        await interaction.followup.send("✅ Aucune matricule attribuée pour l'instant.", ephemeral=True)
+        await interaction.followup.send("âœ… Aucune matricule attribuÃ©e pour l'instant.", ephemeral=True)
         return
 
     grade_labels = {
-        "EMT": "🚑 EMT",
-        "STG": "📋 Stagiaire",
-        "ADS": "🩺 Aide-Soignant",
-        "INF": "💉 Infirmier",
-        "PSY": "🧠 Psychologue",
-        "MED": "⚕️ Médecin",
-        "CDS": "🏥 Chef de Service",
-        "CAD": "🏥 Chef Adjoint",
-        "DIR": "👔 Directeur Médical",
+        "EMT": "ðŸš‘ EMT",
+        "STG": "ðŸ“‹ Stagiaire",
+        "ADS": "ðŸ©º Aide-Soignant",
+        "INF": "ðŸ’‰ Infirmier",
+        "PSY": "ðŸ§  Psychologue",
+        "MED": "âš•ï¸ MÃ©decin",
+        "CDS": "ðŸ¥ Chef de Service",
+        "CAD": "ðŸ¥ Chef Adjoint",
+        "DIR": "ðŸ‘” Directeur MÃ©dical",
     }
     grade_order = ["EMT", "STG", "ADS", "INF", "PSY", "MED", "CDS", "CAD", "DIR"]
 
     total_doublons = sum(len(v) for v in doublons.values() if v)
 
     embed = discord.Embed(
-        title="🪪 Matricules attribuées",
+        title="ðŸªª Matricules attribuÃ©es",
         color=discord.Color.red() if total_doublons else EMS_RED
     )
 
@@ -5463,10 +5463,10 @@ async def matricules_check(interaction: discord.Interaction):
         conflit_lines = []
         for grade, mats in doublons.items():
             for mat, entries in mats.items():
-                pings = " · ".join([f"{mention}" if mention else nom for mention, nom in entries])
-                conflit_lines.append(f"⚠️ **{mat}** ({grade}) → {pings}")
+                pings = " Â· ".join([f"{mention}" if mention else nom for mention, nom in entries])
+                conflit_lines.append(f"âš ï¸ **{mat}** ({grade}) â†’ {pings}")
         embed.add_field(
-            name=f"🚨 {total_doublons} CONFLIT(S) DÉTECTÉ(S)",
+            name=f"ðŸš¨ {total_doublons} CONFLIT(S) DÃ‰TECTÃ‰(S)",
             value="\n".join(conflit_lines),
             inline=False
         )
@@ -5480,16 +5480,16 @@ async def matricules_check(interaction: discord.Interaction):
         lines = []
         for mat, (mention, nom) in sorted(mats.items()):
             if mention:
-                lines.append(f"**{mat}** — {mention}")
+                lines.append(f"**{mat}** â€” {mention}")
             else:
-                lines.append(f"**{mat}** — {nom}")
+                lines.append(f"**{mat}** â€” {nom}")
         embed.add_field(
             name=f"{grade_labels.get(grade, grade)} ({len(mats)})",
             value="\n".join(lines),
             inline=False
         )
 
-    embed.set_footer(text=f"🚑 EMS System | {total} matricule(s) attribuée(s) au total")
+    embed.set_footer(text=f"ðŸš‘ EMS System | {total} matricule(s) attribuÃ©e(s) au total")
 
     # Collecter toutes les vraies mentions pour les afficher proprement
     all_mentions = []
@@ -5503,21 +5503,21 @@ async def matricules_check(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, ephemeral=True)
     if all_mentions:
         await interaction.followup.send(
-            "📋 **Récap mentions :**\n" + " · ".join(all_mentions),
+            "ðŸ“‹ **RÃ©cap mentions :**\n" + " Â· ".join(all_mentions),
             ephemeral=True
         )
 
-    # Mettre à jour le tableau public en même temps
+    # Mettre Ã  jour le tableau public en mÃªme temps
     await update_matricule_board(guild)
 
 
 
-@bot.tree.command(name="matricules_direction", description="Gérer les matricules de la direction et grades supérieurs (admin)")
+@bot.tree.command(name="matricules_direction", description="GÃ©rer les matricules de la direction et grades supÃ©rieurs (admin)")
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(
     action="Ajouter ou retirer une matricule",
-    grade="Grade concerné",
-    matricule="Numéro de matricule (0 à 100, ex: 5 → 05)",
+    grade="Grade concernÃ©",
+    matricule="NumÃ©ro de matricule (0 Ã  100, ex: 5 â†’ 05)",
     nom="Nom complet de la personne (ex: Jean Dupont)"
 )
 @app_commands.choices(
@@ -5526,14 +5526,14 @@ async def matricules_check(interaction: discord.Interaction):
         app_commands.Choice(name="Retirer", value="remove"),
     ],
     grade=[
-        app_commands.Choice(name="👔 Directeur Médical (DIR)", value="DIR"),
-        app_commands.Choice(name="🏥 Chef Adjoint (CAD)", value="CAD"),
-        app_commands.Choice(name="🏥 Chef de Service (CDS)", value="CDS"),
-        app_commands.Choice(name="⚕️ Médecin (MED)", value="MED"),
-        app_commands.Choice(name="🧠 Psychologue (PSY)", value="PSY"),
-        app_commands.Choice(name="💉 Infirmier (INF)", value="INF"),
-        app_commands.Choice(name="🩺 Aide-Soignant (ADS)", value="ADS"),
-        app_commands.Choice(name="📋 Stagiaire (STG)", value="STG"),
+        app_commands.Choice(name="ðŸ‘” Directeur MÃ©dical (DIR)", value="DIR"),
+        app_commands.Choice(name="ðŸ¥ Chef Adjoint (CAD)", value="CAD"),
+        app_commands.Choice(name="ðŸ¥ Chef de Service (CDS)", value="CDS"),
+        app_commands.Choice(name="âš•ï¸ MÃ©decin (MED)", value="MED"),
+        app_commands.Choice(name="ðŸ§  Psychologue (PSY)", value="PSY"),
+        app_commands.Choice(name="ðŸ’‰ Infirmier (INF)", value="INF"),
+        app_commands.Choice(name="ðŸ©º Aide-Soignant (ADS)", value="ADS"),
+        app_commands.Choice(name="ðŸ“‹ Stagiaire (STG)", value="STG"),
     ]
 )
 async def matricules_direction(
@@ -5550,33 +5550,33 @@ async def matricules_direction(
 
     if action == "add":
         if not nom:
-            await interaction.followup.send("❌ Veuillez préciser le nom de la personne.", ephemeral=True)
+            await interaction.followup.send("âŒ Veuillez prÃ©ciser le nom de la personne.", ephemeral=True)
             return
         if grade not in direction_matricules:
             direction_matricules[grade] = {}
-        # Vérifier doublon dans ce grade
+        # VÃ©rifier doublon dans ce grade
         if matricule_str in direction_matricules[grade]:
             await interaction.followup.send(
-                f"❌ La matricule **{matricule_str}** est déjà attribuée à **{direction_matricules[grade][matricule_str]}** ({grade}).",
+                f"âŒ La matricule **{matricule_str}** est dÃ©jÃ  attribuÃ©e Ã  **{direction_matricules[grade][matricule_str]}** ({grade}).",
                 ephemeral=True
             )
             return
         direction_matricules[grade][matricule_str] = nom
         await interaction.followup.send(
-            f"✅ Matricule **{matricule_str}** attribuée à **{nom}** ({grade}).",
+            f"âœ… Matricule **{matricule_str}** attribuÃ©e Ã  **{nom}** ({grade}).",
             ephemeral=True
         )
 
     elif action == "remove":
         if grade not in direction_matricules or matricule_str not in direction_matricules[grade]:
             await interaction.followup.send(
-                f"❌ La matricule **{matricule_str}** ({grade}) est introuvable.",
+                f"âŒ La matricule **{matricule_str}** ({grade}) est introuvable.",
                 ephemeral=True
             )
             return
         ancien = direction_matricules[grade].pop(matricule_str)
         await interaction.followup.send(
-            f"✅ Matricule **{matricule_str}** ({grade}) retirée (était : {ancien}).",
+            f"âœ… Matricule **{matricule_str}** ({grade}) retirÃ©e (Ã©tait : {ancien}).",
             ephemeral=True
         )
 
@@ -5584,19 +5584,19 @@ async def matricules_direction(
 
 
 
-@app_commands.describe(membre="Le membre dont mettre à jour le tag (optionnel, sinon tous)")
+@app_commands.describe(membre="Le membre dont mettre Ã  jour le tag (optionnel, sinon tous)")
 @app_commands.checks.has_permissions(administrator=True)
 async def reset_names(interaction: discord.Interaction, membre: discord.Member = None):
     await interaction.response.defer()
     
     guild = interaction.guild
     
-    # Mapping des rôles Discord vers les tags de grade (du plus élevé au plus bas)
+    # Mapping des rÃ´les Discord vers les tags de grade (du plus Ã©levÃ© au plus bas)
     role_hierarchy = [
-        (1088570974603055195, "[DIR]"),  # Directeur Médical
+        (1088570974603055195, "[DIR]"),  # Directeur MÃ©dical
         (1528561040663777310, "[CAD]"),  # Chef Adjoint
         (838102445095256071, "[CDS]"),   # Chef de Service
-        (840288242547818507, "[MED]"),   # Médecin
+        (840288242547818507, "[MED]"),   # MÃ©decin
         (1528560704511148092, "[PSY]"),  # Psychologue
         (894311352225656862, "[INF]"),   # Infirmier
         (1088116715998687273, "[ADS]"),  # Aide-Soignant
@@ -5605,7 +5605,7 @@ async def reset_names(interaction: discord.Interaction, membre: discord.Member =
     ]
     
     def get_grade_tag(member):
-        """Retourne le tag de grade le plus élevé du membre"""
+        """Retourne le tag de grade le plus Ã©levÃ© du membre"""
         member_role_ids = [role.id for role in member.roles]
         for role_id, tag in role_hierarchy:
             if role_id in member_role_ids:
@@ -5613,7 +5613,7 @@ async def reset_names(interaction: discord.Interaction, membre: discord.Member =
         return None
     
     if membre:
-        # Mettre à jour un seul membre
+        # Mettre Ã  jour un seul membre
         clean_name = get_clean_name(membre)
         grade_tag = get_grade_tag(membre)
         
@@ -5622,18 +5622,18 @@ async def reset_names(interaction: discord.Interaction, membre: discord.Member =
             try:
                 await membre.edit(nick=new_nickname)
                 embed = discord.Embed(
-                    title="✅ Pseudo mis à jour",
-                    description=f"{membre.mention} → `{new_nickname}`",
+                    title="âœ… Pseudo mis Ã  jour",
+                    description=f"{membre.mention} â†’ `{new_nickname}`",
                     color=EMS_RED
                 )
-                embed.set_footer(text="🚑 EMS System")
+                embed.set_footer(text="ðŸš‘ EMS System")
                 await interaction.followup.send(embed=embed)
             except Exception as e:
-                await interaction.followup.send(f"❌ Erreur : {e}")
+                await interaction.followup.send(f"âŒ Erreur : {e}")
         else:
-            await interaction.followup.send(f"❌ {membre.mention} n'a aucun rôle EMS reconnu.")
+            await interaction.followup.send(f"âŒ {membre.mention} n'a aucun rÃ´le EMS reconnu.")
     else:
-        # Mettre à jour tous les membres avec des rôles EMS
+        # Mettre Ã  jour tous les membres avec des rÃ´les EMS
         updated = []
         errors = []
         skipped = []
@@ -5648,60 +5648,60 @@ async def reset_names(interaction: discord.Interaction, membre: discord.Member =
                 clean_name = get_clean_name(member)
                 new_nickname = f"{grade_tag} {clean_name}"
                 
-                # Vérifier si le pseudo est déjà correct
+                # VÃ©rifier si le pseudo est dÃ©jÃ  correct
                 if member.display_name == new_nickname:
                     skipped.append(member.display_name)
                     continue
                 
                 try:
                     await member.edit(nick=new_nickname)
-                    updated.append(f"✅ {member.mention} → `{new_nickname}`")
+                    updated.append(f"âœ… {member.mention} â†’ `{new_nickname}`")
                 except Exception as e:
-                    errors.append(f"❌ {member.display_name}: {str(e)}")
+                    errors.append(f"âŒ {member.display_name}: {str(e)}")
         
-        # Créer l'embed de résultat
+        # CrÃ©er l'embed de rÃ©sultat
         embed = discord.Embed(
-            title="🔄 Mise à jour des pseudos selon les rôles",
+            title="ðŸ”„ Mise Ã  jour des pseudos selon les rÃ´les",
             color=EMS_RED
         )
         
         if updated:
-            # Limiter à 10 pour ne pas dépasser la limite d'embed
+            # Limiter Ã  10 pour ne pas dÃ©passer la limite d'embed
             display_updated = updated[:10]
             if len(updated) > 10:
                 display_updated.append(f"... et {len(updated) - 10} autres")
             embed.add_field(
-                name=f"✅ Pseudos mis à jour ({len(updated)})",
+                name=f"âœ… Pseudos mis Ã  jour ({len(updated)})",
                 value="\n".join(display_updated),
                 inline=False
             )
         
         if skipped:
             embed.add_field(
-                name=f"⏭️ Déjà à jour ({len(skipped)})",
-                value=f"{len(skipped)} membres avaient déjà le bon pseudo",
+                name=f"â­ï¸ DÃ©jÃ  Ã  jour ({len(skipped)})",
+                value=f"{len(skipped)} membres avaient dÃ©jÃ  le bon pseudo",
                 inline=False
             )
         
         if not updated and not errors:
-            embed.description = "Aucun membre EMS à mettre à jour."
+            embed.description = "Aucun membre EMS Ã  mettre Ã  jour."
         
         if errors:
             display_errors = errors[:5]
             if len(errors) > 5:
                 display_errors.append(f"... et {len(errors) - 5} autres erreurs")
             embed.add_field(
-                name=f"❌ Erreurs ({len(errors)})",
+                name=f"âŒ Erreurs ({len(errors)})",
                 value="\n".join(display_errors),
                 inline=False
             )
         
-        embed.set_footer(text="🚑 EMS System")
+        embed.set_footer(text="ðŸš‘ EMS System")
         await interaction.followup.send(embed=embed)
 
-class AutreRaisonModal(discord.ui.Modal, title="✏️ Raison du licenciement"):
+class AutreRaisonModal(discord.ui.Modal, title="âœï¸ Raison du licenciement"):
     raison = discord.ui.TextInput(
-        label="Précisez la raison",
+        label="PrÃ©cisez la raison",
         placeholder="Expliquez ici la raison du licenciement...",
         style=discord.TextStyle.paragraph,
         required=True,
@@ -5721,11 +5721,11 @@ class RaisonVireSelect(discord.ui.Select):
     def __init__(self, membre: discord.Member):
         self.membre = membre
         options = [
-            discord.SelectOption(label="Inactivité", value="inactivite", emoji="⏳", description="Absence prolongée sans justification"),
-            discord.SelectOption(label="Erreur professionnelle", value="erreur_pro", emoji="⚠️", description="Faute grave dans l'exercice des fonctions"),
-            discord.SelectOption(label="Autres", value="autres", emoji="📝", description="Préciser la raison manuellement"),
+            discord.SelectOption(label="InactivitÃ©", value="inactivite", emoji="â³", description="Absence prolongÃ©e sans justification"),
+            discord.SelectOption(label="Erreur professionnelle", value="erreur_pro", emoji="âš ï¸", description="Faute grave dans l'exercice des fonctions"),
+            discord.SelectOption(label="Autres", value="autres", emoji="ðŸ“", description="PrÃ©ciser la raison manuellement"),
         ]
-        super().__init__(placeholder="Sélectionner la raison du licenciement...", options=options)
+        super().__init__(placeholder="SÃ©lectionner la raison du licenciement...", options=options)
 
     async def callback(self, interaction: discord.Interaction):
         choix = self.values[0]
@@ -5750,32 +5750,32 @@ async def executer_virement(interaction: discord.Interaction, membre: discord.Me
     if raison_type == "inactivite":
         raison_dm = (
             f"Cher **{clean_name}**,\n\n"
-            f"Nous avons le regret de vous informer que votre contrat au sein de l'Hôpital de Los Santos a été résilié en raison d'une **inactivité prolongée** et non justifiée.\n\n"
-            f"Malgré les attentes fixées en termes de présence et d'investissement, votre absence répétée n'est pas compatible avec les exigences de notre service.\n\n"
+            f"Nous avons le regret de vous informer que votre contrat au sein de l'HÃ´pital de Los Santos a Ã©tÃ© rÃ©siliÃ© en raison d'une **inactivitÃ© prolongÃ©e** et non justifiÃ©e.\n\n"
+            f"MalgrÃ© les attentes fixÃ©es en termes de prÃ©sence et d'investissement, votre absence rÃ©pÃ©tÃ©e n'est pas compatible avec les exigences de notre service.\n\n"
             f"Nous vous remercions pour votre passage parmi nous et vous souhaitons bonne continuation.\n\n"
             f"Cordialement,\n**La Direction des EMS.**"
         )
-        raison_label = "⏳ Inactivité prolongée"
+        raison_label = "â³ InactivitÃ© prolongÃ©e"
     elif raison_type == "erreur_pro":
         raison_dm = (
             f"Cher **{clean_name}**,\n\n"
-            f"Nous avons le regret de vous informer que votre contrat au sein de l'Hôpital de Los Santos a été résilié suite à une **erreur professionnelle grave**.\n\n"
-            f"Cette décision fait suite à une analyse approfondie des faits constatés, jugés incompatibles avec les valeurs, les protocoles et les standards de notre service médical.\n\n"
-            f"Nous vous remercions pour votre engagement passé et vous souhaitons bonne continuation dans vos projets.\n\n"
+            f"Nous avons le regret de vous informer que votre contrat au sein de l'HÃ´pital de Los Santos a Ã©tÃ© rÃ©siliÃ© suite Ã  une **erreur professionnelle grave**.\n\n"
+            f"Cette dÃ©cision fait suite Ã  une analyse approfondie des faits constatÃ©s, jugÃ©s incompatibles avec les valeurs, les protocoles et les standards de notre service mÃ©dical.\n\n"
+            f"Nous vous remercions pour votre engagement passÃ© et vous souhaitons bonne continuation dans vos projets.\n\n"
             f"Cordialement,\n**La Direction des EMS.**"
         )
-        raison_label = "⚠️ Erreur professionnelle"
+        raison_label = "âš ï¸ Erreur professionnelle"
     else:
         raison_dm = (
             f"Cher **{clean_name}**,\n\n"
-            f"Nous avons le regret de vous informer que votre contrat au sein de l'Hôpital de Los Santos a été résilié.\n\n"
+            f"Nous avons le regret de vous informer que votre contrat au sein de l'HÃ´pital de Los Santos a Ã©tÃ© rÃ©siliÃ©.\n\n"
             f"**Motif :** {raison_custom}\n\n"
             f"Nous vous remercions pour votre passage parmi nous et vous souhaitons bonne continuation.\n\n"
             f"Cordialement,\n**La Direction des EMS.**"
         )
-        raison_label = f"📝 {raison_custom}"
+        raison_label = f"ðŸ“ {raison_custom}"
 
-    # 1. Rôles
+    # 1. RÃ´les
     role_target_id = 838102445095256066
     roles_to_remove = [r for r in membre.roles if r.id in EMS_ROLE_IDS_TO_REMOVE]
     role_to_add = guild.get_role(role_target_id)
@@ -5800,13 +5800,13 @@ async def executer_virement(interaction: discord.Interaction, membre: discord.Me
     channel_deleted = False
     clean_name_normalized = normalize_employee_key(clean_name)
     for channel in guild.text_channels:
-        if channel.name and len(channel.name) > 1 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+        if channel.name and len(channel.name) > 1 and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
             channel_employee_key = get_channel_employee_key(channel)
             if channel_employee_key == clean_name_normalized:
                 await interaction.followup.send(
-                    f"🚫 **{clean_name}** a été licencié.\n"
+                    f"ðŸš« **{clean_name}** a Ã©tÃ© licenciÃ©.\n"
                     f"**Motif :** {raison_label}\n"
-                    f"Rôles retirés, pseudo réinitialisé et channel supprimé."
+                    f"RÃ´les retirÃ©s, pseudo rÃ©initialisÃ© et channel supprimÃ©."
                 )
                 try:
                     await channel.delete()
@@ -5816,9 +5816,9 @@ async def executer_virement(interaction: discord.Interaction, membre: discord.Me
                     print(f"Erreur suppression channel: {e}")
     if not channel_deleted:
         await interaction.followup.send(
-            f"🚫 **{clean_name}** a été licencié.\n"
+            f"ðŸš« **{clean_name}** a Ã©tÃ© licenciÃ©.\n"
             f"**Motif :** {raison_label}\n"
-            f"Rôles retirés et pseudo réinitialisé.\n⚠️ Aucun channel personnel trouvé."
+            f"RÃ´les retirÃ©s et pseudo rÃ©initialisÃ©.\nâš ï¸ Aucun channel personnel trouvÃ©."
         )
 
     # Rappel permissions In-Game
@@ -5838,39 +5838,39 @@ async def executer_virement(interaction: discord.Interaction, membre: discord.Me
         pass
 
     ig_embed = discord.Embed(
-        title="🎮 Permissions In-Game à retirer",
+        title="ðŸŽ® Permissions In-Game Ã  retirer",
         color=discord.Color.from_rgb(255, 59, 48),
         description=(
-            f"**{clean_name}** vient d'être licencié(e).\n\n"
-            f"**➜ Retirez le rôle EMS In-Game (FiveM) pour :**\n"
+            f"**{clean_name}** vient d'Ãªtre licenciÃ©(e).\n\n"
+            f"**âžœ Retirez le rÃ´le EMS In-Game (FiveM) pour :**\n"
             f"```\n{clean_name}\n```"
         )
     )
-    ig_embed.set_footer(text="🚑 Los Santos EMS — Action manuelle requise")
+    ig_embed.set_footer(text="ðŸš‘ Los Santos EMS â€” Action manuelle requise")
     try:
         await interaction.channel.send(embed=ig_embed)
     except Exception:
         pass
 
-    # ── BLACKLIST CV automatique sur licenciement ──────────────────────────
+    # â”€â”€ BLACKLIST CV automatique sur licenciement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     try:
         bl = load_blacklist_cv()
         bl[str(membre.id)] = {
             "date": datetime.utcnow().isoformat(),
-            "raison": f"Licenciement — {raison_label}",
+            "raison": f"Licenciement â€” {raison_label}",
             "blacklisted_by": str(interaction.user.id),
         }
         save_blacklist_cv(bl)
     except Exception as _bl_err:
         print(f"Erreur blacklist CV virer: {_bl_err}")
-    # ────────────────────────────────────────────────────────────────────────
+    # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     await update_matricule_board(guild)
 
 
-@bot.tree.command(name="virer", description="Virer un employé (Retrait rôles, reset pseudo)")
+@bot.tree.command(name="virer", description="Virer un employÃ© (Retrait rÃ´les, reset pseudo)")
 @app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(membre="Le nom du membre à virer")
+@app_commands.describe(membre="Le nom du membre Ã  virer")
 async def virer(interaction: discord.Interaction, membre: str):
     await interaction.response.defer(ephemeral=True)
     guild = interaction.guild
@@ -5885,20 +5885,20 @@ async def virer(interaction: discord.Interaction, membre: str):
             break
     
     if not target_member:
-        await interaction.followup.send(f"❌ Membre '{membre}' introuvable.", ephemeral=True)
+        await interaction.followup.send(f"âŒ Membre '{membre}' introuvable.", ephemeral=True)
         return
     
     view = RaisonVireView(target_member)
     await interaction.followup.send(
-        f"⚠️ Vous êtes sur le point de licencier **{get_clean_name(target_member)}**.\n"
-        f"Sélectionnez la raison du licenciement :",
+        f"âš ï¸ Vous Ãªtes sur le point de licencier **{get_clean_name(target_member)}**.\n"
+        f"SÃ©lectionnez la raison du licenciement :",
         view=view,
         ephemeral=True
     )
 
-@bot.tree.command(name="up", description="Promouvoir un employé au rang suivant")
+@bot.tree.command(name="up", description="Promouvoir un employÃ© au rang suivant")
 @app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(membre="Le membre à promouvoir")
+@app_commands.describe(membre="Le membre Ã  promouvoir")
 async def up(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer()
     guild = interaction.guild
@@ -5908,8 +5908,8 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
     # Mapping des transitions
     # (Role Actuel -> Role Suivant, Nouveau Prefix, Prefix Channel, Ancre/Cible move, Regex Cible)
     
-    # IDs des Rôles
-    # Hiérarchie : EMT → STG → ADS → INF → PSY → MED → CDS (Chef de Service) → CAD (Chef Adjoint) → DIR (Directeur Médical)
+    # IDs des RÃ´les
+    # HiÃ©rarchie : EMT â†’ STG â†’ ADS â†’ INF â†’ PSY â†’ MED â†’ CDS (Chef de Service) â†’ CAD (Chef Adjoint) â†’ DIR (Directeur MÃ©dical)
     R_EMT = 895047492784238652
     R_STG = 838102445095256069   # Stagiaire
     R_ADS = 1088116715998687273
@@ -5918,12 +5918,12 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
     R_MED = 840288242547818507
     R_CDS = 838102445095256071   # Chef de Service
     R_CAD = 1528561040663777310  # Chef Adjoint
-    R_DIR = 1088570974603055195  # Directeur Médical
+    R_DIR = 1088570974603055195  # Directeur MÃ©dical
 
-    # Logique de promotion — du plus bas au plus haut
+    # Logique de promotion â€” du plus bas au plus haut
     next_step = None
 
-    # Pour distinguer STG de PSY (même ID pour l'instant), on se base sur le tag pseudo
+    # Pour distinguer STG de PSY (mÃªme ID pour l'instant), on se base sur le tag pseudo
     has_psy_tag = "[PSY]" in membre.display_name.upper()
     has_stg_tag = "[STG]" in membre.display_name.upper() or "[INT]" in membre.display_name.upper()
     has_inf_tag = "[INF]" in membre.display_name.upper()
@@ -5978,23 +5978,23 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
             "category_id": CATEGORY_CAD_ID
         }
     elif R_CAD in member_roles_ids and R_DIR not in member_roles_ids:
-        # CAD -> DIR (Directeur Médical)
+        # CAD -> DIR (Directeur MÃ©dical)
         next_step = {
             "remove": R_CAD, "add": R_DIR,
             "tag": "DIR",
             "category_id": CATEGORY_DIR_ID
         }
     else:
-        await interaction.followup.send("❌ Ce membre n'a pas de grade évolutif connu ou est déjà au maximum (Directeur Médical).")
+        await interaction.followup.send("âŒ Ce membre n'a pas de grade Ã©volutif connu ou est dÃ©jÃ  au maximum (Directeur MÃ©dical).")
         return
 
     # Appliquer les changements
     
-    # 1. Rôles
+    # 1. RÃ´les
     await membre.remove_roles(guild.get_role(next_step["remove"]))
     await membre.add_roles(guild.get_role(next_step["add"]))
     
-    # 2. Pseudo — conserver la matricule si présente
+    # 2. Pseudo â€” conserver la matricule si prÃ©sente
     mat_match = _re.search(r'\]\s+(\d{2})\s+', membre.display_name)
     matricule_str = mat_match.group(1) if mat_match else None
 
@@ -6007,13 +6007,13 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
     except:
         pass
         
-    # 3. Channel - Trouver le channel de l'employé et le déplacer (sans changer le nom, juste retirer le préfixe)
+    # 3. Channel - Trouver le channel de l'employÃ© et le dÃ©placer (sans changer le nom, juste retirer le prÃ©fixe)
     channel = None
     
-    # Chercher le channel de l'employé
+    # Chercher le channel de l'employÃ©
     clean_name_normalized = clean_name.lower().replace(' ', '-')
     for ch in guild.text_channels:
-        if ch.name and len(ch.name) > 1 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+        if ch.name and len(ch.name) > 1 and ch.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
             # Enlever l'emoji et normaliser
             ch_employee_key = get_channel_employee_key(ch)
             member_key = normalize_employee_key(clean_name)
@@ -6023,26 +6023,26 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
     
     chan_msg = ""
     if channel:
-        # Nouveau nom sans préfixe de grade, juste l'emoji + nom
-        current_emoji = channel.name[0] if channel.name and len(channel.name) > 0 else "🔴"
+        # Nouveau nom sans prÃ©fixe de grade, juste l'emoji + nom
+        current_emoji = channel.name[0] if channel.name and len(channel.name) > 0 else "ðŸ”´"
         new_chan_name = f"{current_emoji}{clean_name_normalized}"
         
-        # Déplacer dans la nouvelle catégorie
+        # DÃ©placer dans la nouvelle catÃ©gorie
         new_category_id = next_step.get("category_id")
         new_category = guild.get_channel(new_category_id) if new_category_id else None
         
         if new_category:
             try:
                 await channel.edit(name=new_chan_name, category=new_category)
-                chan_msg = f"\n📂 Dossier déplacé dans la catégorie {next_step['tag']} : {channel.mention}"
+                chan_msg = f"\nðŸ“‚ Dossier dÃ©placÃ© dans la catÃ©gorie {next_step['tag']} : {channel.mention}"
             except Exception as e:
-                chan_msg = f"\n⚠️ Erreur déplacement dossier: {e}"
+                chan_msg = f"\nâš ï¸ Erreur dÃ©placement dossier: {e}"
         else:
             try:
                 await channel.edit(name=new_chan_name)
-                chan_msg = f"\n📂 Dossier renommé : {channel.mention} (catégorie {next_step['tag']} introuvable)"
+                chan_msg = f"\nðŸ“‚ Dossier renommÃ© : {channel.mention} (catÃ©gorie {next_step['tag']} introuvable)"
             except Exception as e:
-                chan_msg = f"\n⚠️ Erreur renommage: {e}"
+                chan_msg = f"\nâš ï¸ Erreur renommage: {e}"
 
     # Tracker la promotion dans l'historique
     try:
@@ -6053,7 +6053,7 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
     except Exception as _pt_err:
         print(f"Erreur tracking promo: {_pt_err}")
 
-    await interaction.followup.send(f"📈 **Promotion effectuée pour {membre.mention}** !\nPassage au grade **{next_step['tag']}**.{chan_msg}")
+    await interaction.followup.send(f"ðŸ“ˆ **Promotion effectuÃ©e pour {membre.mention}** !\nPassage au grade **{next_step['tag']}**.{chan_msg}")
 
 @app_commands.checks.has_permissions(administrator=True)
 async def payes(interaction: discord.Interaction):
@@ -6063,11 +6063,11 @@ async def payes(interaction: discord.Interaction):
     
     # 1. Demander l'image du coffre
     ask_embed = discord.Embed(
-        title="💰 CALCUL DES SALAIRES",
-        description="**📸 Envoyez une capture d'écran du coffre (état avant les paiements)**\n\nVous avez 2 minutes pour envoyer l'image.",
+        title="ðŸ’° CALCUL DES SALAIRES",
+        description="**ðŸ“¸ Envoyez une capture d'Ã©cran du coffre (Ã©tat avant les paiements)**\n\nVous avez 2 minutes pour envoyer l'image.",
         color=EMS_RED
     )
-    ask_embed.set_footer(text="🚑 EMS System | Système de paie")
+    ask_embed.set_footer(text="ðŸš‘ EMS System | SystÃ¨me de paie")
     await interaction.followup.send(embed=ask_embed)
     
     def check_image(m):
@@ -6078,7 +6078,7 @@ async def payes(interaction: discord.Interaction):
         msg_image = await bot.wait_for('message', check=check_image, timeout=120)
         coffre_image_url = msg_image.attachments[0].url
         
-        # Télécharger l'image pour l'attacher au message (évite l'expiration)
+        # TÃ©lÃ©charger l'image pour l'attacher au message (Ã©vite l'expiration)
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(coffre_image_url) as resp:
@@ -6086,11 +6086,11 @@ async def payes(interaction: discord.Interaction):
                         image_data = await resp.read()
                         coffre_image_file = discord.File(io.BytesIO(image_data), filename="coffre.png")
         except Exception as e:
-            print(f"Erreur téléchargement image coffre: {e}")
+            print(f"Erreur tÃ©lÃ©chargement image coffre: {e}")
     except asyncio.TimeoutError:
         timeout_embed = discord.Embed(
-            title="⏱️ TEMPS ÉCOULÉ",
-            description="Vous n'avez pas envoyé l'image à temps. Commande annulée.",
+            title="â±ï¸ TEMPS Ã‰COULÃ‰",
+            description="Vous n'avez pas envoyÃ© l'image Ã  temps. Commande annulÃ©e.",
             color=EMS_DARK_RED
         )
         await interaction.followup.send(embed=timeout_embed)
@@ -6109,24 +6109,24 @@ async def payes(interaction: discord.Interaction):
         if member.bot:
             continue
         
-        # Vérifier d'abord si le membre a le rôle DIRECTION
+        # VÃ©rifier d'abord si le membre a le rÃ´le DIRECTION
         has_direction_role = direction_role in member.roles if direction_role else False
         
         if has_direction_role:
-            # DIRECTION: 9M fixe, pas de calcul avec réas
+            # DIRECTION: 9M fixe, pas de calcul avec rÃ©as
             clean_name = get_clean_name(member)
             salary = 9000000
             total_payroll += salary
             
             salary_data.append({
                 "name": clean_name,
-                "rea": 0,  # Pas affiché pour direction
+                "rea": 0,  # Pas affichÃ© pour direction
                 "grade": "DIRECTION",
                 "total": salary
             })
             continue
         
-        # Détecter le grade par tag dans le pseudo pour les autres
+        # DÃ©tecter le grade par tag dans le pseudo pour les autres
         nick = member.display_name.upper()
         grade = None
         rate = 0
@@ -6159,9 +6159,9 @@ async def payes(interaction: discord.Interaction):
             grade = "EMT"
             rate = 30000
         else:
-            continue  # Pas un employé EMS
+            continue  # Pas un employÃ© EMS
         
-        # Récupérer les réas (0 si absent)
+        # RÃ©cupÃ©rer les rÃ©as (0 si absent)
         employee_key = normalize_employee_key(member.display_name)
         rea_count = stats.get(employee_key, 0)
         
@@ -6174,7 +6174,7 @@ async def payes(interaction: discord.Interaction):
         
         total_payroll += salary
         
-        # Ajouter à la liste
+        # Ajouter Ã  la liste
         clean_name = get_clean_name(member)
         salary_data.append({
             "name": clean_name,
@@ -6183,10 +6183,10 @@ async def payes(interaction: discord.Interaction):
             "total": salary
         })
     
-    # 4. Trier par salaire décroissant
+    # 4. Trier par salaire dÃ©croissant
     salary_data.sort(key=lambda x: x["total"], reverse=True)
     
-    # 5. Diviser en plusieurs embeds (10 employés par page pour éviter dépassement)
+    # 5. Diviser en plusieurs embeds (10 employÃ©s par page pour Ã©viter dÃ©passement)
     embeds_to_send = []
     employees_per_embed = 10
     
@@ -6195,12 +6195,12 @@ async def payes(interaction: discord.Interaction):
         page_num = (i // employees_per_embed) + 1
         total_pages = (len(salary_data) + employees_per_embed - 1) // employees_per_embed
         
-        # Créer un embed pour ce groupe
+        # CrÃ©er un embed pour ce groupe
         if i == 0:
             # Premier embed avec image du coffre
             chunk_embed = discord.Embed(
-                title="💰 PAIEMENT DES SALAIRES",
-                description="**📊 Récapitulatif des salaires de la semaine**\n",
+                title="ðŸ’° PAIEMENT DES SALAIRES",
+                description="**ðŸ“Š RÃ©capitulatif des salaires de la semaine**\n",
                 color=EMS_RED
             )
             if coffre_image_file:
@@ -6208,7 +6208,7 @@ async def payes(interaction: discord.Interaction):
         else:
             # Embeds suivants
             chunk_embed = discord.Embed(
-                title=f"💰 PAIEMENT DES SALAIRES (suite)",
+                title=f"ðŸ’° PAIEMENT DES SALAIRES (suite)",
                 description=f"**Page {page_num}/{total_pages}**\n",
                 color=EMS_RED
             )
@@ -6225,19 +6225,19 @@ async def payes(interaction: discord.Interaction):
         
         salary_text += "```"
         
-        chunk_embed.add_field(name=f"📋 Liste (Page {page_num}/{total_pages})", value=salary_text, inline=False)
+        chunk_embed.add_field(name=f"ðŸ“‹ Liste (Page {page_num}/{total_pages})", value=salary_text, inline=False)
         
         # Ajouter le total uniquement sur le dernier embed
         if i + employees_per_embed >= len(salary_data):
             chunk_embed.add_field(
-                name="💵 TOTAL À RETIRER",
+                name="ðŸ’µ TOTAL Ã€ RETIRER",
                 value=f"```{total_payroll:,}$```".replace(",", " "),
                 inline=False
             )
-            chunk_embed.set_footer(text="🚑 EMS System | Bonne paie à tous !")
+            chunk_embed.set_footer(text="ðŸš‘ EMS System | Bonne paie Ã  tous !")
             chunk_embed.timestamp = now_paris()
         else:
-            chunk_embed.set_footer(text=f"🚑 EMS System | Page {page_num}/{total_pages}")
+            chunk_embed.set_footer(text=f"ðŸš‘ EMS System | Page {page_num}/{total_pages}")
         
         embeds_to_send.append(chunk_embed)
     
@@ -6256,20 +6256,20 @@ async def payes(interaction: discord.Interaction):
             except Exception as e:
                 print(f"Erreur envoi annonce salaires (page {idx+1}): {e}")
     
-    # 7. Réinitialiser la semaine (comme /semaine)
-    # Réinitialiser stats
+    # 7. RÃ©initialiser la semaine (comme /semaine)
+    # RÃ©initialiser stats
     save_stats({})
     
-    # Réinitialiser les primes du soir
+    # RÃ©initialiser les primes du soir
     global evening_reas
     evening_reas = {}
     atomic_write_json(EVENING_REAS_FILE, evening_reas)
     
-    # Mettre tous les channels en 🔴
+    # Mettre tous les channels en ðŸ”´
     announcement_channels = []
     for channel in guild.text_channels:
-        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
-            new_name = f"🔴{channel.name[1:]}"
+        if len(channel.name) > 0 and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
+            new_name = f"ðŸ”´{channel.name[1:]}"
             try:
                 await channel.edit(name=new_name)
                 announcement_channels.append(channel)
@@ -6278,12 +6278,12 @@ async def payes(interaction: discord.Interaction):
     
     # Embed d'annonce de nouvelle semaine
     week_embed = discord.Embed(
-        title="🚑 NOUVELLE SEMAINE !",
-        description="**✅ Salaires payés et semaine réinitialisée**\n\n• Tous les compteurs remis à 0\n• Tous les channels en 🔴\n• C'est repartit de zéro !\n\n**Bonne chance à tous ! 💪**",
+        title="ðŸš‘ NOUVELLE SEMAINE !",
+        description="**âœ… Salaires payÃ©s et semaine rÃ©initialisÃ©e**\n\nâ€¢ Tous les compteurs remis Ã  0\nâ€¢ Tous les channels en ðŸ”´\nâ€¢ C'est repartit de zÃ©ro !\n\n**Bonne chance Ã  tous ! ðŸ’ª**",
         color=EMS_RED
     )
     week_embed.set_image(url="https://media.discordapp.net/attachments/1432501937085087896/1457439823215460487/image.png?ex=695ea51b&is=695d539b&hm=73669ae578193fac7bb528589592facb8ffa94a53f6521f1fad68165e393d32c&=&format=webp&quality=lossless&width=1872&height=571")
-    week_embed.set_footer(text="🚑 EMS System | Nouvelle semaine, nouveau challenge !")
+    week_embed.set_footer(text="ðŸš‘ EMS System | Nouvelle semaine, nouveau challenge !")
     
     # Envoyer l'annonce dans tous les channels avec emoji
     for channel in announcement_channels:
@@ -6301,11 +6301,11 @@ async def payes(interaction: discord.Interaction):
     
     # 8. Confirmer la commande
     confirm_embed = discord.Embed(
-        title="✅ SALAIRES CALCULÉS ET ENVOYÉS",
-        description=f"💰 **Total à payer :** {total_payroll:,}$\n📊 **Employés payés :** {len(salary_data)}\n✅ Semaine réinitialisée avec succès !".replace(",", " "),
+        title="âœ… SALAIRES CALCULÃ‰S ET ENVOYÃ‰S",
+        description=f"ðŸ’° **Total Ã  payer :** {total_payroll:,}$\nðŸ“Š **EmployÃ©s payÃ©s :** {len(salary_data)}\nâœ… Semaine rÃ©initialisÃ©e avec succÃ¨s !".replace(",", " "),
         color=EMS_RED
     )
-    confirm_embed.set_footer(text="🚑 EMS System")
+    confirm_embed.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=confirm_embed)
 
 @app_commands.checks.has_permissions(administrator=True)
@@ -6327,7 +6327,7 @@ async def payes_test(interaction: discord.Interaction):
         if member.bot:
             continue
         
-        # Vérifier si le membre a le rôle DIRECTION
+        # VÃ©rifier si le membre a le rÃ´le DIRECTION
         has_direction_role = direction_role in member.roles if direction_role else False
         
         if has_direction_role:
@@ -6344,7 +6344,7 @@ async def payes_test(interaction: discord.Interaction):
             })
             continue
         
-        # Détecter le grade par tag dans le pseudo
+        # DÃ©tecter le grade par tag dans le pseudo
         nick = member.display_name.upper()
         grade = None
         rate = 0
@@ -6379,7 +6379,7 @@ async def payes_test(interaction: discord.Interaction):
         else:
             continue
         
-        # Récupérer les réas
+        # RÃ©cupÃ©rer les rÃ©as
         employee_key = normalize_employee_key(member.display_name)
         rea_count = stats.get(employee_key, 0)
         
@@ -6400,10 +6400,10 @@ async def payes_test(interaction: discord.Interaction):
             "total": salary
         })
     
-    # Trier par salaire décroissant
+    # Trier par salaire dÃ©croissant
     salary_data.sort(key=lambda x: x["total"], reverse=True)
     
-    # Diviser les employés en groupes de 10 pour éviter les dépassements
+    # Diviser les employÃ©s en groupes de 10 pour Ã©viter les dÃ©passements
     embeds_to_send = []
     employees_per_embed = 10
     
@@ -6412,18 +6412,18 @@ async def payes_test(interaction: discord.Interaction):
         page_num = (i // employees_per_embed) + 1
         total_pages = (len(salary_data) + employees_per_embed - 1) // employees_per_embed
         
-        # Créer un embed pour ce groupe
+        # CrÃ©er un embed pour ce groupe
         if i == 0:
             # Premier embed avec titre principal
             chunk_embed = discord.Embed(
-                title="💰 TEST - APERÇU DES SALAIRES",
-                description="**📊 Simulation du calcul des salaires (rien n'est envoyé ou reset)**\n",
+                title="ðŸ’° TEST - APERÃ‡U DES SALAIRES",
+                description="**ðŸ“Š Simulation du calcul des salaires (rien n'est envoyÃ© ou reset)**\n",
                 color=EMS_RED
             )
         else:
             # Embeds suivants
             chunk_embed = discord.Embed(
-                title=f"💰 APERÇU DES SALAIRES (suite)",
+                title=f"ðŸ’° APERÃ‡U DES SALAIRES (suite)",
                 description=f"**Page {page_num}/{total_pages}**\n",
                 color=EMS_RED
             )
@@ -6440,23 +6440,23 @@ async def payes_test(interaction: discord.Interaction):
         
         salary_text += "```"
         
-        chunk_embed.add_field(name=f"📋 Liste (Page {page_num}/{total_pages})", value=salary_text, inline=False)
+        chunk_embed.add_field(name=f"ðŸ“‹ Liste (Page {page_num}/{total_pages})", value=salary_text, inline=False)
         
         # Ajouter les stats uniquement sur le dernier embed
         if i + employees_per_embed >= len(salary_data):
             chunk_embed.add_field(
-                name="💵 TOTAL À RETIRER",
+                name="ðŸ’µ TOTAL Ã€ RETIRER",
                 value=f"```{total_payroll:,}$```".replace(",", " "),
                 inline=False
             )
             
             chunk_embed.add_field(
-                name="📊 STATISTIQUES",
-                value=f"**Employés :** {len(salary_data)}\n**Réas totales :** {sum(stats.values())}",
+                name="ðŸ“Š STATISTIQUES",
+                value=f"**EmployÃ©s :** {len(salary_data)}\n**RÃ©as totales :** {sum(stats.values())}",
                 inline=False
             )
         
-        chunk_embed.set_footer(text=f"🚑 EMS System | Mode Test - Page {page_num}/{total_pages}")
+        chunk_embed.set_footer(text=f"ðŸš‘ EMS System | Mode Test - Page {page_num}/{total_pages}")
         embeds_to_send.append(chunk_embed)
     
     # Envoyer tous les embeds
@@ -6469,16 +6469,16 @@ async def reorganize(interaction: discord.Interaction):
     
     guild = interaction.guild
     
-    # Vérifier que les catégories sont configurées
+    # VÃ©rifier que les catÃ©gories sont configurÃ©es
     if not all([CATEGORY_EMT_ID, CATEGORY_STG_ID, CATEGORY_ADS_ID, CATEGORY_INF_ID, CATEGORY_PSY_ID, CATEGORY_MED_ID, CATEGORY_CDS_ID, CATEGORY_CAD_ID, CATEGORY_DIR_ID]):
-        await interaction.followup.send("❌ Veuillez d'abord configurer les catégories avec `/setup_categories` !")
+        await interaction.followup.send("âŒ Veuillez d'abord configurer les catÃ©gories avec `/setup_categories` !")
         return
     
-    # Mapping grade -> catégorie
+    # Mapping grade -> catÃ©gorie
     grade_to_category = {
         "emt": CATEGORY_EMT_ID,
         "stg": CATEGORY_STG_ID,
-        "int": CATEGORY_STG_ID,   # Compatibilité anciens channels [INT]
+        "int": CATEGORY_STG_ID,   # CompatibilitÃ© anciens channels [INT]
         "ads": CATEGORY_ADS_ID,
         "inf": CATEGORY_INF_ID,
         "psy": CATEGORY_PSY_ID,
@@ -6491,7 +6491,7 @@ async def reorganize(interaction: discord.Interaction):
     errors = []
     skipped = []
     
-    # IDs des rôles de grade
+    # IDs des rÃ´les de grade
     role_to_grade = {
         895047492784238652: "emt",   # R_EMT
         838102445095256069: "stg",   # R_STG Stagiaire
@@ -6501,13 +6501,13 @@ async def reorganize(interaction: discord.Interaction):
         840288242547818507: "med",   # R_MED
         1528561040663777310: "cad",  # Chef Adjoint
         838102445095256071: "cds",   # Chef de Service
-        1088570974603055195: "dir",  # R_DIR Directeur Médical
+        1088570974603055195: "dir",  # R_DIR Directeur MÃ©dical
     }
     
     # Scanner tous les channels texte
     for channel in guild.text_channels:
-        # Vérifier si c'est un channel EMS (commence par un emoji)
-        if len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]:
+        # VÃ©rifier si c'est un channel EMS (commence par un emoji)
+        if len(channel.name) > 0 and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
             # Trouver le membre correspondant au channel via son nom
             ch_employee_key = get_channel_employee_key(channel)
             
@@ -6515,7 +6515,7 @@ async def reorganize(interaction: discord.Interaction):
             for member in guild.members:
                 member_key = normalize_employee_key(get_clean_name(member))
                 if member_key == ch_employee_key:
-                    # Trouver le grade via les rôles du membre
+                    # Trouver le grade via les rÃ´les du membre
                     for role in member.roles:
                         if role.id in role_to_grade:
                             found_grade = role_to_grade[role.id]
@@ -6527,49 +6527,49 @@ async def reorganize(interaction: discord.Interaction):
                 target_category = guild.get_channel(target_category_id)
                 
                 if target_category:
-                    # Vérifier si le channel est déjà dans la bonne catégorie
+                    # VÃ©rifier si le channel est dÃ©jÃ  dans la bonne catÃ©gorie
                     if channel.category_id == target_category_id:
-                        skipped.append(f"⏭️ {channel.mention} (déjà dans {found_grade.upper()})")
+                        skipped.append(f"â­ï¸ {channel.mention} (dÃ©jÃ  dans {found_grade.upper()})")
                     else:
                         try:
                             await channel.edit(category=target_category)
-                            moved.append(f"✅ {channel.mention} → {found_grade.upper()}")
+                            moved.append(f"âœ… {channel.mention} â†’ {found_grade.upper()}")
                         except Exception as e:
-                            errors.append(f"❌ {channel.mention}: {e}")
+                            errors.append(f"âŒ {channel.mention}: {e}")
                 else:
-                    errors.append(f"❌ {channel.mention}: Catégorie {found_grade.upper()} introuvable")
+                    errors.append(f"âŒ {channel.mention}: CatÃ©gorie {found_grade.upper()} introuvable")
             else:
-                skipped.append(f"⚠️ {channel.mention} (grade non identifié)")
+                skipped.append(f"âš ï¸ {channel.mention} (grade non identifiÃ©)")
     
-    # Créer le message de réponse
+    # CrÃ©er le message de rÃ©ponse
     embed = discord.Embed(
-        title="🔄 RÉORGANISATION DES CHANNELS",
-        description="Déplacement automatique des channels dans leurs catégories respectives",
+        title="ðŸ”„ RÃ‰ORGANISATION DES CHANNELS",
+        description="DÃ©placement automatique des channels dans leurs catÃ©gories respectives",
         color=EMS_RED
     )
     
     if moved:
-        moved_text = "\n".join(moved[:25])  # Limiter à 25 pour ne pas dépasser la limite
+        moved_text = "\n".join(moved[:25])  # Limiter Ã  25 pour ne pas dÃ©passer la limite
         if len(moved) > 25:
             moved_text += f"\n... et {len(moved) - 25} autres"
-        embed.add_field(name=f"✅ Déplacés ({len(moved)})", value=moved_text, inline=False)
+        embed.add_field(name=f"âœ… DÃ©placÃ©s ({len(moved)})", value=moved_text, inline=False)
     
     if skipped:
         skipped_text = "\n".join(skipped[:10])
         if len(skipped) > 10:
             skipped_text += f"\n... et {len(skipped) - 10} autres"
-        embed.add_field(name=f"⏭️ Ignorés ({len(skipped)})", value=skipped_text, inline=False)
+        embed.add_field(name=f"â­ï¸ IgnorÃ©s ({len(skipped)})", value=skipped_text, inline=False)
     
     if errors:
         errors_text = "\n".join(errors[:10])
         if len(errors) > 10:
             errors_text += f"\n... et {len(errors) - 10} autres"
-        embed.add_field(name=f"❌ Erreurs ({len(errors)})", value=errors_text, inline=False)
+        embed.add_field(name=f"âŒ Erreurs ({len(errors)})", value=errors_text, inline=False)
     
     if not moved and not skipped and not errors:
-        embed.description = "Aucun channel EMS trouvé à réorganiser."
+        embed.description = "Aucun channel EMS trouvÃ© Ã  rÃ©organiser."
     
-    embed.set_footer(text="🚑 EMS System")
+    embed.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=embed)
 
 @app_commands.checks.has_permissions(administrator=True)
@@ -6581,7 +6581,7 @@ async def synchronise(interaction: discord.Interaction):
         log_channel = bot.get_channel(LOGS_SYNC_CHANNEL_ID)
         
         if not log_channel:
-            await interaction.followup.send(f"❌ Channel de logs introuvable (ID: {LOGS_SYNC_CHANNEL_ID})")
+            await interaction.followup.send(f"âŒ Channel de logs introuvable (ID: {LOGS_SYNC_CHANNEL_ID})")
             return
         
         # Calculer la date de hier 19h19
@@ -6589,31 +6589,31 @@ async def synchronise(interaction: discord.Interaction):
         yesterday_19h19 = now.replace(hour=19, minute=19, second=0, microsecond=0) - timedelta(days=1)
         
         embed_progress = discord.Embed(
-            title="🔄 SYNCHRONISATION EN COURS",
-            description=f"Lecture des messages depuis **{yesterday_19h19.strftime('%d/%m/%Y à %H:%M')}**...",
+            title="ðŸ”„ SYNCHRONISATION EN COURS",
+            description=f"Lecture des messages depuis **{yesterday_19h19.strftime('%d/%m/%Y Ã  %H:%M')}**...",
             color=EMS_RED
         )
-        embed_progress.set_footer(text="🚑 EMS System")
+        embed_progress.set_footer(text="ðŸš‘ EMS System")
         await interaction.followup.send(embed=embed_progress)
         
         # Charger les stats actuelles
         stats = load_stats()
         
-        # Dictionnaire pour compter les +1 par employé
+        # Dictionnaire pour compter les +1 par employÃ©
         increments = {}
         message_count = 0
         
         # Lire les messages depuis hier 19h19
         async for message in log_channel.history(after=yesterday_19h19, limit=None):
-            # Format attendu: "✅ **employee_key** | X réas"
-            if message.content.startswith("✅ **") and " réas" in message.content:
+            # Format attendu: "âœ… **employee_key** | X rÃ©as"
+            if message.content.startswith("âœ… **") and " rÃ©as" in message.content:
                 try:
-                    # Extraire l'employé
+                    # Extraire l'employÃ©
                     parts = message.content.split("**")
                     if len(parts) >= 3:
                         employee_key = parts[1].strip()
                         
-                        # Incrémenter le compteur pour cet employé
+                        # IncrÃ©menter le compteur pour cet employÃ©
                         if employee_key not in increments:
                             increments[employee_key] = 0
                         increments[employee_key] += 1
@@ -6622,7 +6622,7 @@ async def synchronise(interaction: discord.Interaction):
                 except Exception as e:
                     continue
         
-        # Appliquer les incréments aux stats
+        # Appliquer les incrÃ©ments aux stats
         if increments:
             for employee_key, count in increments.items():
                 if employee_key not in stats:
@@ -6632,49 +6632,112 @@ async def synchronise(interaction: discord.Interaction):
             # Sauvegarder les stats
             save_stats(stats)
             
-            # Créer l'embed de résultat
+            # CrÃ©er l'embed de rÃ©sultat
             embed_result = discord.Embed(
-                title="✅ SYNCHRONISATION TERMINÉE",
-                description=f"**{message_count} messages traités**\n**{len(increments)} employés mis à jour**",
+                title="âœ… SYNCHRONISATION TERMINÃ‰E",
+                description=f"**{message_count} messages traitÃ©s**\n**{len(increments)} employÃ©s mis Ã  jour**",
                 color=EMS_RED
             )
             
-            # Afficher les modifications (limité à 25 champs)
+            # Afficher les modifications (limitÃ© Ã  25 champs)
             sorted_increments = sorted(increments.items(), key=lambda x: x[1], reverse=True)
             for i, (employee_key, count) in enumerate(sorted_increments[:25]):
                 emoji = get_color_emoji(stats[employee_key])
                 embed_result.add_field(
                     name=f"{emoji} {employee_key}",
-                    value=f"+{count} → {stats[employee_key]}/150",
+                    value=f"+{count} â†’ {stats[employee_key]}/150",
                     inline=True
                 )
             
             if len(increments) > 25:
                 embed_result.add_field(
                     name="...",
-                    value=f"Et {len(increments) - 25} autres employés",
+                    value=f"Et {len(increments) - 25} autres employÃ©s",
                     inline=False
                 )
             
-            embed_result.set_footer(text=f"🚑 EMS System | Synchronisé depuis {yesterday_19h19.strftime('%d/%m/%Y à %H:%M')}")
+            embed_result.set_footer(text=f"ðŸš‘ EMS System | SynchronisÃ© depuis {yesterday_19h19.strftime('%d/%m/%Y Ã  %H:%M')}")
             await interaction.edit_original_response(embed=embed_result)
         else:
             embed_empty = discord.Embed(
-                title="⚠️ AUCUNE DONNÉE",
-                description=f"Aucun message de stats trouvé depuis **{yesterday_19h19.strftime('%d/%m/%Y à %H:%M')}**",
+                title="âš ï¸ AUCUNE DONNÃ‰E",
+                description=f"Aucun message de stats trouvÃ© depuis **{yesterday_19h19.strftime('%d/%m/%Y Ã  %H:%M')}**",
                 color=EMS_RED
             )
-            embed_empty.set_footer(text="🚑 EMS System")
+            embed_empty.set_footer(text="ðŸš‘ EMS System")
             await interaction.edit_original_response(embed=embed_empty)
             
     except Exception as e:
         embed_error = discord.Embed(
-            title="❌ ERREUR",
+            title="âŒ ERREUR",
             description=f"Une erreur est survenue lors de la synchronisation:\n```{str(e)}```",
             color=discord.Color.red()
         )
-        embed_error.set_footer(text="🚑 EMS System")
+        embed_error.set_footer(text="ðŸš‘ EMS System")
         await interaction.followup.send(embed=embed_error)
+
+# Totaux officiels au 19 aoÃ»t 2026 â€” utilisÃ©s par /remise
+_REMISE_STATS = {
+    "aya-perez": 408, "romain-romarin": 304, "alexendre-hunter": 182,
+    "jose-de-maria": 154, "ytuka-labranche": 126, "teddy-coffe": 116,
+    "lucas-moreau": 86, "clara-ino": 68, "thomas-lesner": 38,
+    "elden-wallace": 36, "bart-junior": 32, "noah-kyo": 26,
+    "amine-gouiri": 26, "ilyes-bentaleb": 26, "iss-montana": 2,
+    "paul-fera": 2, "nollan-lopez": 2, "jackson-white": 2,
+}
+
+@bot.tree.command(name="remise", description="Remet les stats Ã  jour (totaux officiels) et met Ã  jour les channels")
+@app_commands.checks.has_permissions(administrator=True)
+async def remise(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    guild = interaction.guild
+    if not guild:
+        await interaction.followup.send("âŒ Commande utilisable uniquement dans le serveur.", ephemeral=True)
+        return
+
+    # 1) Ã‰craser stats.json avec les totaux officiels
+    save_stats(dict(_REMISE_STATS))
+
+    # 2) Mettre Ã  jour les channels (emoji + description)
+    updated, skipped = 0, 0
+    for ch in guild.text_channels:
+        if not ch.name or ch.name[0] not in ("ðŸ”´", "ðŸŸ ", "ðŸŸ¢"):
+            continue
+        key = get_channel_employee_key(ch)
+        if key not in _REMISE_STATS:
+            skipped += 1
+            continue
+        count = _REMISE_STATS[key]
+        new_emoji = get_color_emoji(count)
+        new_topic = f"{new_emoji} {count}/100"
+        edit_args = {}
+        if ch.name[0] != new_emoji:
+            edit_args["name"] = f"{new_emoji}{ch.name[1:]}"
+        if ch.topic != new_topic:
+            edit_args["topic"] = new_topic
+        if edit_args:
+            try:
+                await ch.edit(**edit_args)
+                await asyncio.sleep(2)  # rate-limit Discord
+                updated += 1
+            except Exception as e:
+                print(f"[remise] Erreur {key}: {repr(e)}")
+        else:
+            skipped += 1
+
+    embed = discord.Embed(
+        title="âœ… Remise Ã  jour effectuÃ©e",
+        color=discord.Color.green()
+    )
+    embed.add_field(name="Channels mis Ã  jour", value=str(updated), inline=True)
+    embed.add_field(name="InchangÃ©s / non trouvÃ©s", value=str(skipped), inline=True)
+    embed.add_field(
+        name="Totaux injectÃ©s",
+        value="\n".join(f"{k.replace('-', ' ').title()} â†’ **{v}**" for k, v in sorted(_REMISE_STATS.items(), key=lambda x: -x[1])),
+        inline=False
+    )
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
 
 # --- COMMANDE /REA - STATS PERSONNELLES ---
 @bot.tree.command(name="rea", description="Affiche vos statistiques personnelles")
@@ -6682,24 +6745,24 @@ async def rea(interaction: discord.Interaction):
     """Affiche les stats de l'utilisateur avec graphique ASCII"""
     await interaction.response.defer(ephemeral=True)
     
-    # Récupérer la clé employé
+    # RÃ©cupÃ©rer la clÃ© employÃ©
     user_display_name = interaction.user.display_name
     employee_key = normalize_employee_key(user_display_name)
     
     if not employee_key:
-        await interaction.followup.send("❌ Impossible de déterminer votre clé employé", ephemeral=True)
+        await interaction.followup.send("âŒ Impossible de dÃ©terminer votre clÃ© employÃ©", ephemeral=True)
         return
     
-    # Charger les données
+    # Charger les donnÃ©es
     stats = load_stats()
     services = load_services()
     bonuses = load_bonuses()
     
-    # Récupérer les stats de l'employé
+    # RÃ©cupÃ©rer les stats de l'employÃ©
     current_reas = stats.get(employee_key, 0)
     total_bonuses = get_total_bonuses(employee_key)
     
-    # Récupérer les heures de service
+    # RÃ©cupÃ©rer les heures de service
     week_key = get_week_start()
     week_services = services.get(week_key, {})
     week_data = week_services.get(employee_key, {})
@@ -6711,26 +6774,26 @@ async def rea(interaction: discord.Interaction):
     h = int(hours)
     m = int((hours - h) * 60)
     
-    # Créer l'embed principal
+    # CrÃ©er l'embed principal
     embed = discord.Embed(
-        title=f"📊 MES STATISTIQUES - {employee_key.upper().replace('-', ' ')}",
+        title=f"ðŸ“Š MES STATISTIQUES - {employee_key.upper().replace('-', ' ')}",
         color=EMS_RED
     )
     
     # Indicateur de progression
     emoji = get_color_emoji(current_reas)
-    progression_bar = "█" * (current_reas // 5) + "░" * ((100 - current_reas) // 5)
+    progression_bar = "â–ˆ" * (current_reas // 5) + "â–‘" * ((100 - current_reas) // 5)
     
     embed.add_field(
-        name="🎯 RÉANIMATIONS TOTALES",
+        name="ðŸŽ¯ RÃ‰ANIMATIONS TOTALES",
         value=f"{emoji} **{current_reas}/100**\n`{progression_bar}` ({current_reas}%)",
         inline=False
     )
     
     # Heures de service cette semaine
     embed.add_field(
-        name="⏱️ HEURES DE SERVICE (SEMAINE)",
-        value=f"**⌚ Total:** `{h}h{m:02d}`\n**🚑 Réas:** `{reas_this_week}` réa(s)\n**📍 Sessions:** `{sessions}` session(s)",
+        name="â±ï¸ HEURES DE SERVICE (SEMAINE)",
+        value=f"**âŒš Total:** `{h}h{m:02d}`\n**ðŸš‘ RÃ©as:** `{reas_this_week}` rÃ©a(s)\n**ðŸ“ Sessions:** `{sessions}` session(s)",
         inline=False
     )
     
@@ -6738,24 +6801,24 @@ async def rea(interaction: discord.Interaction):
     if sessions > 0:
         avg_reas = reas_this_week / sessions
         embed.add_field(
-            name="📈 MOYENNES",
-            value=f"**Réas/session:** `{avg_reas:.1f}`\n**Temps/session:** `{(hours / sessions):.2f}h`",
+            name="ðŸ“ˆ MOYENNES",
+            value=f"**RÃ©as/session:** `{avg_reas:.1f}`\n**Temps/session:** `{(hours / sessions):.2f}h`",
             inline=False
         )
     
     # Graphique ASCII horizontal simple
     if current_reas > 0 or sessions > 0:
         graph_text = "```\n"
-        graph_text += "PROGRESSION VERS 100 RÉAS:\n"
+        graph_text += "PROGRESSION VERS 100 RÃ‰AS:\n"
         graph_text += progression_bar + f" {current_reas}/100\n"
         graph_text += "```"
         embed.add_field(
-            name="📉 GRAPHIQUE",
+            name="ðŸ“‰ GRAPHIQUE",
             value=graph_text,
             inline=False
         )
     
-    embed.set_footer(text="🚑 EMS System | Bonne chance!")
+    embed.set_footer(text="ðŸš‘ EMS System | Bonne chance!")
     embed.timestamp = now_paris()
     
     await interaction.followup.send(embed=embed, ephemeral=True)
@@ -6767,77 +6830,77 @@ async def annonce_rea_command(interaction: discord.Interaction):
     await interaction.response.defer()
     
     embed = discord.Embed(
-        title="📊 NOUVELLE COMMANDE: /rea",
-        description="Consultez vos statistiques personnelles en temps réel!",
+        title="ðŸ“Š NOUVELLE COMMANDE: /rea",
+        description="Consultez vos statistiques personnelles en temps rÃ©el!",
         color=discord.Color.from_rgb(220, 20, 60)
     )
     
     embed.add_field(
-        name="🎯 Qu'est-ce que /rea?",
-        value="La commande `/rea` vous permet de voir **à tout moment** vos statistiques personnelles de réanimations, heures de service, et progress vers votre quota.",
+        name="ðŸŽ¯ Qu'est-ce que /rea?",
+        value="La commande `/rea` vous permet de voir **Ã  tout moment** vos statistiques personnelles de rÃ©animations, heures de service, et progress vers votre quota.",
         inline=False
     )
     
     embed.add_field(
-        name="📋 Informations affichées:",
-        value="✅ Nombre total de réas (progress vers 100)\n✅ Heures de service cette semaine\n✅ Nombre de services effectués\n✅ Moyennes (réas par session, heures par session)\n✅ Barre de progression ASCII\n✅ Indicateur couleur (🔴🟠🟢)",
+        name="ðŸ“‹ Informations affichÃ©es:",
+        value="âœ… Nombre total de rÃ©as (progress vers 100)\nâœ… Heures de service cette semaine\nâœ… Nombre de services effectuÃ©s\nâœ… Moyennes (rÃ©as par session, heures par session)\nâœ… Barre de progression ASCII\nâœ… Indicateur couleur (ðŸ”´ðŸŸ ðŸŸ¢)",
         inline=False
     )
     
     embed.add_field(
-        name="💡 Comment utiliser?",
-        value="Tapez simplement `/rea` n'importe où sur le serveur\n*Le résultat ne sera visible que par vous (message éphémère)*",
+        name="ðŸ’¡ Comment utiliser?",
+        value="Tapez simplement `/rea` n'importe oÃ¹ sur le serveur\n*Le rÃ©sultat ne sera visible que par vous (message Ã©phÃ©mÃ¨re)*",
         inline=False
     )
     
     embed.add_field(
-        name="📈 Exemple de résultat:",
-        value="```\n🎯 RÉANIMATIONS TOTALES\n🟠 54/100\n████░░░░░░░░░░░░░░░ (54%)\n\n⏱️ HEURES DE SERVICE (SEMAINE)\n⌚ Total: 5h55\n🚑 Réas: 324 réa(s)\n📍 Sessions: 13 session(s)\n```",
+        name="ðŸ“ˆ Exemple de rÃ©sultat:",
+        value="```\nðŸŽ¯ RÃ‰ANIMATIONS TOTALES\nðŸŸ  54/100\nâ–ˆâ–ˆâ–ˆâ–ˆâ–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘â–‘ (54%)\n\nâ±ï¸ HEURES DE SERVICE (SEMAINE)\nâŒš Total: 5h55\nðŸš‘ RÃ©as: 324 rÃ©a(s)\nðŸ“ Sessions: 13 session(s)\n```",
         inline=False
     )
     
     embed.add_field(
-        name="🎨 Légende des couleurs:",
-        value="🔴 **ROUGE** = Moins de 50 réas\n🟠 **ORANGE** = Entre 50 et 99 réas\n🟢 **VERT** = 100 réas ou plus",
+        name="ðŸŽ¨ LÃ©gende des couleurs:",
+        value="ðŸ”´ **ROUGE** = Moins de 50 rÃ©as\nðŸŸ  **ORANGE** = Entre 50 et 99 rÃ©as\nðŸŸ¢ **VERT** = 100 rÃ©as ou plus",
         inline=False
     )
     
     embed.add_field(
-        name="⚡ Conseils:",
-        value="• Utilisez `/rea` régulièrement pour suivre votre progress\n• Vérifiez votre position dans le classement\n• Communiquez sur vos stats avec vos collègues\n• Travaillez ensemble pour atteindre les quotas!",
+        name="âš¡ Conseils:",
+        value="â€¢ Utilisez `/rea` rÃ©guliÃ¨rement pour suivre votre progress\nâ€¢ VÃ©rifiez votre position dans le classement\nâ€¢ Communiquez sur vos stats avec vos collÃ¨gues\nâ€¢ Travaillez ensemble pour atteindre les quotas!",
         inline=False
     )
     
     embed.set_thumbnail(url="https://media.discordapp.net/attachments/1458228261166518293/1458240230001086524/ambulance-emoji.png")
-    embed.set_footer(text="🚑 EMS System | Version 2.0")
+    embed.set_footer(text="ðŸš‘ EMS System | Version 2.0")
     embed.timestamp = now_paris()
     
     await interaction.followup.send(embed=embed)
 
-@bot.tree.command(name="cv", description="Ajoute des réanimations (à utiliser dans votre channel personnel)")
-@app_commands.describe(nombre="Nombre de réas à ajouter")
+@bot.tree.command(name="cv", description="Ajoute des rÃ©animations (Ã  utiliser dans votre channel personnel)")
+@app_commands.describe(nombre="Nombre de rÃ©as Ã  ajouter")
 @app_commands.checks.has_permissions(administrator=True)
 async def cv_command(interaction: discord.Interaction, nombre: int):
-    """Ajoute des réas depuis le channel personnel"""
+    """Ajoute des rÃ©as depuis le channel personnel"""
     await interaction.response.defer(ephemeral=True)
     
-    # Vérifier que c'est dans un channel EMS
+    # VÃ©rifier que c'est dans un channel EMS
     channel = interaction.channel
-    if not channel or not (channel.name and channel.name[0] in ["🔴", "🟠", "🟢"]):
-        await interaction.followup.send("❌ Cette commande ne fonctionne que dans votre channel personnel EMS", ephemeral=True)
+    if not channel or not (channel.name and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]):
+        await interaction.followup.send("âŒ Cette commande ne fonctionne que dans votre channel personnel EMS", ephemeral=True)
         return
     
     if nombre <= 0 or nombre > 500:
-        await interaction.followup.send("❌ Le nombre doit être entre 1 et 500", ephemeral=True)
+        await interaction.followup.send("âŒ Le nombre doit Ãªtre entre 1 et 500", ephemeral=True)
         return
     
-    # Récupérer la clé employé
+    # RÃ©cupÃ©rer la clÃ© employÃ©
     employee_key = get_channel_employee_key(channel)
     if not employee_key:
-        await interaction.followup.send("❌ Impossible de déterminer votre clé employé", ephemeral=True)
+        await interaction.followup.send("âŒ Impossible de dÃ©terminer votre clÃ© employÃ©", ephemeral=True)
         return
     
-    # Charger et mettre à jour les stats
+    # Charger et mettre Ã  jour les stats
     stats = load_stats()
     old_value = stats.get(employee_key, 0)
     new_value = old_value + nombre
@@ -6847,21 +6910,21 @@ async def cv_command(interaction: discord.Interaction, nombre: int):
     # Envoyer la confirmation
     emoji = get_color_emoji(new_value)
     embed = discord.Embed(
-        title="✅ RÉAS AJOUTÉES",
-        description=f"**+{nombre} réas** pour {employee_key.replace('-', ' ').title()}",
+        title="âœ… RÃ‰AS AJOUTÃ‰ES",
+        description=f"**+{nombre} rÃ©as** pour {employee_key.replace('-', ' ').title()}",
         color=EMS_RED
     )
     embed.add_field(
-        name="📊 Progression",
-        value=f"Avant: {old_value}/100\nAprès: {new_value}/100 {emoji}",
+        name="ðŸ“Š Progression",
+        value=f"Avant: {old_value}/100\nAprÃ¨s: {new_value}/100 {emoji}",
         inline=False
     )
-    embed.set_footer(text="🚑 EMS System | Stats mises à jour")
+    embed.set_footer(text="ðŸš‘ EMS System | Stats mises Ã  jour")
     embed.timestamp = now_paris()
     
     await interaction.followup.send(embed=embed, ephemeral=True)
     
-    # Mettre à jour la description du channel
+    # Mettre Ã  jour la description du channel
     try:
         new_emoji = get_color_emoji(new_value)
         description = f"{new_emoji} {new_value}/100"
@@ -6869,31 +6932,31 @@ async def cv_command(interaction: discord.Interaction, nombre: int):
     except:
         pass
 
-# --- COMMANDE RETRAIT - RETIRER DES RÉAS ---
-@bot.tree.command(name="retrait", description="Retire des réanimations (corrections/erreurs)")
-@app_commands.describe(nombre="Nombre de réas à retirer")
+# --- COMMANDE RETRAIT - RETIRER DES RÃ‰AS ---
+@bot.tree.command(name="retrait", description="Retire des rÃ©animations (corrections/erreurs)")
+@app_commands.describe(nombre="Nombre de rÃ©as Ã  retirer")
 @app_commands.checks.has_permissions(administrator=True)
 async def retrait_command(interaction: discord.Interaction, nombre: int):
-    """Retire des réas depuis le channel personnel"""
+    """Retire des rÃ©as depuis le channel personnel"""
     await interaction.response.defer(ephemeral=True)
     
-    # Vérifier que c'est dans un channel EMS
+    # VÃ©rifier que c'est dans un channel EMS
     channel = interaction.channel
-    if not channel or not (channel.name and channel.name[0] in ["🔴", "🟠", "🟢"]):
-        await interaction.followup.send("❌ Cette commande ne fonctionne que dans votre channel personnel EMS", ephemeral=True)
+    if not channel or not (channel.name and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]):
+        await interaction.followup.send("âŒ Cette commande ne fonctionne que dans votre channel personnel EMS", ephemeral=True)
         return
     
     if nombre <= 0 or nombre > 500:
-        await interaction.followup.send("❌ Le nombre doit être entre 1 et 500", ephemeral=True)
+        await interaction.followup.send("âŒ Le nombre doit Ãªtre entre 1 et 500", ephemeral=True)
         return
     
-    # Récupérer la clé employé
+    # RÃ©cupÃ©rer la clÃ© employÃ©
     employee_key = get_channel_employee_key(channel)
     if not employee_key:
-        await interaction.followup.send("❌ Impossible de déterminer votre clé employé", ephemeral=True)
+        await interaction.followup.send("âŒ Impossible de dÃ©terminer votre clÃ© employÃ©", ephemeral=True)
         return
     
-    # Charger et mettre à jour les stats
+    # Charger et mettre Ã  jour les stats
     stats = load_stats()
     old_value = stats.get(employee_key, 0)
     new_value = max(0, old_value - nombre)  # Ne pas descendre en dessous de 0
@@ -6904,27 +6967,27 @@ async def retrait_command(interaction: discord.Interaction, nombre: int):
     # Envoyer la confirmation
     emoji = get_color_emoji(new_value)
     embed = discord.Embed(
-        title="🔴 RÉAS RETIRÉES",
-        description=f"**-{actual_removed} réas** pour {employee_key.replace('-', ' ').title()}",
+        title="ðŸ”´ RÃ‰AS RETIRÃ‰ES",
+        description=f"**-{actual_removed} rÃ©as** pour {employee_key.replace('-', ' ').title()}",
         color=discord.Color.from_rgb(255, 100, 100)
     )
     embed.add_field(
-        name="📊 Progression",
-        value=f"Avant: {old_value}/100\nAprès: {new_value}/100 {emoji}",
+        name="ðŸ“Š Progression",
+        value=f"Avant: {old_value}/100\nAprÃ¨s: {new_value}/100 {emoji}",
         inline=False
     )
     if actual_removed < nombre:
         embed.add_field(
-            name="⚠️ Note",
-            value=f"Seul {actual_removed} réas ont pu être retiré(es) (limite 0 minimum)",
+            name="âš ï¸ Note",
+            value=f"Seul {actual_removed} rÃ©as ont pu Ãªtre retirÃ©(es) (limite 0 minimum)",
             inline=False
         )
-    embed.set_footer(text="🚑 EMS System | Correction effectuée")
+    embed.set_footer(text="ðŸš‘ EMS System | Correction effectuÃ©e")
     embed.timestamp = now_paris()
     
     await interaction.followup.send(embed=embed, ephemeral=True)
     
-    # Mettre à jour la description du channel
+    # Mettre Ã  jour la description du channel
     try:
         new_emoji = get_color_emoji(new_value)
         description = f"{new_emoji} {new_value}/100"
@@ -6933,49 +6996,49 @@ async def retrait_command(interaction: discord.Interaction, nombre: int):
         pass
 
 # --- COMMANDE PRIME (AJOUT/RETRAIT MANUEL) ---
-@bot.tree.command(name="prime", description="Ajoute ou enlève des primes manuellement (admin)")
+@bot.tree.command(name="prime", description="Ajoute ou enlÃ¨ve des primes manuellement (admin)")
 @app_commands.describe(
-    employe="Nom de l'employé (ex: samara-ezio)",
-    nombre="Nombre de primes à ajouter (négatif pour enlever, ex: -2)"
+    employe="Nom de l'employÃ© (ex: samara-ezio)",
+    nombre="Nombre de primes Ã  ajouter (nÃ©gatif pour enlever, ex: -2)"
 )
 @app_commands.checks.has_permissions(administrator=True)
 async def prime(interaction: discord.Interaction, employe: str, nombre: int):
-    """Ajoute ou enlève manuellement des primes pour un employé"""
+    """Ajoute ou enlÃ¨ve manuellement des primes pour un employÃ©"""
     await interaction.response.defer(ephemeral=True)
     
-    # Normaliser le nom de l'employé
+    # Normaliser le nom de l'employÃ©
     employee_key = normalize_employee_key(employe)
     
     if not employee_key:
-        await interaction.followup.send("❌ Nom d'employé invalide", ephemeral=True)
+        await interaction.followup.send("âŒ Nom d'employÃ© invalide", ephemeral=True)
         return
     
     if nombre == 0 or abs(nombre) > 100:
-        await interaction.followup.send("❌ Le nombre doit être entre -100 et 100 (pas 0)", ephemeral=True)
+        await interaction.followup.send("âŒ Le nombre doit Ãªtre entre -100 et 100 (pas 0)", ephemeral=True)
         return
     
     # Charger les primes
     bonuses = load_bonuses()
     today = now_paris().strftime("%Y-%m-%d")
     
-    # Déterminer l'action
+    # DÃ©terminer l'action
     if nombre > 0:
         # --- AJOUTER DES PRIMES ---
         added_count = 0
         for i in range(nombre):
-            bonus_key = f"{employee_key}_{today}_{i}"  # Clé unique pour éviter les doublons
+            bonus_key = f"{employee_key}_{today}_{i}"  # ClÃ© unique pour Ã©viter les doublons
             if bonus_key not in bonuses:
                 bonuses[bonus_key] = 1
                 added_count += 1
         
-        action_text = "AJOUTÉES"
+        action_text = "AJOUTÃ‰ES"
         count_change = added_count
     else:
         # --- ENLEVER DES PRIMES ---
         primes_to_remove = abs(nombre)
         removed_count = 0
         
-        # Trouver et supprimer les primes de cet employé
+        # Trouver et supprimer les primes de cet employÃ©
         keys_to_delete = []
         for key in bonuses.keys():
             if key.startswith(f"{employee_key}_"):
@@ -6987,28 +7050,28 @@ async def prime(interaction: discord.Interaction, employe: str, nombre: int):
         for key in keys_to_delete:
             del bonuses[key]
         
-        action_text = "SUPPRIMÉES"
+        action_text = "SUPPRIMÃ‰ES"
         count_change = removed_count
     
     # Sauvegarder
     save_bonuses(bonuses)
     
-    # Récupérer le total des primes
+    # RÃ©cupÃ©rer le total des primes
     total_bonuses = get_total_bonuses(employee_key)
     
     # Envoyer la confirmation
     embed = discord.Embed(
-        title=f"💰 PRIMES {action_text}",
+        title=f"ðŸ’° PRIMES {action_text}",
         description=f"{'**+' if nombre > 0 else '**-'}{count_change} prime(s)** pour {employee_key.replace('-', ' ').title()}",
         color=discord.Color.from_rgb(255, 200, 0) if nombre > 0 else discord.Color.from_rgb(255, 100, 100)
     )
     embed.add_field(
-        name="📊 Total des primes",
-        value=f"**{total_bonuses}M** primes accumulées",
+        name="ðŸ“Š Total des primes",
+        value=f"**{total_bonuses}M** primes accumulÃ©es",
         inline=False
     )
-    action_desc = "ajoutée(s) manuellement" if nombre > 0 else "supprimée(s) manuellement"
-    embed.set_footer(text=f"🚑 EMS System | Prime(s) {action_desc}")
+    action_desc = "ajoutÃ©e(s) manuellement" if nombre > 0 else "supprimÃ©e(s) manuellement"
+    embed.set_footer(text=f"ðŸš‘ EMS System | Prime(s) {action_desc}")
     embed.timestamp = now_paris()
     
     await interaction.followup.send(embed=embed, ephemeral=True)
@@ -7017,38 +7080,38 @@ async def prime(interaction: discord.Interaction, employe: str, nombre: int):
 @bot.tree.command(name="stats", description="Affiche les statistiques avec graphique ASCII")
 @app_commands.checks.has_permissions(administrator=True)
 async def stats_command(interaction: discord.Interaction):
-    """Affiche les stats complètes des réas avec graphique"""
+    """Affiche les stats complÃ¨tes des rÃ©as avec graphique"""
     await interaction.response.defer()
     
     stats = load_stats()
     if not stats:
-        await interaction.followup.send("❌ Aucune donnée disponible")
+        await interaction.followup.send("âŒ Aucune donnÃ©e disponible")
         return
     
-    # Trier par réas décroissants
+    # Trier par rÃ©as dÃ©croissants
     sorted_stats = sorted(stats.items(), key=lambda x: x[1], reverse=True)
     max_value = max(stats.values()) if stats else 100
     
-    # Créer le graphique ASCII
+    # CrÃ©er le graphique ASCII
     graph_text = "```\n"
-    graph_text += "STATISTIQUES RÉAS\n"
+    graph_text += "STATISTIQUES RÃ‰AS\n"
     graph_text += "=" * 50 + "\n\n"
     
     for i, (key, value) in enumerate(sorted_stats, 1):
         emoji = get_color_emoji(value)
-        bar_length = int((value / max(max_value, 100)) * 25)  # Max 25 caractères
-        bar = "█" * bar_length + "░" * (25 - bar_length)
+        bar_length = int((value / max(max_value, 100)) * 25)  # Max 25 caractÃ¨res
+        bar = "â–ˆ" * bar_length + "â–‘" * (25 - bar_length)
         
         # Normaliser le nom pour affichage
         display_name = key.replace("-", " ").title()
-        graph_text += f"{i:2}. {emoji} {display_name:<20} │ {bar} │ {value}/100\n"
+        graph_text += f"{i:2}. {emoji} {display_name:<20} â”‚ {bar} â”‚ {value}/100\n"
     
     graph_text += "\n" + "=" * 50 + "\n"
-    graph_text += f"Total: {sum(stats.values())} réas | {len(stats)} employés\n```"
+    graph_text += f"Total: {sum(stats.values())} rÃ©as | {len(stats)} employÃ©s\n```"
     
-    # Créer l'embed
+    # CrÃ©er l'embed
     embed = discord.Embed(
-        title="📊 Statistiques EMS",
+        title="ðŸ“Š Statistiques EMS",
         description=graph_text,
         color=EMS_DARK_RED
     )
@@ -7064,38 +7127,38 @@ async def stats_command(interaction: discord.Interaction):
             h = int(data['total_hours'])
             m = int((data['total_hours'] - h) * 60)
             display = emp_key.replace('-', ' ').title()
-            svc_text += f"• **{display}** : {h}h{m:02d} ({data['total_reas']} réas)\n"
-        embed.add_field(name="⏱️ Heures de service", value=svc_text, inline=False)
+            svc_text += f"â€¢ **{display}** : {h}h{m:02d} ({data['total_reas']} rÃ©as)\n"
+        embed.add_field(name="â±ï¸ Heures de service", value=svc_text, inline=False)
     
     if active_services:
         en_svc = ""
         for uid, svc in active_services.items():
             start_t = datetime.fromisoformat(svc['start'])
             mins = int((now_paris() - start_t).total_seconds() // 60)
-            en_svc += f"• **{svc['employee_key']}** - {mins} min\n"
-        embed.add_field(name="🟢 En service", value=en_svc, inline=False)
+            en_svc += f"â€¢ **{svc['employee_key']}** - {mins} min\n"
+        embed.add_field(name="ðŸŸ¢ En service", value=en_svc, inline=False)
     
-    embed.set_footer(text=f"Mise à jour: {now_paris().strftime('%d/%m/%Y %H:%M')}")
+    embed.set_footer(text=f"Mise Ã  jour: {now_paris().strftime('%d/%m/%Y %H:%M')}")
     
     await interaction.followup.send(embed=embed)
 
 # --- COMMANDE LEADERBOARD AVEC ANNONCE ---
 
 # --- MODAL POUR LES AVIS ---
-class AvisModal(discord.ui.Modal, title="📝 Donner un Avis"):
-    """Modal pour soumettre un avis sur un employé"""
+class AvisModal(discord.ui.Modal, title="ðŸ“ Donner un Avis"):
+    """Modal pour soumettre un avis sur un employÃ©"""
     
-    # Sélection de l'employé
+    # SÃ©lection de l'employÃ©
     employee = discord.ui.TextInput(
-        label="Employé concerné",
-        placeholder="Sélectionnez l'employé...",
+        label="EmployÃ© concernÃ©",
+        placeholder="SÃ©lectionnez l'employÃ©...",
         required=True
     )
     
-    # Notation (1-5 étoiles)
+    # Notation (1-5 Ã©toiles)
     stars = discord.ui.TextInput(
-        label="Nombre d'étoiles (1-5)",
-        placeholder="Entrez un chiffre de 1 à 5",
+        label="Nombre d'Ã©toiles (1-5)",
+        placeholder="Entrez un chiffre de 1 Ã  5",
         required=True,
         min_length=1,
         max_length=1
@@ -7104,7 +7167,7 @@ class AvisModal(discord.ui.Modal, title="📝 Donner un Avis"):
     # Raison (optionnel)
     raison = discord.ui.TextInput(
         label="Raison (optionnel)",
-        placeholder="Décrivez votre avis...",
+        placeholder="DÃ©crivez votre avis...",
         required=False,
         style=discord.TextStyle.long,
         max_length=500
@@ -7113,33 +7176,33 @@ class AvisModal(discord.ui.Modal, title="📝 Donner un Avis"):
     async def on_submit(self, interaction: discord.Interaction):
         """Quand l'utilisateur soumet le formulaire"""
         try:
-            # Valider les étoiles
+            # Valider les Ã©toiles
             try:
                 star_count = int(self.stars.value)
                 if star_count < 1 or star_count > 5:
                     await interaction.response.send_message(
-                        "❌ Le nombre d'étoiles doit être entre 1 et 5",
+                        "âŒ Le nombre d'Ã©toiles doit Ãªtre entre 1 et 5",
                         ephemeral=True
                     )
                     return
             except ValueError:
                 await interaction.response.send_message(
-                    "❌ Veuillez entrer un chiffre valide (1-5)",
+                    "âŒ Veuillez entrer un chiffre valide (1-5)",
                     ephemeral=True
                 )
                 return
             
-            # Créer l'embed de l'avis
+            # CrÃ©er l'embed de l'avis
             embed = discord.Embed(
-                title="⭐ Nouvel Avis Reçu",
+                title="â­ Nouvel Avis ReÃ§u",
                 color=discord.Color.gold()
             )
             
-            embed.add_field(name="Employé", value=self.employee.value, inline=False)
-            embed.add_field(name="Note", value="⭐" * star_count, inline=True)
-            embed.add_field(name="Raison", value=self.raison.value or "Aucune raison donnée", inline=False)
+            embed.add_field(name="EmployÃ©", value=self.employee.value, inline=False)
+            embed.add_field(name="Note", value="â­" * star_count, inline=True)
+            embed.add_field(name="Raison", value=self.raison.value or "Aucune raison donnÃ©e", inline=False)
             embed.add_field(name="Auteur", value=interaction.user.mention, inline=True)
-            embed.set_footer(text=f"Avis soumis le {now_paris().strftime('%d/%m/%Y à %H:%M')}")
+            embed.set_footer(text=f"Avis soumis le {now_paris().strftime('%d/%m/%Y Ã  %H:%M')}")
             
             # Envoyer dans le channel des avis
             avis_channel = bot.get_channel(AVIS_CHANNEL_ID)
@@ -7147,13 +7210,13 @@ class AvisModal(discord.ui.Modal, title="📝 Donner un Avis"):
                 await avis_channel.send(embed=embed)
             
             await interaction.response.send_message(
-                "✅ Votre avis a été enregistré avec succès !",
+                "âœ… Votre avis a Ã©tÃ© enregistrÃ© avec succÃ¨s !",
                 ephemeral=True
             )
         except Exception as e:
-            print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur avis: {e}")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur avis: {e}")
             await interaction.response.send_message(
-                f"❌ Erreur: {e}",
+                f"âŒ Erreur: {e}",
                 ephemeral=True
             )
 
@@ -7164,71 +7227,71 @@ class AvisButton(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
     
-    @discord.ui.button(label="📝 Donner un Avis", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="ðŸ“ Donner un Avis", style=discord.ButtonStyle.primary)
     async def avis_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Ouvre le modal pour donner un avis"""
         
-        # Construire la liste des employés
+        # Construire la liste des employÃ©s
         stats = load_stats()
         employee_list = "\n".join([
-            f"• {key.replace('-', ' ').title()}"
+            f"â€¢ {key.replace('-', ' ').title()}"
             for key in sorted(stats.keys())
         ])
         
-        # Montrer la liste des employés dans le placeholder
+        # Montrer la liste des employÃ©s dans le placeholder
         modal = AvisModal()
         modal.employee.placeholder = f"Exemples: {', '.join(list(stats.keys())[:3])}..."
         
         await interaction.response.send_modal(modal)
 
 # --- COMMANDE AVIS ---
-@bot.tree.command(name="avis", description="Envoie une annonce pour recueillir des avis sur les employés")
+@bot.tree.command(name="avis", description="Envoie une annonce pour recueillir des avis sur les employÃ©s")
 @app_commands.checks.has_permissions(administrator=True)
 async def avis_command(interaction: discord.Interaction):
-    """Lance une campagne d'avis pour les employés"""
+    """Lance une campagne d'avis pour les employÃ©s"""
     await interaction.response.defer()
     
     try:
-        # Créer l'embed d'annonce
+        # CrÃ©er l'embed d'annonce
         embed = discord.Embed(
-            title="📝 Campagne d'Avis - Vos Retours Sont Importants",
-            description="Aidez-nous à améliorer notre équipe en partageant vos avis sur les employés.\n\n"
-                       "**Comment ça fonctionne ?**\n"
-                       "1️⃣ Appuyez sur le bouton ci-dessous\n"
-                       "2️⃣ Sélectionnez un employé\n"
-                       "3️⃣ Donnez une note de 1 à 5 étoiles\n"
-                       "4️⃣ Laissez un commentaire (optionnel)\n\n"
-                       "Vos avis sont importants pour l'évolution de chacun. Merci ! ✨",
+            title="ðŸ“ Campagne d'Avis - Vos Retours Sont Importants",
+            description="Aidez-nous Ã  amÃ©liorer notre Ã©quipe en partageant vos avis sur les employÃ©s.\n\n"
+                       "**Comment Ã§a fonctionne ?**\n"
+                       "1ï¸âƒ£ Appuyez sur le bouton ci-dessous\n"
+                       "2ï¸âƒ£ SÃ©lectionnez un employÃ©\n"
+                       "3ï¸âƒ£ Donnez une note de 1 Ã  5 Ã©toiles\n"
+                       "4ï¸âƒ£ Laissez un commentaire (optionnel)\n\n"
+                       "Vos avis sont importants pour l'Ã©volution de chacun. Merci ! âœ¨",
             color=discord.Color.gold()
         )
         
-        embed.set_footer(text="🚑 EMS System | Vos avis comptent")
+        embed.set_footer(text="ðŸš‘ EMS System | Vos avis comptent")
         
         # Envoyer dans le channel des avis avec ping du role citoyen
         avis_channel = bot.get_channel(AVIS_CHANNEL_ID)
         if avis_channel:
             ping_msg = f"<@&{CITOYEN_ROLE_ID}>" if CITOYEN_ROLE_ID != 0 else ""
             await avis_channel.send(ping_msg, embed=embed, view=AvisButton())
-            await interaction.followup.send("✅ Annonce des avis lancée !")
+            await interaction.followup.send("âœ… Annonce des avis lancÃ©e !")
         else:
-            await interaction.followup.send("❌ Channel des avis non trouvé")
+            await interaction.followup.send("âŒ Channel des avis non trouvÃ©")
         
     except Exception as e:
-        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur avis command: {e}")
-        await interaction.followup.send(f"❌ Erreur: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur avis command: {e}")
+        await interaction.followup.send(f"âŒ Erreur: {e}")
 
-# --- MODAL POUR LES DISPONIBILITÉS (CV) ---
-class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
-    """Modal pour soumettre ses disponibilités après acceptation CV"""
+# --- MODAL POUR LES DISPONIBILITÃ‰S (CV) ---
+class CVDispoModal(discord.ui.Modal, title="ðŸ“… Indiquer mes DisponibilitÃ©s"):
+    """Modal pour soumettre ses disponibilitÃ©s aprÃ¨s acceptation CV"""
     
     def __init__(self, target_user):
         super().__init__()
         self.target_user = target_user
     
-    # Disponibilités
+    # DisponibilitÃ©s
     disponibilites = discord.ui.TextInput(
-        label="Vos disponibilités",
-        placeholder="Ex: Lundi 10h-18h, Mardi 14h-22h, Dimanche fermé",
+        label="Vos disponibilitÃ©s",
+        placeholder="Ex: Lundi 10h-18h, Mardi 14h-22h, Dimanche fermÃ©",
         required=True,
         style=discord.TextStyle.long,
         max_length=500
@@ -7237,53 +7300,53 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
     # Notes (optionnel)
     notes = discord.ui.TextInput(
         label="Notes additionnelles (optionnel)",
-        placeholder="Ex: Pas disponible le 8 mars, préférence horaires...",
+        placeholder="Ex: Pas disponible le 8 mars, prÃ©fÃ©rence horaires...",
         required=False,
         style=discord.TextStyle.long,
         max_length=500
     )
     
     async def on_submit(self, interaction: discord.Interaction):
-        """Quand l'utilisateur soumet ses dispo après acceptation CV"""
+        """Quand l'utilisateur soumet ses dispo aprÃ¨s acceptation CV"""
         try:
-            # Récupérer le pseudonyme du serveur (pas le nom Discord)
+            # RÃ©cupÃ©rer le pseudonyme du serveur (pas le nom Discord)
             guild = bot.get_guild(config["GUILD_ID"])
             member = guild.get_member(self.target_user.id)
             user_name = member.display_name if member else self.target_user.name
             
-            # Créer l'embed de la dispo
+            # CrÃ©er l'embed de la dispo
             embed = discord.Embed(
-                title="📅 Nouvelle Disponibilité Soumise (CV accepté)",
+                title="ðŸ“… Nouvelle DisponibilitÃ© Soumise (CV acceptÃ©)",
                 color=discord.Color.blue()
             )
             
             embed.add_field(name="Personne", value=f"{self.target_user.mention} ({user_name})", inline=False)
-            embed.add_field(name="Disponibilités", value=self.disponibilites.value, inline=False)
+            embed.add_field(name="DisponibilitÃ©s", value=self.disponibilites.value, inline=False)
             if self.notes.value:
                 embed.add_field(name="Notes", value=self.notes.value, inline=False)
-            embed.set_footer(text=f"Reçu le {now_paris().strftime('%d/%m/%Y à %H:%M')}")
+            embed.set_footer(text=f"ReÃ§u le {now_paris().strftime('%d/%m/%Y Ã  %H:%M')}")
             
             # Envoyer dans le channel de demande avec boutons de confirmation pour la direction
             request_channel = bot.get_channel(DISPO_REQUEST_CHANNEL_ID)
             if request_channel:
-                # Créer les boutons de confirmation/refus
+                # CrÃ©er les boutons de confirmation/refus
                 view = discord.ui.View()
-                confirm_btn = discord.ui.Button(label="✅ Confirmer", style=discord.ButtonStyle.green)
-                refuse_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
+                confirm_btn = discord.ui.Button(label="âœ… Confirmer", style=discord.ButtonStyle.green)
+                refuse_btn = discord.ui.Button(label="âŒ Refuser", style=discord.ButtonStyle.red)
                 
                 async def confirm_callback(interaction_confirm: discord.Interaction):
-                    # DEFER IMMÉDIATEMENT pour éviter le timeout
+                    # DEFER IMMÃ‰DIATEMENT pour Ã©viter le timeout
                     await interaction_confirm.response.defer()
                     
-                    # Vérifier que seul la direction peut confirmer
+                    # VÃ©rifier que seul la direction peut confirmer
                     if not any(role.id == DIRECTION_ROLE_ID for role in interaction_confirm.user.roles):
                         await interaction_confirm.followup.send(
-                            "❌ Seule la direction peut valider les disponibilités !",
+                            "âŒ Seule la direction peut valider les disponibilitÃ©s !",
                             ephemeral=True
                         )
                         return
                     
-                    # Désactiver les boutons
+                    # DÃ©sactiver les boutons
                     confirm_btn.disabled = True
                     refuse_btn.disabled = True
                     await interaction_confirm.message.edit(view=view)
@@ -7291,11 +7354,11 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                     # Envoyer un DM de confirmation
                     try:
                         embed_dm = discord.Embed(
-                            title="📅 ✅ Vos Disponibilités ont été Confirmées",
-                            description=f"Bonjour {user_name},\n\nVos disponibilités ont été validées par la direction !\n\nVos dispo:\n{self.disponibilites.value}\n\nEn attente de recrutement...",
+                            title="ðŸ“… âœ… Vos DisponibilitÃ©s ont Ã©tÃ© ConfirmÃ©es",
+                            description=f"Bonjour {user_name},\n\nVos disponibilitÃ©s ont Ã©tÃ© validÃ©es par la direction !\n\nVos dispo:\n{self.disponibilites.value}\n\nEn attente de recrutement...",
                             color=discord.Color.green()
                         )
-                        embed_dm.set_footer(text="🚑 EMS System | Confirmation dispo")
+                        embed_dm.set_footer(text="ðŸš‘ EMS System | Confirmation dispo")
                         
                         user = bot.get_user(self.target_user.id)
                         if user:
@@ -7307,25 +7370,25 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                     recruitment_channel = bot.get_channel(DISPO_CHANNEL_ID)
                     if recruitment_channel:
                         embed_recrutement = discord.Embed(
-                            title="👤 Candidature Approuvée - Décision de Recrutement",
-                            description=f"**{self.target_user.mention}** a été approuvé(e) par la direction (CV + Dispo).\n\n"
-                                       f"Disponibilités:\n{self.disponibilites.value}",
+                            title="ðŸ‘¤ Candidature ApprouvÃ©e - DÃ©cision de Recrutement",
+                            description=f"**{self.target_user.mention}** a Ã©tÃ© approuvÃ©(e) par la direction (CV + Dispo).\n\n"
+                                       f"DisponibilitÃ©s:\n{self.disponibilites.value}",
                             color=discord.Color.blue()
                         )
                         
                         # Boutons Recruter/Refuser
                         recrutement_view = discord.ui.View()
-                        recruter_btn = discord.ui.Button(label="✅ Recruter", style=discord.ButtonStyle.green)
-                        refuser_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
+                        recruter_btn = discord.ui.Button(label="âœ… Recruter", style=discord.ButtonStyle.green)
+                        refuser_btn = discord.ui.Button(label="âŒ Refuser", style=discord.ButtonStyle.red)
                         
                         async def recruter_callback(interaction_recrutement: discord.Interaction):
-                            # DEFER IMMÉDIATEMENT pour éviter le timeout (3 secondes)
+                            # DEFER IMMÃ‰DIATEMENT pour Ã©viter le timeout (3 secondes)
                             await interaction_recrutement.response.defer()
                             
-                            # Vérifier que seul la direction peut recruter
+                            # VÃ©rifier que seul la direction peut recruter
                             if not any(role.id == DIRECTION_ROLE_ID for role in interaction_recrutement.user.roles):
                                 await interaction_recrutement.followup.send(
-                                    "❌ Seule la direction peut recruter !",
+                                    "âŒ Seule la direction peut recruter !",
                                     ephemeral=True
                                 )
                                 return
@@ -7341,7 +7404,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     except Exception:
                                         pass
 
-                                    # Retirer le rôle pending
+                                    # Retirer le rÃ´le pending
                                     try:
                                         role_pending = guild.get_role(ROLE_PENDING_ID)
                                         if role_pending:
@@ -7349,7 +7412,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     except:
                                         pass
                                     
-                                    # Ajouter les rôles EMS
+                                    # Ajouter les rÃ´les EMS
                                     roles_to_add = [
                                         guild.get_role(ROLE_EMT_1),
                                         guild.get_role(ROLE_EMT_2),
@@ -7360,7 +7423,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     if roles_to_add:
                                         await member.add_roles(*roles_to_add)
 
-                                    # Attribuer automatiquement les formations Scout et Alamo à l'embauche EMT
+                                    # Attribuer automatiquement les formations Scout et Alamo Ã  l'embauche EMT
                                     try:
                                         auto_formation_roles = [
                                             guild.get_role(1528837812793901207),  # Formation Scout
@@ -7372,18 +7435,18 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     except Exception as _af_err:
                                         print(f"Erreur attribution formations auto EMT: {_af_err}")
 
-                                    # Ajouter le préfixe [EMT]
+                                    # Ajouter le prÃ©fixe [EMT]
                                     try:
                                         new_nick = f"[EMT] {user_name}"
                                         await member.edit(nick=new_nick)
                                     except:
                                         pass
                                     
-                                    # Créer le channel privé avec emoji + nom dans la catégorie
+                                    # CrÃ©er le channel privÃ© avec emoji + nom dans la catÃ©gorie
                                     try:
                                         category = guild.get_channel(CATEGORY_EMT_ID)
                                         
-                                        channel_name = f"🔴{user_name.lower().replace(' ', '-')}"
+                                        channel_name = f"ðŸ”´{user_name.lower().replace(' ', '-')}"
                                         
                                         # Obtenir les permissions pour le channel
                                         overwrites = {
@@ -7392,7 +7455,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
                                         }
                                         
-                                        # Créer le channel dans la catégorie
+                                        # CrÃ©er le channel dans la catÃ©gorie
                                         new_channel = await guild.create_text_channel(
                                             channel_name,
                                             overwrites=overwrites,
@@ -7401,18 +7464,18 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                         
                                         # Message de bienvenue dans le channel avec mention
                                         embed_channel = discord.Embed(
-                                            title=f"🎉 Bienvenue {user_name} !",
-                                            description=f"Bienvenue dans ton channel personnel.\n\nTu as été recruté(e) en tant que **[EMT]**.\n\nVoici tes disponibilités:\n{self.disponibilites.value}",
+                                            title=f"ðŸŽ‰ Bienvenue {user_name} !",
+                                            description=f"Bienvenue dans ton channel personnel.\n\nTu as Ã©tÃ© recrutÃ©(e) en tant que **[EMT]**.\n\nVoici tes disponibilitÃ©s:\n{self.disponibilites.value}",
                                             color=discord.Color.green()
                                         )
                                         await new_channel.send(f"{member.mention}", embed=embed_channel)
                                     except Exception as e:
-                                        print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur création channel: {e}")
+                                        print(f"[{now_paris().strftime('%H:%M:%S')}] âš ï¸ Erreur crÃ©ation channel: {e}")
                                     
                                     # Message de confirmation
                                     embed_recrute = discord.Embed(
-                                        title="✅ Recrutement Effectué",
-                                        description=f"**{user_name}** a été recruté(e) en tant que **[EMT]**.",
+                                        title="âœ… Recrutement EffectuÃ©",
+                                        description=f"**{user_name}** a Ã©tÃ© recrutÃ©(e) en tant que **[EMT]**.",
                                         color=discord.Color.green()
                                     )
                                     await interaction_recrutement.followup.send(embed=embed_recrute, ephemeral=True)
@@ -7420,8 +7483,8 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     # DM de bienvenue
                                     try:
                                         embed_welcome = discord.Embed(
-                                            title="🎉 Bienvenue dans l'EMS !",
-                                            description=f"Félicitations {user_name} !\n\nVous avez été recruté(e) en tant que **[EMT]**.\n\nUn channel privé a été créé pour vous : **{channel_name}**",
+                                            title="ðŸŽ‰ Bienvenue dans l'EMS !",
+                                            description=f"FÃ©licitations {user_name} !\n\nVous avez Ã©tÃ© recrutÃ©(e) en tant que **[EMT]**.\n\nUn channel privÃ© a Ã©tÃ© crÃ©Ã© pour vous : **{channel_name}**",
                                             color=discord.Color.green()
                                         )
                                         user_obj = bot.get_user(self.target_user.id)
@@ -7430,26 +7493,26 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     except:
                                         pass
                                     
-                                    # Désactiver les boutons
+                                    # DÃ©sactiver les boutons
                                     recruter_btn.disabled = True
                                     refuser_btn.disabled = True
                                     await interaction_recrutement.message.edit(view=recrutement_view)
                                     
-                                    # Ajouter réaction ✅
+                                    # Ajouter rÃ©action âœ…
                                     if hasattr(interaction_recrutement.message, 'add_reaction'):
-                                        await interaction_recrutement.message.add_reaction("✅")
+                                        await interaction_recrutement.message.add_reaction("âœ…")
                             except Exception as e:
-                                print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur recrutement: {e}")
-                                await interaction_recrutement.followup.send(f"❌ Erreur: {e}", ephemeral=True)
+                                print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur recrutement: {e}")
+                                await interaction_recrutement.followup.send(f"âŒ Erreur: {e}", ephemeral=True)
                         
                         async def refuser_recrutement_callback(interaction_refus: discord.Interaction):
-                            # DEFER IMMÉDIATEMENT pour éviter le timeout
+                            # DEFER IMMÃ‰DIATEMENT pour Ã©viter le timeout
                             await interaction_refus.response.defer()
                             
-                            # Vérifier que seul la direction peut refuser
+                            # VÃ©rifier que seul la direction peut refuser
                             if not any(role.id == DIRECTION_ROLE_ID for role in interaction_refus.user.roles):
                                 await interaction_refus.followup.send(
-                                    "❌ Seule la direction peut refuser !",
+                                    "âŒ Seule la direction peut refuser !",
                                     ephemeral=True
                                 )
                                 return
@@ -7459,7 +7522,7 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                 member = guild.get_member(self.target_user.id)
                                 
                                 if member:
-                                    # Retirer tous les rôles sauf citoyen
+                                    # Retirer tous les rÃ´les sauf citoyen
                                     for role in member.roles:
                                         if role.id in [ROLE_EMT_1, ROLE_EMT_2, ROLE_EMT_3, ROLE_PENDING_ID] and role.id != ROLE_CITOYEN:
                                             try:
@@ -7475,8 +7538,8 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     
                                     # Message de refus
                                     embed_refuse = discord.Embed(
-                                        title="❌ Candidature Refusée",
-                                        description=f"**{user_name}** a été refusé(e) au recrutement.",
+                                        title="âŒ Candidature RefusÃ©e",
+                                        description=f"**{user_name}** a Ã©tÃ© refusÃ©(e) au recrutement.",
                                         color=discord.Color.red()
                                     )
                                     await interaction_refus.followup.send(embed=embed_refuse, ephemeral=True)
@@ -7484,8 +7547,8 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                     # DM de refus
                                     try:
                                         embed_refuse_dm = discord.Embed(
-                                            title="❌ Candidature Refusée",
-                                            description=f"Nous sommes désolés {user_name},\n\nVotre candidature au recrutement EMS a été refusée.\n\nVous pourrez réessayer dans 1 semaine.",
+                                            title="âŒ Candidature RefusÃ©e",
+                                            description=f"Nous sommes dÃ©solÃ©s {user_name},\n\nVotre candidature au recrutement EMS a Ã©tÃ© refusÃ©e.\n\nVous pourrez rÃ©essayer dans 1 semaine.",
                                             color=discord.Color.red()
                                         )
                                         user_obj = bot.get_user(self.target_user.id)
@@ -7499,78 +7562,78 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                                         bl = load_blacklist_cv()
                                         bl[str(self.target_user.id)] = {
                                             "date": datetime.utcnow().isoformat(),
-                                            "raison": "Candidature refusée par la direction (dispo)",
+                                            "raison": "Candidature refusÃ©e par la direction (dispo)",
                                             "blacklisted_by": str(interaction_refus.user.id),
                                         }
                                         save_blacklist_cv(bl)
                                     except Exception as _bl2:
                                         print(f"Erreur blacklist CV refus dispo: {_bl2}")
 
-                                    # Désactiver les boutons
+                                    # DÃ©sactiver les boutons
                                     recruter_btn.disabled = True
                                     refuser_btn.disabled = True
                                     await interaction_refus.message.edit(view=recrutement_view)
                                     
-                                    # Ajouter réaction ❌
+                                    # Ajouter rÃ©action âŒ
                                     if hasattr(interaction_refus.message, 'add_reaction'):
-                                        await interaction_refus.message.add_reaction("❌")
+                                        await interaction_refus.message.add_reaction("âŒ")
                             except Exception as e:
-                                print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur refus recrutement: {e}")
-                                await interaction_refus.followup.send(f"❌ Erreur: {e}", ephemeral=True)
+                                print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur refus recrutement: {e}")
+                                await interaction_refus.followup.send(f"âŒ Erreur: {e}", ephemeral=True)
                         
                         recruter_btn.callback = recruter_callback
                         refuser_btn.callback = refuser_recrutement_callback
                         recrutement_view.add_item(recruter_btn)
                         recrutement_view.add_item(refuser_btn)
                         
-                        # Ping la personne qui a soumis la dispo et celle qui a accepté
+                        # Ping la personne qui a soumis la dispo et celle qui a acceptÃ©
                         ping_msg = f"{self.target_user.mention} {interaction_confirm.user.mention}"
                         await recruitment_channel.send(ping_msg, embed=embed_recrutement, view=recrutement_view)
                     
-                    # Ajouter une réaction pour marquer comme confirmée
+                    # Ajouter une rÃ©action pour marquer comme confirmÃ©e
                     if hasattr(interaction_confirm.message, 'add_reaction'):
-                        await interaction_confirm.message.add_reaction("✅")
+                        await interaction_confirm.message.add_reaction("âœ…")
                 
                 async def refuse_callback(interaction_refuse: discord.Interaction):
-                    # DEFER IMMÉDIATEMENT pour éviter le timeout
+                    # DEFER IMMÃ‰DIATEMENT pour Ã©viter le timeout
                     await interaction_refuse.response.defer()
                     
-                    # Vérifier que seul la direction peut refuser
+                    # VÃ©rifier que seul la direction peut refuser
                     if not any(role.id == DIRECTION_ROLE_ID for role in interaction_refuse.user.roles):
                         await interaction_refuse.followup.send(
-                            "❌ Seule la direction peut refuser !",
+                            "âŒ Seule la direction peut refuser !",
                             ephemeral=True
                         )
                         return
                     
-                    # Message de refus à la direction
+                    # Message de refus Ã  la direction
                     embed_refuse = discord.Embed(
-                        title="❌ Disponibilités Refusées",
-                        description=f"Les dispo de {user_name} ont été déclinées.",
+                        title="âŒ DisponibilitÃ©s RefusÃ©es",
+                        description=f"Les dispo de {user_name} ont Ã©tÃ© dÃ©clinÃ©es.",
                         color=discord.Color.red()
                     )
                     await interaction_refuse.followup.send(embed=embed_refuse, ephemeral=True)
                     
-                    # Désactiver les boutons
+                    # DÃ©sactiver les boutons
                     confirm_btn.disabled = True
                     refuse_btn.disabled = True
                     await interaction_refuse.message.edit(view=view)
                     
-                    # Envoyer un DM de rappel/refus à l'utilisateur
+                    # Envoyer un DM de rappel/refus Ã  l'utilisateur
                     try:
                         embed_dm = discord.Embed(
-                            title="📅 ❌ Disponibilités Refusées",
-                            description=f"Bonjour {user_name},\n\nVos disponibilités ont été refusées.\n\nVeuillez cliquer sur le bouton pour les remettre à jour.",
+                            title="ðŸ“… âŒ DisponibilitÃ©s RefusÃ©es",
+                            description=f"Bonjour {user_name},\n\nVos disponibilitÃ©s ont Ã©tÃ© refusÃ©es.\n\nVeuillez cliquer sur le bouton pour les remettre Ã  jour.",
                             color=discord.Color.red()
                         )
-                        embed_dm.set_footer(text="🚑 EMS System | Nouvelle tentative")
+                        embed_dm.set_footer(text="ðŸš‘ EMS System | Nouvelle tentative")
                         
-                        # Créer une classe pour le bouton retry
+                        # CrÃ©er une classe pour le bouton retry
                         class RetryDispoButton(discord.ui.View):
                             def __init__(self):
                                 super().__init__(timeout=None)
                             
-                            @discord.ui.button(label="📅 Remettre mes Disponibilités", style=discord.ButtonStyle.primary)
+                            @discord.ui.button(label="ðŸ“… Remettre mes DisponibilitÃ©s", style=discord.ButtonStyle.primary)
                             async def retry_dispo_button(self, btn_interaction: discord.Interaction, btn: discord.ui.Button):
                                 """Ouvre le modal pour remettre ses dispo"""
                                 modal = CVDispoModal(target_user=self.target_user)
@@ -7584,9 +7647,9 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                     except:
                         pass
                     
-                    # Ajouter une réaction pour marquer comme refusée
+                    # Ajouter une rÃ©action pour marquer comme refusÃ©e
                     if hasattr(interaction_refuse.message, 'add_reaction'):
-                        await interaction_refuse.message.add_reaction("❌")
+                        await interaction_refuse.message.add_reaction("âŒ")
                 
                 confirm_btn.callback = confirm_callback
                 refuse_btn.callback = refuse_callback
@@ -7597,24 +7660,24 @@ class CVDispoModal(discord.ui.Modal, title="📅 Indiquer mes Disponibilités"):
                 await request_channel.send(ping_msg, embed=embed, view=view)
             
             await interaction.response.send_message(
-                "✅ Vos disponibilités ont été soumises avec succès !",
+                "âœ… Vos disponibilitÃ©s ont Ã©tÃ© soumises avec succÃ¨s !",
                 ephemeral=True
             )
         except Exception as e:
-            print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur dispo CV: {e}")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur dispo CV: {e}")
             await interaction.response.send_message(
-                f"❌ Erreur: {e}",
+                f"âŒ Erreur: {e}",
                 ephemeral=True
             )
 
-# --- MODAL POUR LES DISPONIBILITÉS ---
-class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilités"):
-    """Modal pour soumettre ses disponibilités"""
+# --- MODAL POUR LES DISPONIBILITÃ‰S ---
+class DispoModal(discord.ui.Modal, title="ðŸ“… Mettre Ã  Jour mes DisponibilitÃ©s"):
+    """Modal pour soumettre ses disponibilitÃ©s"""
     
-    # Disponibilités
+    # DisponibilitÃ©s
     disponibilites = discord.ui.TextInput(
-        label="Vos disponibilités",
-        placeholder="Ex: Lundi 10h-18h, Mardi 14h-22h, Dimanche fermé",
+        label="Vos disponibilitÃ©s",
+        placeholder="Ex: Lundi 10h-18h, Mardi 14h-22h, Dimanche fermÃ©",
         required=True,
         style=discord.TextStyle.long,
         max_length=500
@@ -7623,73 +7686,73 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
     # Notes (optionnel)
     notes = discord.ui.TextInput(
         label="Notes additionnelles (optionnel)",
-        placeholder="Ex: Pas disponible le 8 mars, préférence horaires...",
+        placeholder="Ex: Pas disponible le 8 mars, prÃ©fÃ©rence horaires...",
         required=False,
         style=discord.TextStyle.long,
         max_length=500
     )
     
     async def on_submit(self, interaction: discord.Interaction):
-        """Quand l'utilisateur soumet ses disponibilités"""
+        """Quand l'utilisateur soumet ses disponibilitÃ©s"""
         try:
-            # Récupérer le pseudonyme du serveur (pas le nom Discord)
+            # RÃ©cupÃ©rer le pseudonyme du serveur (pas le nom Discord)
             guild = bot.get_guild(config["GUILD_ID"])
             member = guild.get_member(interaction.user.id)
             user_name = member.display_name if member else interaction.user.name
             
-            # Créer l'embed de la dispo
+            # CrÃ©er l'embed de la dispo
             embed = discord.Embed(
-                title="📅 Nouvelle Disponibilité Soumise",
+                title="ðŸ“… Nouvelle DisponibilitÃ© Soumise",
                 color=discord.Color.blue()
             )
             
             embed.add_field(name="Personne", value=f"{interaction.user.mention} ({user_name})", inline=False)
-            embed.add_field(name="Disponibilités", value=self.disponibilites.value, inline=False)
+            embed.add_field(name="DisponibilitÃ©s", value=self.disponibilites.value, inline=False)
             if self.notes.value:
                 embed.add_field(name="Notes", value=self.notes.value, inline=False)
-            embed.set_footer(text=f"Reçu le {now_paris().strftime('%d/%m/%Y à %H:%M')}")
+            embed.set_footer(text=f"ReÃ§u le {now_paris().strftime('%d/%m/%Y Ã  %H:%M')}")
             
             # Envoyer dans le channel de demande avec boutons de confirmation pour la direction
             request_channel = bot.get_channel(DISPO_REQUEST_CHANNEL_ID)
             if request_channel:
-                # Créer les boutons de confirmation/refus
+                # CrÃ©er les boutons de confirmation/refus
                 view = discord.ui.View()
-                confirm_btn = discord.ui.Button(label="✅ Confirmer", style=discord.ButtonStyle.green)
-                refuse_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
+                confirm_btn = discord.ui.Button(label="âœ… Confirmer", style=discord.ButtonStyle.green)
+                refuse_btn = discord.ui.Button(label="âŒ Refuser", style=discord.ButtonStyle.red)
                 
                 async def confirm_callback(interaction_confirm: discord.Interaction):
-                    # DEFER IMMÉDIATEMENT pour éviter le timeout
+                    # DEFER IMMÃ‰DIATEMENT pour Ã©viter le timeout
                     await interaction_confirm.response.defer()
                     
-                    # Vérifier que seul la direction peut confirmer
+                    # VÃ©rifier que seul la direction peut confirmer
                     if not any(role.id == DIRECTION_ROLE_ID for role in interaction_confirm.user.roles):
                         await interaction_confirm.followup.send(
-                            "❌ Seule la direction peut valider les disponibilités !",
+                            "âŒ Seule la direction peut valider les disponibilitÃ©s !",
                             ephemeral=True
                         )
                         return
                     
-                    # Message de confirmation à la direction
+                    # Message de confirmation Ã  la direction
                     embed_confirm = discord.Embed(
-                        title="✅ Disponibilité Confirmée",
-                        description=f"La dispo de {user_name} a été approuvée.\n\nEn attente de recrutement...",
+                        title="âœ… DisponibilitÃ© ConfirmÃ©e",
+                        description=f"La dispo de {user_name} a Ã©tÃ© approuvÃ©e.\n\nEn attente de recrutement...",
                         color=discord.Color.green()
                     )
                     await interaction_confirm.followup.send(embed=embed_confirm, ephemeral=True)
                     
-                    # Désactiver les boutons
+                    # DÃ©sactiver les boutons
                     confirm_btn.disabled = True
                     refuse_btn.disabled = True
                     await interaction_confirm.message.edit(view=view)
                     
-                    # Envoyer un DM de rappel à l'utilisateur
+                    # Envoyer un DM de rappel Ã  l'utilisateur
                     try:
                         embed_dm = discord.Embed(
-                            title="📅 ✅ Votre Disponibilité a été Confirmée",
-                            description=f"Bonjour {user_name},\n\nVotre disponibilité a été validée par la direction !\n\nVos dispo:\n{self.disponibilites.value}",
+                            title="ðŸ“… âœ… Votre DisponibilitÃ© a Ã©tÃ© ConfirmÃ©e",
+                            description=f"Bonjour {user_name},\n\nVotre disponibilitÃ© a Ã©tÃ© validÃ©e par la direction !\n\nVos dispo:\n{self.disponibilites.value}",
                             color=discord.Color.green()
                         )
-                        embed_dm.set_footer(text="🚑 EMS System | Rappel de confirmation")
+                        embed_dm.set_footer(text="ðŸš‘ EMS System | Rappel de confirmation")
                         
                         user = bot.get_user(interaction.user.id)
                         if user:
@@ -7701,25 +7764,25 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                     recruitment_channel = bot.get_channel(DISPO_CHANNEL_ID)
                     if recruitment_channel:
                         embed_recrutement = discord.Embed(
-                            title="👤 Candidature Approuvée - Décision de Recrutement",
-                            description=f"**{interaction.user.mention}** a été approuvé(e) par la direction.\n\n"
-                                       f"Disponibilités:\n{self.disponibilites.value}",
+                            title="ðŸ‘¤ Candidature ApprouvÃ©e - DÃ©cision de Recrutement",
+                            description=f"**{interaction.user.mention}** a Ã©tÃ© approuvÃ©(e) par la direction.\n\n"
+                                       f"DisponibilitÃ©s:\n{self.disponibilites.value}",
                             color=discord.Color.blue()
                         )
                         
                         # Boutons Recruter/Refuser
                         recrutement_view = discord.ui.View()
-                        recruter_btn = discord.ui.Button(label="✅ Recruter", style=discord.ButtonStyle.green)
-                        refuser_btn = discord.ui.Button(label="❌ Refuser", style=discord.ButtonStyle.red)
+                        recruter_btn = discord.ui.Button(label="âœ… Recruter", style=discord.ButtonStyle.green)
+                        refuser_btn = discord.ui.Button(label="âŒ Refuser", style=discord.ButtonStyle.red)
                         
                         async def recruter_callback(interaction_recrutement: discord.Interaction):
-                            # DEFER IMMÉDIATEMENT pour éviter le timeout
+                            # DEFER IMMÃ‰DIATEMENT pour Ã©viter le timeout
                             await interaction_recrutement.response.defer()
                             
-                            # Vérifier que seul la direction peut recruter
+                            # VÃ©rifier que seul la direction peut recruter
                             if not any(role.id == DIRECTION_ROLE_ID for role in interaction_recrutement.user.roles):
                                 await interaction_recrutement.followup.send(
-                                    "❌ Seule la direction peut recruter !",
+                                    "âŒ Seule la direction peut recruter !",
                                     ephemeral=True
                                 )
                                 return
@@ -7735,7 +7798,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     except Exception:
                                         pass
 
-                                    # Retirer le rôle pending
+                                    # Retirer le rÃ´le pending
                                     try:
                                         role_pending = guild.get_role(ROLE_PENDING_ID)
                                         if role_pending:
@@ -7743,7 +7806,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     except:
                                         pass
                                     
-                                    # Ajouter les rôles EMS
+                                    # Ajouter les rÃ´les EMS
                                     roles_to_add = [
                                         guild.get_role(ROLE_EMT_1),
                                         guild.get_role(ROLE_EMT_2),
@@ -7754,7 +7817,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     if roles_to_add:
                                         await member.add_roles(*roles_to_add)
 
-                                    # Attribuer automatiquement les formations Scout et Alamo à l'embauche EMT
+                                    # Attribuer automatiquement les formations Scout et Alamo Ã  l'embauche EMT
                                     try:
                                         auto_formation_roles = [
                                             guild.get_role(1528837812793901207),  # Formation Scout
@@ -7766,18 +7829,18 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     except Exception as _af_err:
                                         print(f"Erreur attribution formations auto EMT: {_af_err}")
 
-                                    # Ajouter le préfixe [EMT]
+                                    # Ajouter le prÃ©fixe [EMT]
                                     try:
                                         new_nick = f"[EMT] {user_name}"
                                         await member.edit(nick=new_nick)
                                     except:
                                         pass
                                     
-                                    # Créer le channel privé avec emoji + nom dans la catégorie
+                                    # CrÃ©er le channel privÃ© avec emoji + nom dans la catÃ©gorie
                                     try:
                                         category = guild.get_channel(CATEGORY_EMT_ID)
                                         
-                                        channel_name = f"🔴{user_name.lower().replace(' ', '-')}"
+                                        channel_name = f"ðŸ”´{user_name.lower().replace(' ', '-')}"
                                         
                                         # Obtenir les permissions pour le channel
                                         overwrites = {
@@ -7786,7 +7849,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
                                         }
                                         
-                                        # Créer le channel dans la catégorie
+                                        # CrÃ©er le channel dans la catÃ©gorie
                                         new_channel = await guild.create_text_channel(
                                             channel_name,
                                             overwrites=overwrites,
@@ -7795,18 +7858,18 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                         
                                         # Message de bienvenue dans le channel
                                         embed_channel = discord.Embed(
-                                            title=f"🎉 Bienvenue {user_name} !",
-                                            description=f"Bienvenue dans ton channel personnel.\n\nTu as été recruté(e) en tant que **[EMT]**.\n\nVoici tes disponibilités:\n{self.disponibilites.value}",
+                                            title=f"ðŸŽ‰ Bienvenue {user_name} !",
+                                            description=f"Bienvenue dans ton channel personnel.\n\nTu as Ã©tÃ© recrutÃ©(e) en tant que **[EMT]**.\n\nVoici tes disponibilitÃ©s:\n{self.disponibilites.value}",
                                             color=discord.Color.green()
                                         )
                                         await new_channel.send(embed=embed_channel)
                                     except Exception as e:
-                                        print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur création channel: {e}")
+                                        print(f"[{now_paris().strftime('%H:%M:%S')}] âš ï¸ Erreur crÃ©ation channel: {e}")
                                     
                                     # Message de confirmation
                                     embed_recrute = discord.Embed(
-                                        title="✅ Recrutement Effectué",
-                                        description=f"**{user_name}** a été recruté(e) en tant que **[EMT]**.",
+                                        title="âœ… Recrutement EffectuÃ©",
+                                        description=f"**{user_name}** a Ã©tÃ© recrutÃ©(e) en tant que **[EMT]**.",
                                         color=discord.Color.green()
                                     )
                                     await interaction_recrutement.followup.send(embed=embed_recrute, ephemeral=True)
@@ -7814,8 +7877,8 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     # DM de bienvenue
                                     try:
                                         embed_welcome = discord.Embed(
-                                            title="🎉 Bienvenue dans l'EMS !",
-                                            description=f"Félicitations {user_name} !\n\nVous avez été recruté(e) en tant que **[EMT]**.\n\nUn channel privé a été créé pour vous : **{channel_name}**",
+                                            title="ðŸŽ‰ Bienvenue dans l'EMS !",
+                                            description=f"FÃ©licitations {user_name} !\n\nVous avez Ã©tÃ© recrutÃ©(e) en tant que **[EMT]**.\n\nUn channel privÃ© a Ã©tÃ© crÃ©Ã© pour vous : **{channel_name}**",
                                             color=discord.Color.green()
                                         )
                                         user_obj = bot.get_user(interaction.user.id)
@@ -7824,26 +7887,26 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     except:
                                         pass
                                     
-                                    # Désactiver les boutons
+                                    # DÃ©sactiver les boutons
                                     recruter_btn.disabled = True
                                     refuser_btn.disabled = True
                                     await interaction_recrutement.message.edit(view=recrutement_view)
                                     
-                                    # Ajouter réaction ✅
+                                    # Ajouter rÃ©action âœ…
                                     if hasattr(interaction_recrutement.message, 'add_reaction'):
-                                        await interaction_recrutement.message.add_reaction("✅")
+                                        await interaction_recrutement.message.add_reaction("âœ…")
                             except Exception as e:
-                                print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur recrutement: {e}")
-                                await interaction_recrutement.followup.send(f"❌ Erreur: {e}", ephemeral=True)
+                                print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur recrutement: {e}")
+                                await interaction_recrutement.followup.send(f"âŒ Erreur: {e}", ephemeral=True)
                         
                         async def refuser_recrutement_callback(interaction_refus: discord.Interaction):
-                            # DEFER IMMÉDIATEMENT pour éviter le timeout
+                            # DEFER IMMÃ‰DIATEMENT pour Ã©viter le timeout
                             await interaction_refus.response.defer()
                             
-                            # Vérifier que seul la direction peut refuser
+                            # VÃ©rifier que seul la direction peut refuser
                             if not any(role.id == DIRECTION_ROLE_ID for role in interaction_refus.user.roles):
                                 await interaction_refus.followup.send(
-                                    "❌ Seule la direction peut refuser !",
+                                    "âŒ Seule la direction peut refuser !",
                                     ephemeral=True
                                 )
                                 return
@@ -7853,7 +7916,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                 member = guild.get_member(interaction.user.id)
                                 
                                 if member:
-                                    # Retirer tous les rôles EMS (sauf citoyen)
+                                    # Retirer tous les rÃ´les EMS (sauf citoyen)
                                     for role in member.roles:
                                         if role.id in [ROLE_EMT_1, ROLE_EMT_2, ROLE_EMT_3, ROLE_PENDING_ID] and role.id != ROLE_CITOYEN:
                                             try:
@@ -7861,7 +7924,7 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                             except:
                                                 pass
                                     
-                                    # Retirer le préfixe [EMT] et le pseudo du serveur
+                                    # Retirer le prÃ©fixe [EMT] et le pseudo du serveur
                                     try:
                                         await member.edit(nick=None)
                                     except:
@@ -7869,8 +7932,8 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     
                                     # Message de refus
                                     embed_refuse = discord.Embed(
-                                        title="❌ Candidature Refusée",
-                                        description=f"**{user_name}** a été refusé(e) au recrutement.",
+                                        title="âŒ Candidature RefusÃ©e",
+                                        description=f"**{user_name}** a Ã©tÃ© refusÃ©(e) au recrutement.",
                                         color=discord.Color.red()
                                     )
                                     await interaction_refus.followup.send(embed=embed_refuse, ephemeral=True)
@@ -7878,8 +7941,8 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                     # DM de refus
                                     try:
                                         embed_refuse_dm = discord.Embed(
-                                            title="❌ Candidature Refusée",
-                                            description=f"Nous sommes désolés {user_name},\n\nVotre candidature au recrutement EMS a été refusée.\n\nVous pourrez réessayer dans 1 semaine.",
+                                            title="âŒ Candidature RefusÃ©e",
+                                            description=f"Nous sommes dÃ©solÃ©s {user_name},\n\nVotre candidature au recrutement EMS a Ã©tÃ© refusÃ©e.\n\nVous pourrez rÃ©essayer dans 1 semaine.",
                                             color=discord.Color.red()
                                         )
                                         user_obj = bot.get_user(interaction.user.id)
@@ -7893,24 +7956,24 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                                         bl = load_blacklist_cv()
                                         bl[str(interaction.user.id)] = {
                                             "date": datetime.utcnow().isoformat(),
-                                            "raison": "Candidature refusée par la direction (formulaire CV)",
+                                            "raison": "Candidature refusÃ©e par la direction (formulaire CV)",
                                             "blacklisted_by": str(interaction_refus.user.id),
                                         }
                                         save_blacklist_cv(bl)
                                     except Exception as _bl3:
                                         print(f"Erreur blacklist CV refus formulaire: {_bl3}")
 
-                                    # Désactiver les boutons
+                                    # DÃ©sactiver les boutons
                                     recruter_btn.disabled = True
                                     refuser_btn.disabled = True
                                     await interaction_refus.message.edit(view=recrutement_view)
                                     
-                                    # Ajouter réaction ❌
+                                    # Ajouter rÃ©action âŒ
                                     if hasattr(interaction_refus.message, 'add_reaction'):
-                                        await interaction_refus.message.add_reaction("❌")
+                                        await interaction_refus.message.add_reaction("âŒ")
                             except Exception as e:
-                                print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur refus recrutement: {e}")
-                                await interaction_refus.followup.send(f"❌ Erreur: {e}", ephemeral=True)
+                                print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur refus recrutement: {e}")
+                                await interaction_refus.followup.send(f"âŒ Erreur: {e}", ephemeral=True)
                         
                         recruter_btn.callback = recruter_callback
                         refuser_btn.callback = refuser_recrutement_callback
@@ -7919,35 +7982,35 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                         
                         await recruitment_channel.send(embed=embed_recrutement, view=recrutement_view)
                     
-                    # Ajouter une réaction pour marquer comme confirmée
+                    # Ajouter une rÃ©action pour marquer comme confirmÃ©e
                     if hasattr(interaction_confirm.message, 'add_reaction'):
-                        await interaction_confirm.message.add_reaction("✅")
+                        await interaction_confirm.message.add_reaction("âœ…")
                 
                 async def refuse_callback(interaction_refuse: discord.Interaction):
-                    # DEFER IMMÉDIATEMENT pour éviter le timeout
+                    # DEFER IMMÃ‰DIATEMENT pour Ã©viter le timeout
                     await interaction_refuse.response.defer()
                     
-                    # Message de refus à la direction
+                    # Message de refus Ã  la direction
                     embed_refuse = discord.Embed(
-                        title="❌ Disponibilité Refusée",
-                        description=f"La dispo de {user_name} a été déclinée.",
+                        title="âŒ DisponibilitÃ© RefusÃ©e",
+                        description=f"La dispo de {user_name} a Ã©tÃ© dÃ©clinÃ©e.",
                         color=discord.Color.red()
                     )
                     await interaction_refuse.followup.send(embed=embed_refuse, ephemeral=True)
                     
-                    # Désactiver les boutons
+                    # DÃ©sactiver les boutons
                     confirm_btn.disabled = True
                     refuse_btn.disabled = True
                     await interaction_refuse.message.edit(view=view)
                     
-                    # Envoyer un DM de rappel/refus à l'utilisateur
+                    # Envoyer un DM de rappel/refus Ã  l'utilisateur
                     try:
                         embed_dm = discord.Embed(
-                            title="📅 ❌ Disponibilité Refusée",
-                            description=f"Bonjour {user_name},\n\nVotre proposition de disponibilité a été refusée.\n\nVeuillez contacter la direction pour plus d'informations.",
+                            title="ðŸ“… âŒ DisponibilitÃ© RefusÃ©e",
+                            description=f"Bonjour {user_name},\n\nVotre proposition de disponibilitÃ© a Ã©tÃ© refusÃ©e.\n\nVeuillez contacter la direction pour plus d'informations.",
                             color=discord.Color.red()
                         )
-                        embed_dm.set_footer(text="🚑 EMS System | Avis de refus")
+                        embed_dm.set_footer(text="ðŸš‘ EMS System | Avis de refus")
                         
                         user = bot.get_user(interaction.user.id)
                         if user:
@@ -7955,9 +8018,9 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                     except:
                         pass
                     
-                    # Ajouter une réaction pour marquer comme refusée
+                    # Ajouter une rÃ©action pour marquer comme refusÃ©e
                     if hasattr(interaction_refuse.message, 'add_reaction'):
-                        await interaction_refuse.message.add_reaction("❌")
+                        await interaction_refuse.message.add_reaction("âŒ")
                 
                 confirm_btn.callback = confirm_callback
                 refuse_btn.callback = refuse_callback
@@ -7968,24 +8031,24 @@ class DispoModal(discord.ui.Modal, title="📅 Mettre à Jour mes Disponibilité
                 await request_channel.send(ping_msg, embed=embed, view=view)
             
             await interaction.response.send_message(
-                "✅ Vos disponibilités ont été soumises avec succès !",
+                "âœ… Vos disponibilitÃ©s ont Ã©tÃ© soumises avec succÃ¨s !",
                 ephemeral=True
             )
         except Exception as e:
-            print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur dispo: {e}")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur dispo: {e}")
             await interaction.response.send_message(
-                f"❌ Erreur: {e}",
+                f"âŒ Erreur: {e}",
                 ephemeral=True
             )
 
-# --- BOUTON POUR LES DISPONIBILITÉS ---
+# --- BOUTON POUR LES DISPONIBILITÃ‰S ---
 class DispoButton(discord.ui.View):
-    """Bouton pour ouvrir le formulaire de disponibilités"""
+    """Bouton pour ouvrir le formulaire de disponibilitÃ©s"""
     
     def __init__(self):
         super().__init__(timeout=None)
     
-    @discord.ui.button(label="📅 Soumettre ma Dispo", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="ðŸ“… Soumettre ma Dispo", style=discord.ButtonStyle.primary)
     async def dispo_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Ouvre le modal pour soumettre ses dispo"""
         await interaction.response.send_modal(DispoModal())
@@ -7995,11 +8058,11 @@ class DispoButton(discord.ui.View):
 ESX_SOCIETY_CHANNEL_ID = 1267921697420345424
 ESX_SOCIETY_ROLE_ID = 838102445095256068
 
-# Fichiers partagés avec Flask (même process, même DATA_DIR)
+# Fichiers partagÃ©s avec Flask (mÃªme process, mÃªme DATA_DIR)
 _TEST_LOGS_FILE   = os.path.join(DATA_DIR, 'test_logs.json')
 _TEST_ERRORS_FILE = os.path.join(DATA_DIR, 'test_errors.json')
 _TEST_REA_FILE    = os.path.join(DATA_DIR, 'test_rea.json')
-_TEST_MAP_FILE    = os.path.join(DATA_DIR, 'test_license_map.json')  # license → nom réel
+_TEST_MAP_FILE    = os.path.join(DATA_DIR, 'test_license_map.json')  # license â†’ nom rÃ©el
 _TEST_META_FILE   = os.path.join(DATA_DIR, 'test_meta.json')         # last_reset, etc.
 _TEST_MAX = 500
 _test_lock = __import__('threading').Lock()
@@ -8008,16 +8071,16 @@ _test_lock = __import__('threading').Lock()
 _ESX_TITLE_MAP = {
     "vente": "vente",
     "vente importante": "vente_importante",
-    "ventes (récap)": "vente",   # récap de plusieurs ventes = on compte chaque 100k
+    "ventes (rÃ©cap)": "vente",   # rÃ©cap de plusieurs ventes = on compte chaque 100k
     "prise de service": "prise_service",
     "fin de service": "fin_service",
 }
 
 def _parse_esx_embed(embed):
-    """Parse un embed esx_society et retourne un dict de données ou None."""
-    # Le titre peut avoir un emoji avant le texte : '🟢 Prise de service'
+    """Parse un embed esx_society et retourne un dict de donnÃ©es ou None."""
+    # Le titre peut avoir un emoji avant le texte : 'ðŸŸ¢ Prise de service'
     title = (embed.title or "").strip().lower()
-    # Supprimer tout caractère non-ascii devant le titre (emojis, etc.)
+    # Supprimer tout caractÃ¨re non-ascii devant le titre (emojis, etc.)
     title_clean = title.encode('ascii', 'ignore').decode('ascii').strip()
     log_type = None
     for key, val in _ESX_TITLE_MAP.items():
@@ -8035,14 +8098,14 @@ def _parse_esx_embed(embed):
     license_val = identifiant_raw.strip("`").strip()
 
     joueur = fields.get("joueur", "")
-    societe = fields.get("société", fields.get("societe", ""))
-    employee = fields.get("employé", fields.get("employe", ""))
+    societe = fields.get("sociÃ©tÃ©", fields.get("societe", ""))
+    employee = fields.get("employÃ©", fields.get("employe", ""))
 
     # Validation basique
     if not license_val.startswith("license:"):
         return None, f"License invalide: '{license_val}'"
     if societe.lower() != "ems":
-        return None, f"Société ignorée (pas EMS): '{societe}'"
+        return None, f"SociÃ©tÃ© ignorÃ©e (pas EMS): '{societe}'"
 
     result = {
         "type": log_type,
@@ -8070,7 +8133,7 @@ def _parse_esx_embed(embed):
             result["ventes"] = int(ventes_raw)
         except Exception:
             result["ventes"] = 1
-        periode_raw = fields.get("période", fields.get("periode", "0")).replace("min", "").strip()
+        periode_raw = fields.get("pÃ©riode", fields.get("periode", "0")).replace("min", "").strip()
         try:
             result["periode"] = int(periode_raw)
         except Exception:
@@ -8081,7 +8144,7 @@ def _parse_esx_embed(embed):
 
 
 def _ingest_log(endpoint_path, payload):
-    """Écriture synchrone — appelée uniquement depuis run_in_executor (thread pool)."""
+    """Ã‰criture synchrone â€” appelÃ©e uniquement depuis run_in_executor (thread pool)."""
     try:
         if endpoint_path.endswith('/logs/ingest'):
             filepath = _TEST_LOGS_FILE
@@ -8100,7 +8163,7 @@ def _ingest_log(endpoint_path, payload):
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"[ESX_INGEST] Erreur écriture {endpoint_path}: {e}")
+        print(f"[ESX_INGEST] Erreur Ã©criture {endpoint_path}: {e}")
 
 
 def _test_read(filepath, default):
@@ -8116,18 +8179,18 @@ def _test_write(filepath, data):
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"[ESX] Erreur écriture {filepath}: {e}")
+        print(f"[ESX] Erreur Ã©criture {filepath}: {e}")
 
 
 def _process_esx_sync(parsed, ts, is_error=False, error_payload=None):
-    """Tout l'I/O fichier en une seule fonction sync → exécutée dans un thread via run_in_executor."""
+    """Tout l'I/O fichier en une seule fonction sync â†’ exÃ©cutÃ©e dans un thread via run_in_executor."""
     if is_error:
         _ingest_log("/api/test/errors/ingest", error_payload)
         return
 
     license_key = parsed.get("license", "")
 
-    # PDS → mettre à jour le mapping license → nom réel
+    # PDS â†’ mettre Ã  jour le mapping license â†’ nom rÃ©el
     if parsed.get("type") == "prise_service" and license_key:
         nom_pds = parsed.get("employee") or parsed.get("joueur", "")
         with _test_lock:
@@ -8140,7 +8203,7 @@ def _process_esx_sync(parsed, ts, is_error=False, error_payload=None):
             }
             _test_write(_TEST_MAP_FILE, lmap)
 
-            # Fusionner l'entrée nom-clé (import) avec l'entrée license si elle existe
+            # Fusionner l'entrÃ©e nom-clÃ© (import) avec l'entrÃ©e license si elle existe
             rea_data = _test_read(_TEST_REA_FILE, {})
             nom_key = nom_pds.lower().replace(' ', '-')
             if nom_key in rea_data and license_key not in rea_data:
@@ -8149,9 +8212,9 @@ def _process_esx_sync(parsed, ts, is_error=False, error_payload=None):
                 entry['nom'] = nom_pds
                 rea_data[license_key] = entry
                 _test_write(_TEST_REA_FILE, rea_data)
-                print(f"[ESX] PDS : {nom_pds} (fusion {nom_key} → license)")
+                print(f"[ESX] PDS : {nom_pds} (fusion {nom_key} â†’ license)")
             elif license_key in rea_data and nom_key in rea_data:
-                # Les deux existent, fusionner les réas
+                # Les deux existent, fusionner les rÃ©as
                 rea_data[license_key]['reas'] += rea_data[nom_key].get('reas', 0)
                 rea_data[license_key]['history'] = rea_data[nom_key].get('history', []) + rea_data[license_key]['history']
                 rea_data[license_key]['nom'] = nom_pds
@@ -8161,21 +8224,21 @@ def _process_esx_sync(parsed, ts, is_error=False, error_payload=None):
             else:
                 print(f"[ESX] PDS : {nom_pds}")
 
-    # Enrichir avec le nom réel
+    # Enrichir avec le nom rÃ©el
     with _test_lock:
         lmap = _test_read(_TEST_MAP_FILE, {})
     parsed["nom_reel"] = lmap.get(license_key, {}).get("nom") or parsed.get("joueur", "")
 
     _ingest_log("/api/test/logs/ingest", parsed)
 
-    # Comptage réas : vente 100k = +1 réa, seulement si PDS connue
+    # Comptage rÃ©as : vente 100k = +1 rÃ©a, seulement si PDS connue
     montant = parsed.get("montant", 0)
     nb_reas = montant // 100000
     if parsed.get("type") in ("vente", "vente_importante") and nb_reas >= 1 and license_key:
         with _test_lock:
             lmap2 = _test_read(_TEST_MAP_FILE, {})
             if license_key not in lmap2:
-                print(f"[ESX] Ignoré (pas de PDS) : {parsed.get('joueur')}")
+                print(f"[ESX] IgnorÃ© (pas de PDS) : {parsed.get('joueur')}")
             else:
                 nom = lmap2[license_key].get("nom") or parsed.get("joueur", license_key)
                 rea_data = _test_read(_TEST_REA_FILE, {})
@@ -8187,15 +8250,15 @@ def _process_esx_sync(parsed, ts, is_error=False, error_payload=None):
                 rea_data[license_key]["reas"] += nb_reas
                 rea_data[license_key]["history"].insert(0, {
                     "action": "add", "amount": nb_reas,
-                    "note": f"Auto — {parsed.get('raw_title','')} ({montant:,}$)",
+                    "note": f"Auto â€” {parsed.get('raw_title','')} ({montant:,}$)",
                     "timestamp": ts,
                 })
                 _test_write(_TEST_REA_FILE, rea_data)
-                print(f"[ESX] +{nb_reas} réa(s) pour {nom}")
+                print(f"[ESX] +{nb_reas} rÃ©a(s) pour {nom}")
 
 
-# Titres esx_society connus mais non traités — silence total
-_ESX_IGNORED_TITLES = {"facture refusée", "licenciement", "embauche", "promotion", "démission", "sanction"}
+# Titres esx_society connus mais non traitÃ©s â€” silence total
+_ESX_IGNORED_TITLES = {"facture refusÃ©e", "licenciement", "embauche", "promotion", "dÃ©mission", "sanction"}
 
 async def _handle_esx_society_message(message):
     """Capture et parse les messages esx_society dans le channel logs."""
@@ -8210,12 +8273,12 @@ async def _handle_esx_society_message(message):
         raw_fields = {f.name: f.value for f in embed.fields}
 
         if error or parsed is None:
-            # Ignorer silencieusement les titres connus mais non traités
+            # Ignorer silencieusement les titres connus mais non traitÃ©s
             title_low = (embed.title or "").lower()
             if any(t in title_low for t in _ESX_IGNORED_TITLES):
                 continue
             err_payload = {
-                "reason": error or "Parse échoué",
+                "reason": error or "Parse Ã©chouÃ©",
                 "raw_title": embed.title or "",
                 "raw_fields": raw_fields,
                 "joueur": raw_fields.get("Joueur", ""),
@@ -8230,37 +8293,37 @@ async def _handle_esx_society_message(message):
         parsed["source"] = "discord_bot"
         parsed["role_ok"] = True
 
-        # Tout l'I/O dans un thread — ne bloque plus l'event loop
+        # Tout l'I/O dans un thread â€” ne bloque plus l'event loop
         await loop.run_in_executor(None, _process_esx_sync, parsed, ts, False, None)
 
 
 @bot.event
 async def on_message(message):
-    """Handler principal des messages - comptage réas, taxi, burgershot"""
+    """Handler principal des messages - comptage rÃ©as, taxi, burgershot"""
 
     # --- CAPTURE LOGS ESX_SOCIETY (webhook OU bot) ---
-    # esx_society envoie via webhook : webhook_id est défini, author.bot peut être False
+    # esx_society envoie via webhook : webhook_id est dÃ©fini, author.bot peut Ãªtre False
     _is_esx_channel = message.channel.id == ESX_SOCIETY_CHANNEL_ID
     _is_webhook = getattr(message, 'webhook_id', None) is not None
     _is_bot = message.author.bot
     if _is_esx_channel and (_is_webhook or _is_bot):
         await _handle_esx_society_message(message)
 
-    # Ignorer les bots et les DM immédiatement (early exit O(1))
+    # Ignorer les bots et les DM immÃ©diatement (early exit O(1))
     if message.author.bot:
         return
     if message.guild is None:
         await bot.process_commands(message)
         return
 
-    # --- SURVEILLANCE COFFRE SOCIÉTÉ ---
+    # --- SURVEILLANCE COFFRE SOCIÃ‰TÃ‰ ---
     if message.channel.id == 1267921697420345424:
         content = message.content or ""
-        # Ignorer les messages PDS (service) — ils contiennent ces mots clés
-        pds_keywords = ["fin de service", "prise de service", "esx_society", "employé", "identifiant", "license:"]
+        # Ignorer les messages PDS (service) â€” ils contiennent ces mots clÃ©s
+        pds_keywords = ["fin de service", "prise de service", "esx_society", "employÃ©", "identifiant", "license:"]
         is_pds = any(kw in content.lower() for kw in pds_keywords)
-        # Parser uniquement les messages de retrait : "vient de récupérer xN item"
-        match = _re.search(r"l'utilisateur \*\*(.+?)\*\* vient de récupérer x(\d+) (.+?) dans la société", content, _re.IGNORECASE)
+        # Parser uniquement les messages de retrait : "vient de rÃ©cupÃ©rer xN item"
+        match = _re.search(r"l'utilisateur \*\*(.+?)\*\* vient de rÃ©cupÃ©rer x(\d+) (.+?) dans la sociÃ©tÃ©", content, _re.IGNORECASE)
         if match and not is_pds:
             username = match.group(1).strip()
             qty = int(match.group(2))
@@ -8283,16 +8346,16 @@ async def on_message(message):
             if item_exceeded:
                 alert_channel = bot.get_channel(1452842321996677253)
                 if alert_channel:
-                    items_list = "\n".join(f"• {i}" for i in coffre_tracking[track_key]["items"])
+                    items_list = "\n".join(f"â€¢ {i}" for i in coffre_tracking[track_key]["items"])
                     embed = discord.Embed(
-                        title="🚨 ALERTE COFFRE SOCIÉTÉ",
-                        description=f"**{username}** a retiré **{total} items** du coffre aujourd'hui !",
+                        title="ðŸš¨ ALERTE COFFRE SOCIÃ‰TÃ‰",
+                        description=f"**{username}** a retirÃ© **{total} items** du coffre aujourd'hui !",
                         color=discord.Color.red()
                     )
-                    embed.add_field(name="📦 Items retirés (total)", value=items_list, inline=False)
-                    embed.add_field(name="🕐 Dernier retrait", value=f"x{qty} {item}", inline=True)
-                    embed.add_field(name="📊 Total du jour", value=f"**{total} items**", inline=True)
-                    embed.set_footer(text=f"🚑 EMS System | {now_paris().strftime('%d/%m/%Y %H:%M')}")
+                    embed.add_field(name="ðŸ“¦ Items retirÃ©s (total)", value=items_list, inline=False)
+                    embed.add_field(name="ðŸ• Dernier retrait", value=f"x{qty} {item}", inline=True)
+                    embed.add_field(name="ðŸ“Š Total du jour", value=f"**{total} items**", inline=True)
+                    embed.set_footer(text=f"ðŸš‘ EMS System | {now_paris().strftime('%d/%m/%Y %H:%M')}")
                     try:
                         await alert_channel.send(content="<@&838102445095256068>", embed=embed)
                     except Exception as e:
@@ -8307,7 +8370,7 @@ async def on_message(message):
     if message.channel.id == TAXI_CHANNEL_ID:
         if any(role.id == TAXI_ROLE_ID for role in getattr(message.author, "roles", [])):
             try:
-                await message.add_reaction("✅")
+                await message.add_reaction("âœ…")
             except:
                 pass
             taxi_stats = load_taxi_stats()
@@ -8318,83 +8381,83 @@ async def on_message(message):
     if message.channel.id == BURGERSHOT_CHANNEL_ID:
         if message.attachments:
             try:
-                await message.add_reaction("✅")
+                await message.add_reaction("âœ…")
             except:
                 pass
             burgershot_stats = load_burgershot_stats()
             burgershot_stats["count"] += 1
             save_burgershot_stats(burgershot_stats)
     
-    # Ignorer les messages sans pièces jointes pour le reste
+    # Ignorer les messages sans piÃ¨ces jointes pour le reste
     if not message.attachments:
         await bot.process_commands(message)
         return
     
     try:
-        # Obtenir le channel et l'employé associé
+        # Obtenir le channel et l'employÃ© associÃ©
         channel = message.channel
         if not channel or not channel.name:
             await bot.process_commands(message)
             return
         
-        # Vérifier que c'est un channel EMS (commence par emoji)
-        if not (channel.name and len(channel.name) > 0 and channel.name[0] in ["🔴", "🟠", "🟢"]):
+        # VÃ©rifier que c'est un channel EMS (commence par emoji)
+        if not (channel.name and len(channel.name) > 0 and channel.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]):
             await bot.process_commands(message)
             return
         
-        # Obtenir la clé employé du channel
+        # Obtenir la clÃ© employÃ© du channel
         employee_key = get_channel_employee_key(channel)
         if not employee_key:
             await bot.process_commands(message)
             return
         
-        # --- VÉRIFICATION SERVICE ACTIF ---
+        # --- VÃ‰RIFICATION SERVICE ACTIF ---
         user_id = str(message.author.id)
         if user_id not in active_services:
             try:
                 await message.reply(
-                    "❌ **Tu dois prendre ton service avant d'envoyer des réas !**\n"
-                    "Va dans <#1413994272616611880> et clique sur **🟢 Prise de Service**.",
+                    "âŒ **Tu dois prendre ton service avant d'envoyer des rÃ©as !**\n"
+                    "Va dans <#1413994272616611880> et clique sur **ðŸŸ¢ Prise de Service**.",
                     delete_after=10
                 )
-                await message.add_reaction("⛔")
+                await message.add_reaction("â›”")
             except:
                 pass
             await bot.process_commands(message)
             return
         
-        # Mettre à jour la dernière réa et le compteur de service
-        # Vérifier que l'employé a choisi une division
+        # Mettre Ã  jour la derniÃ¨re rÃ©a et le compteur de service
+        # VÃ©rifier que l'employÃ© a choisi une division
         if user_id not in dispatch_state:
             try:
                 await message.reply(
-                    "❌ **Tu dois choisir ta division avant d'envoyer des réas !**\n"
-                    f"Va dans le salon dispatch et sélectionne ta division via les boutons.",
+                    "âŒ **Tu dois choisir ta division avant d'envoyer des rÃ©as !**\n"
+                    f"Va dans le salon dispatch et sÃ©lectionne ta division via les boutons.",
                     delete_after=60
                 )
-                await message.add_reaction("⛔")
+                await message.add_reaction("â›”")
             except:
                 pass
             await bot.process_commands(message)
             return
 
-        # Vérifier que l'employé est dans le bon vocal de sa division
+        # VÃ©rifier que l'employÃ© est dans le bon vocal de sa division
         user_div = dispatch_state.get(user_id)
         expected_vocal_id = SERVICE_VOICE_CHANNELS.get(user_div)
         member_voice = message.author.voice
         if expected_vocal_id and (not member_voice or member_voice.channel.id != expected_vocal_id):
-            # Vérifier si l'employé est dans un autre vocal de service valide (ex: était dans Lincoln et a changé de division)
+            # VÃ©rifier si l'employÃ© est dans un autre vocal de service valide (ex: Ã©tait dans Lincoln et a changÃ© de division)
             in_any_service_vocal = member_voice and member_voice.channel.id in SERVICE_VOICE_IDS
             if not in_any_service_vocal:
                 try:
                     expected_channel = message.guild.get_channel(expected_vocal_id)
                     vocal_name = expected_channel.name if expected_channel else user_div
                     await message.reply(
-                        f"❌ **Tu dois être dans le vocal de ta division pour envoyer des réas !**\n"
+                        f"âŒ **Tu dois Ãªtre dans le vocal de ta division pour envoyer des rÃ©as !**\n"
                         f"Rejoins le vocal **{vocal_name}** pour continuer.",
                         delete_after=60
                     )
-                    await message.add_reaction("⛔")
+                    await message.add_reaction("â›”")
                 except:
                     pass
                 await bot.process_commands(message)
@@ -8402,14 +8465,14 @@ async def on_message(message):
         active_services[user_id]["last_rea"] = now_paris().isoformat()
         active_services[user_id]["reas_count"] = active_services[user_id].get("reas_count", 0) + 1
 
-        # Mettre à jour le fichier de suivi d'activité réa (pour alerte inactivité)
+        # Mettre Ã  jour le fichier de suivi d'activitÃ© rÃ©a (pour alerte inactivitÃ©)
         try:
             emp_key = active_services[user_id].get("employee_key", "")
             if emp_key:
                 last_activity = robust_load_json(REA_INACTIVITY_FILE, {})
                 last_activity[emp_key] = now_paris().isoformat()
                 atomic_write_json(REA_INACTIVITY_FILE, last_activity)
-                # Réinitialiser alerte si l'employé avait été alerté
+                # RÃ©initialiser alerte si l'employÃ© avait Ã©tÃ© alertÃ©
                 alerted = robust_load_json(REA_INACTIVITY_ALERTED_FILE, {})
                 if emp_key in alerted:
                     del alerted[emp_key]
@@ -8419,7 +8482,7 @@ async def on_message(message):
         except Exception as _rea_track_err:
             pass
 
-        # Partager la réa avec les coéquipiers de la même division (Adam/Tango/Xray)
+        # Partager la rÃ©a avec les coÃ©quipiers de la mÃªme division (Adam/Tango/Xray)
         user_div = dispatch_state.get(user_id)
         if user_div and not user_div.startswith("Lincoln"):
             coequipiers = [uid for uid, div in dispatch_state.items() if div == user_div and uid != user_id]
@@ -8432,18 +8495,18 @@ async def on_message(message):
                         if co_emp_key:
                             add_daily_rea(co_emp_key, 1)
 
-                # Log réa partagée
+                # Log rÃ©a partagÃ©e
                 log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
                 if log_channel:
                     all_names = [get_clean_name(message.author)] + [get_clean_name(message.guild.get_member(int(uid))) for uid in coequipiers if message.guild.get_member(int(uid))]
                     try:
                         await log_channel.send(
-                            f"🤝 **Réa partagée** — **{user_div}** : {' + '.join(all_names)}"
+                            f"ðŸ¤ **RÃ©a partagÃ©e** â€” **{user_div}** : {' + '.join(all_names)}"
                         )
                     except:
                         pass
 
-                # Un seul message dans le channel de chaque coéquipier (sans ping)
+                # Un seul message dans le channel de chaque coÃ©quipier (sans ping)
                 sender_name = get_clean_name(message.author)
                 for target_uid in coequipiers:
                     target_member = message.guild.get_member(int(target_uid))
@@ -8453,17 +8516,17 @@ async def on_message(message):
                     co_key_check = active_services.get(target_uid, {}).get("employee_key", "")
                     target_clean_norm = normalize_employee_key(target_name)
                     for ch in message.guild.text_channels:
-                        if ch.name and len(ch.name) > 1 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+                        if ch.name and len(ch.name) > 1 and ch.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
                             if get_channel_employee_key(ch) in [target_clean_norm, co_key_check]:
                                 try:
                                     await ch.send(
-                                        f"➕ **+1 réa** comptée pour **{target_name}** par **{sender_name}** ({user_div})"
+                                        f"âž• **+1 rÃ©a** comptÃ©e pour **{target_name}** par **{sender_name}** ({user_div})"
                                     )
                                 except:
                                     pass
                                 break
 
-        # --- PRIME SOIRÉE : 10 réas entre 21h-23h ---
+        # --- PRIME SOIRÃ‰E : 10 rÃ©as entre 21h-23h ---
         current_hour = now_paris().hour
         if 21 <= current_hour < 23:
             today_str = now_paris().strftime("%Y-%m-%d")
@@ -8474,24 +8537,24 @@ async def on_message(message):
                 if award_bonus(employee_key):
                     try:
                         await message.channel.send(
-                            f"💰 **Prime soirée débloquée !** 10 réas entre 21h-23h — **+1M** attribué à {employee_key.replace('-', ' ').title()} !",
+                            f"ðŸ’° **Prime soirÃ©e dÃ©bloquÃ©e !** 10 rÃ©as entre 21h-23h â€” **+1M** attribuÃ© Ã  {employee_key.replace('-', ' ').title()} !",
                             delete_after=30
                         )
                     except:
                         pass
         
         # Charger les stats
-        # Charger les stats fraîches et incrémenter atomiquement
+        # Charger les stats fraÃ®ches et incrÃ©menter atomiquement
         stats = load_stats()
 
-        # Incrémenter le compteur de l'envoyeur
+        # IncrÃ©menter le compteur de l'envoyeur
         if employee_key not in stats:
             stats[employee_key] = 0
         old_count = stats[employee_key]
         stats[employee_key] += 1
         current_count = stats[employee_key]
 
-        # Incrémenter aussi les stats des coéquipiers de division
+        # IncrÃ©menter aussi les stats des coÃ©quipiers de division
         user_div2 = dispatch_state.get(user_id)
         if user_div2 and not user_div2.startswith("Lincoln"):
             coequipiers2 = [uid for uid, div in dispatch_state.items() if div == user_div2 and uid != user_id]
@@ -8505,15 +8568,15 @@ async def on_message(message):
                 if co_key not in stats:
                     stats[co_key] = 0
                 stats[co_key] += 1
-                # Pas d'édition de channel ici — la tâche périodique s'en charge
+                # Pas d'Ã©dition de channel ici â€” la tÃ¢che pÃ©riodique s'en charge
 
         # Sauvegarder TOUT en une seule fois
         save_stats(stats)
 
-        # Ajouter réaction ✅ (indépendant du reste)
+        # Ajouter rÃ©action âœ… (indÃ©pendant du reste)
         for attempt in range(3):
             try:
-                await message.add_reaction("✅")
+                await message.add_reaction("âœ…")
                 break
             except discord.errors.HTTPException as e:
                 if e.status == 429:  # Rate limited
@@ -8523,42 +8586,42 @@ async def on_message(message):
             except:
                 break
 
-        # Envoyer log (indépendant)
+        # Envoyer log (indÃ©pendant)
         log_channel = bot.get_channel(config.get("LOGS_CHANNEL_ID"))
         if log_channel:
             try:
                 emoji = get_color_emoji(current_count)
-                message_text = f"✅ **{employee_key}** | {current_count} réas"
+                message_text = f"âœ… **{employee_key}** | {current_count} rÃ©as"
                 await log_channel.send(message_text)
                 
                 # --- MILESTONES & CONGRATULATIONS ---
                 display_name = employee_key.replace("-", " ").title()
                 
-                # Milestone 50 réas
+                # Milestone 50 rÃ©as
                 if old_count < 50 and current_count >= 50:
                     embed_50 = discord.Embed(
-                        title="🎯 50 réas atteints !",
-                        description=f"Excellent travail **{display_name}** ! 🙌\n\n"
+                        title="ðŸŽ¯ 50 rÃ©as atteints !",
+                        description=f"Excellent travail **{display_name}** ! ðŸ™Œ\n\n"
                                    f"Tu continues et tu atteindras le quota complet.\n"
-                                   f"Reste motivé ! 💪",
+                                   f"Reste motivÃ© ! ðŸ’ª",
                         color=discord.Color.orange()
                     )
-                    embed_50.set_footer(text="🚑 EMS System | Continue comme ça !")
+                    embed_50.set_footer(text="ðŸš‘ EMS System | Continue comme Ã§a !")
                     await message.channel.send(embed=embed_50)
                 
-                # Milestone 100 réas (QUOTA COMPLET)
+                # Milestone 100 rÃ©as (QUOTA COMPLET)
                 if old_count < 100 and current_count >= 100:
                     embed_100 = discord.Embed(
-                        title="🏆 QUOTA COMPLET - 100 réas ! 🏆",
-                        description=f"🎉 **{display_name}** a rempli le quota !\n\n"
-                                   f"Tu as atteint l'objectif de 100 réas.\n"
-                                   f"Continue comme ça, nous sommes fiers de ton activité ! 🌟\n\n"
-                                   f"Des récompenses seront offertes aux plus actifs à la fin du mois.",
+                        title="ðŸ† QUOTA COMPLET - 100 rÃ©as ! ðŸ†",
+                        description=f"ðŸŽ‰ **{display_name}** a rempli le quota !\n\n"
+                                   f"Tu as atteint l'objectif de 100 rÃ©as.\n"
+                                   f"Continue comme Ã§a, nous sommes fiers de ton activitÃ© ! ðŸŒŸ\n\n"
+                                   f"Des rÃ©compenses seront offertes aux plus actifs Ã  la fin du mois.",
                         color=discord.Color.gold()
                     )
-                    embed_100.set_footer(text="🚑 EMS System | Bravo !")
+                    embed_100.set_footer(text="ðŸš‘ EMS System | Bravo !")
                     
-                    # Envoyer dans le channel employé avec ping
+                    # Envoyer dans le channel employÃ© avec ping
                     try:
                         role_mention = f"<@&838102445095256068>"
                         await message.channel.send(role_mention, embed=embed_100)
@@ -8568,12 +8631,12 @@ async def on_message(message):
                 pass
     
     except Exception as e:
-        print(f"❌ Erreur on_message: {e}")
+        print(f"âŒ Erreur on_message: {e}")
     
     # Traiter les commandes slash
     await bot.process_commands(message)
 
-# --- SYSTÈME DE PRISE DE SERVICE ---
+# --- SYSTÃˆME DE PRISE DE SERVICE ---
 SERVICE_CHANNEL_ID = 1413994272616611880
 
 def build_status_embed():
@@ -8589,11 +8652,11 @@ def build_status_embed():
             duree = f"{h}h{m:02d}" if h > 0 else f"{m} min"
             reas = svc.get('reas_count', 0)
             name = svc.get('display_name', svc['employee_key'])
-            lines.append(f"🟢 **{name}** (<@{uid}>) — en service depuis **{duree}** ({reas} réas)")
+            lines.append(f"ðŸŸ¢ **{name}** (<@{uid}>) â€” en service depuis **{duree}** ({reas} rÃ©as)")
         
         status_text = "\n".join(lines)
     else:
-        status_text = "*Aucun employé en service actuellement.*"
+        status_text = "*Aucun employÃ© en service actuellement.*"
     return status_text
 
 def build_service_embed():
@@ -8601,32 +8664,32 @@ def build_service_embed():
     status_text = build_status_embed()
     
     embed = discord.Embed(
-        title="🚑 PRISE DE SERVICE EMS",
+        title="ðŸš‘ PRISE DE SERVICE EMS",
         description=(
-            "**Bienvenue dans le système de prise de service !**\n\n"
-            "📋 **Comment ça marche ?**\n"
-            "1️⃣ Clique sur **🟢 Prise de Service** avant de commencer tes réas\n"
-            "2️⃣ Envoie tes réas normalement dans ton channel\n"
-            "3️⃣ Clique sur **🔴 Fin de Service** quand tu as terminé\n\n"
-            "⚠️ **Important :**\n"
-            "• Tu **dois** prendre ton service avant d'envoyer des réas\n"
-            "• Après **30 min** sans réa, ton service sera terminé automatiquement\n"
-            "• La direction peut consulter les heures avec `/services`\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"📡 **EMPLOYÉS EN SERVICE :**\n{status_text}\n\n"
-            f"*Dernière mise à jour : {now_paris().strftime('%H:%M:%S')}*"
+            "**Bienvenue dans le systÃ¨me de prise de service !**\n\n"
+            "ðŸ“‹ **Comment Ã§a marche ?**\n"
+            "1ï¸âƒ£ Clique sur **ðŸŸ¢ Prise de Service** avant de commencer tes rÃ©as\n"
+            "2ï¸âƒ£ Envoie tes rÃ©as normalement dans ton channel\n"
+            "3ï¸âƒ£ Clique sur **ðŸ”´ Fin de Service** quand tu as terminÃ©\n\n"
+            "âš ï¸ **Important :**\n"
+            "â€¢ Tu **dois** prendre ton service avant d'envoyer des rÃ©as\n"
+            "â€¢ AprÃ¨s **30 min** sans rÃ©a, ton service sera terminÃ© automatiquement\n"
+            "â€¢ La direction peut consulter les heures avec `/services`\n\n"
+            "â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n\n"
+            f"ðŸ“¡ **EMPLOYÃ‰S EN SERVICE :**\n{status_text}\n\n"
+            f"*DerniÃ¨re mise Ã  jour : {now_paris().strftime('%H:%M:%S')}*"
         ),
         color=EMS_RED
     )
-    embed.set_footer(text="🚑 EMS System | Prise de Service")
+    embed.set_footer(text="ðŸš‘ EMS System | Prise de Service")
     return embed
 
 last_pds_update = datetime.min.replace(tzinfo=PARIS_TZ)
 
 async def update_service_status(force=False):
-    """Met à jour le message de prise de service avec le statut en temps réel"""
+    """Met Ã  jour le message de prise de service avec le statut en temps rÃ©el"""
     global service_status_message_id, last_pds_update
-    # Cooldown de 30 secondes pour éviter les rate limits (bypassé si force=True)
+    # Cooldown de 30 secondes pour Ã©viter les rate limits (bypassÃ© si force=True)
     if not force and (now_paris() - last_pds_update).total_seconds() < 30:
         return
     try:
@@ -8643,14 +8706,14 @@ async def update_service_status(force=False):
             except discord.NotFound:
                 service_status_message_id = None
     except Exception as e:
-        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur update_service_status: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur update_service_status: {e}")
 
 
 class DispatchView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="🆘 Demande de renfort", style=discord.ButtonStyle.danger, custom_id="dispatch_renfort")
+    @discord.ui.button(label="ðŸ†˜ Demande de renfort", style=discord.ButtonStyle.danger, custom_id="dispatch_renfort")
     async def renfort(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True)
 
@@ -8661,13 +8724,13 @@ class DispatchView(discord.ui.View):
         renfort_channel = guild.get_channel(1483380822424682506)
         if renfort_channel:
             await renfort_channel.send(
-                f"🆘 {role_ping} — **{interaction.user.display_name}** a demandé du **renfort** !\n"
+                f"ðŸ†˜ {role_ping} â€” **{interaction.user.display_name}** a demandÃ© du **renfort** !\n"
                 f"Prenez votre service si possible.",
                 allowed_mentions=discord.AllowedMentions(roles=True)
             )
 
         await interaction.followup.send(
-            "✅ Demande de renfort envoyée !",
+            "âœ… Demande de renfort envoyÃ©e !",
             ephemeral=True
         )
 
@@ -8676,17 +8739,17 @@ class ServiceView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
     
-    @discord.ui.button(label="🟢 Prise de Service", style=discord.ButtonStyle.green, custom_id="prise_service")
+    @discord.ui.button(label="ðŸŸ¢ Prise de Service", style=discord.ButtonStyle.green, custom_id="prise_service")
     async def prise_service(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         
-        # Déjà en service ?
+        # DÃ©jÃ  en service ?
         if user_id in active_services:
             start = datetime.fromisoformat(active_services[user_id]["start"])
             minutes = int((now_paris() - start).total_seconds() // 60)
             await interaction.response.send_message(
-                f"⚠️ Tu es déjà en service depuis **{minutes} min** !\n"
-                f"Clique sur **🔴 Fin de Service** pour terminer.",
+                f"âš ï¸ Tu es dÃ©jÃ  en service depuis **{minutes} min** !\n"
+                f"Clique sur **ðŸ”´ Fin de Service** pour terminer.",
                 ephemeral=True
             )
             return
@@ -8695,7 +8758,7 @@ class ServiceView(discord.ui.View):
         guild = interaction.guild
         employee_key = None
         for ch in guild.text_channels:
-            if ch.name and len(ch.name) > 0 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+            if ch.name and len(ch.name) > 0 and ch.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
                 ch_key = get_channel_employee_key(ch)
                 if ch_key:
                     perms = ch.permissions_for(interaction.user)
@@ -8705,7 +8768,7 @@ class ServiceView(discord.ui.View):
         
         if not employee_key:
             await interaction.response.send_message(
-                "❌ Impossible de trouver ton channel EMS. Contacte la direction.",
+                "âŒ Impossible de trouver ton channel EMS. Contacte la direction.",
                 ephemeral=True
             )
             return
@@ -8726,7 +8789,7 @@ class ServiceView(discord.ui.View):
             "time": now.strftime("%H:%M"),
             "display_name": clean_name,
             "employee_key": employee_key,
-            "division": dispatch_state.get(user_id, "—")
+            "division": dispatch_state.get(user_id, "â€”")
         })
         if len(dispatch_history) > 500:
             dispatch_history.pop(0)
@@ -8735,7 +8798,7 @@ class ServiceView(discord.ui.View):
         except Exception:
             pass
 
-        # Ajouter le rôle "En Service"
+        # Ajouter le rÃ´le "En Service"
         role_en_service = interaction.guild.get_role(1524175137908457543)
         if role_en_service:
             try:
@@ -8748,46 +8811,46 @@ class ServiceView(discord.ui.View):
         if log_channel:
             try:
                 embed = discord.Embed(
-                    title="🟢 Prise de Service",
+                    title="ðŸŸ¢ Prise de Service",
                     description=f"**{interaction.user.display_name}** ({interaction.user.mention}) a pris son service.",
                     color=discord.Color.green()
                 )
-                embed.set_footer(text=f"🚑 EMS System | {now.strftime('%H:%M')}")
+                embed.set_footer(text=f"ðŸš‘ EMS System | {now.strftime('%H:%M')}")
                 await log_channel.send(embed=embed)
             except:
                 pass
         
         try:
             await interaction.response.send_message(
-                f"✅ **Service commencé !** 🟢\n\n"
-                f"Tu peux maintenant envoyer tes réas.\n"
-                f"⏱️ Fin de service auto après **30 min** sans réa.\n"
-                f"Clique sur **🔴 Fin de Service** pour terminer.",
+                f"âœ… **Service commencÃ© !** ðŸŸ¢\n\n"
+                f"Tu peux maintenant envoyer tes rÃ©as.\n"
+                f"â±ï¸ Fin de service auto aprÃ¨s **30 min** sans rÃ©a.\n"
+                f"Clique sur **ðŸ”´ Fin de Service** pour terminer.",
                 ephemeral=True
             )
         except (discord.errors.NotFound, discord.errors.InteractionResponded, asyncio.TimeoutError, Exception):
             pass
         
-        # Mettre à jour le statut en temps réel
+        # Mettre Ã  jour le statut en temps rÃ©el
         await update_service_status(force=True)
         for g in bot.guilds:
             await run_dispatch(g)
 
-        # Message dans dispatch pour inviter à choisir une division
+        # Message dans dispatch pour inviter Ã  choisir une division
         dispatch_channel = interaction.guild.get_channel(DISPATCH_CHANNEL_ID)
         if dispatch_channel:
             await dispatch_channel.send(
-                f"🟢 {interaction.user.mention} vient de prendre son service — **Choisissez votre division** via les boutons ci-dessus !",
+                f"ðŸŸ¢ {interaction.user.mention} vient de prendre son service â€” **Choisissez votre division** via les boutons ci-dessus !",
                 delete_after=30
             )
     
-    @discord.ui.button(label="🔴 Fin de Service", style=discord.ButtonStyle.red, custom_id="fin_service")
+    @discord.ui.button(label="ðŸ”´ Fin de Service", style=discord.ButtonStyle.red, custom_id="fin_service")
     async def fin_service(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         
         if user_id not in active_services:
             await interaction.response.send_message(
-                "❌ Tu n'es pas en service ! Clique sur **🟢 Prise de Service** pour commencer.",
+                "âŒ Tu n'es pas en service ! Clique sur **ðŸŸ¢ Prise de Service** pour commencer.",
                 ephemeral=True
             )
             return
@@ -8804,7 +8867,7 @@ class ServiceView(discord.ui.View):
         # Enregistrer les heures
         add_service_hours(employee_key, hours, reas)
 
-        # Retirer le rôle "En Service"
+        # Retirer le rÃ´le "En Service"
         role_en_service = interaction.guild.get_role(1524175137908457543)
         if role_en_service:
             try:
@@ -8812,7 +8875,7 @@ class ServiceView(discord.ui.View):
             except:
                 pass
 
-        # Déplacer du vocal de service vers le salon d'attente
+        # DÃ©placer du vocal de service vers le salon d'attente
         if interaction.user.voice and interaction.user.voice.channel:
             if interaction.user.voice.channel.id in SERVICE_VOICE_IDS:
                 try:
@@ -8827,32 +8890,32 @@ class ServiceView(discord.ui.View):
         if log_channel:
             try:
                 embed = discord.Embed(
-                    title="🔴 Fin de Service",
-                    description=f"**{interaction.user.display_name}** ({interaction.user.mention}) a terminé son service.",
+                    title="ðŸ”´ Fin de Service",
+                    description=f"**{interaction.user.display_name}** ({interaction.user.mention}) a terminÃ© son service.",
                     color=discord.Color.red()
                 )
-                embed.add_field(name="⏱️ Durée", value=f"{minutes} min", inline=True)
-                embed.add_field(name="🚑 Réas", value=f"{reas}", inline=True)
-                embed.set_footer(text=f"🚑 EMS System | {end.strftime('%H:%M')}")
+                embed.add_field(name="â±ï¸ DurÃ©e", value=f"{minutes} min", inline=True)
+                embed.add_field(name="ðŸš‘ RÃ©as", value=f"{reas}", inline=True)
+                embed.set_footer(text=f"ðŸš‘ EMS System | {end.strftime('%H:%M')}")
                 await log_channel.send(embed=embed)
             except:
                 pass
         
         try:
             await interaction.response.send_message(
-                f"✅ **Service terminé !** 🔴\n\n"
-                f"⏱️ Durée : **{minutes} min**\n"
-                f"🚑 Réas effectuées : **{reas}**\n\n"
+                f"âœ… **Service terminÃ© !** ðŸ”´\n\n"
+                f"â±ï¸ DurÃ©e : **{minutes} min**\n"
+                f"ðŸš‘ RÃ©as effectuÃ©es : **{reas}**\n\n"
                 f"Merci pour ton service !",
                 ephemeral=True
             )
         except (discord.errors.NotFound, discord.errors.InteractionResponded, asyncio.TimeoutError, Exception):
             pass
         
-        # Mettre à jour le statut en temps réel
+        # Mettre Ã  jour le statut en temps rÃ©el
         await update_service_status(force=True)
 
-        # Retirer du dispatch et mettre à jour
+        # Retirer du dispatch et mettre Ã  jour
         user_id_str = str(interaction.user.id)
         if user_id_str in dispatch_state:
             del dispatch_state[user_id_str]
@@ -8860,9 +8923,9 @@ class ServiceView(discord.ui.View):
             await run_dispatch(g)
 
 
-class AnnonceRoleModal(discord.ui.Modal, title="📢 Rôle à mentionner"):
+class AnnonceRoleModal(discord.ui.Modal, title="ðŸ“¢ RÃ´le Ã  mentionner"):
     role_input = discord.ui.TextInput(
-        label="ID du rôle (laisser vide = aucun ping)",
+        label="ID du rÃ´le (laisser vide = aucun ping)",
         placeholder="Ex: 838102445095256068 ou laisser vide",
         required=False,
         max_length=50
@@ -8886,17 +8949,17 @@ class AnnonceRoleModal(discord.ui.Modal, title="📢 Rôle à mentionner"):
                     content_ping = role.mention
                 else:
                     await interaction.followup.send(
-                        f"⚠️ Rôle `{role_input}` introuvable, annonce envoyée sans ping.",
+                        f"âš ï¸ RÃ´le `{role_input}` introuvable, annonce envoyÃ©e sans ping.",
                         ephemeral=True
                     )
             except ValueError:
                 await interaction.followup.send(
-                    "⚠️ ID invalide, annonce envoyée sans ping.",
+                    "âš ï¸ ID invalide, annonce envoyÃ©e sans ping.",
                     ephemeral=True
                 )
 
         embed = discord.Embed(description=self.contenu, color=EMS_RED)
-        embed.set_footer(text=f"📢 Annonce EMS | {interaction.user.display_name}")
+        embed.set_footer(text=f"ðŸ“¢ Annonce EMS | {interaction.user.display_name}")
 
         try:
             await self.target_channel.send(
@@ -8905,12 +8968,12 @@ class AnnonceRoleModal(discord.ui.Modal, title="📢 Rôle à mentionner"):
                 allowed_mentions=discord.AllowedMentions(roles=True)
             )
             await interaction.followup.send(
-                f"✅ Annonce envoyée dans {self.target_channel.mention} !",
+                f"âœ… Annonce envoyÃ©e dans {self.target_channel.mention} !",
                 ephemeral=True
             )
         except discord.Forbidden:
             await interaction.followup.send(
-                f"❌ Pas la permission d'envoyer dans {self.target_channel.mention}.",
+                f"âŒ Pas la permission d'envoyer dans {self.target_channel.mention}.",
                 ephemeral=True
             )
 
@@ -8944,15 +9007,15 @@ class AnnonceSalonView(discord.ui.View):
         channel_id = int(interaction.data["values"][0])
         target_channel = self.guild.get_channel(channel_id)
         if not target_channel:
-            await interaction.response.send_message("❌ Salon introuvable.", ephemeral=True)
+            await interaction.response.send_message("âŒ Salon introuvable.", ephemeral=True)
             return
         await interaction.response.send_modal(AnnonceRoleModal(self.contenu, target_channel))
 
 
-class AnnonceModal(discord.ui.Modal, title="📢 Rédiger l'annonce"):
+class AnnonceModal(discord.ui.Modal, title="ðŸ“¢ RÃ©diger l'annonce"):
     contenu = discord.ui.TextInput(
         label="Contenu de l'annonce",
-        placeholder="Écrivez votre annonce ici...",
+        placeholder="Ã‰crivez votre annonce ici...",
         style=discord.TextStyle.paragraph,
         required=True,
         max_length=2000
@@ -8961,7 +9024,7 @@ class AnnonceModal(discord.ui.Modal, title="📢 Rédiger l'annonce"):
     async def on_submit(self, interaction: discord.Interaction):
         view = AnnonceSalonView(self.contenu.value, interaction.guild)
         await interaction.response.send_message(
-            "**Étape 2/3** — Choisissez le salon où envoyer l'annonce :",
+            "**Ã‰tape 2/3** â€” Choisissez le salon oÃ¹ envoyer l'annonce :",
             view=view,
             ephemeral=True
         )
@@ -8985,9 +9048,9 @@ GRADE_TO_CATEGORY = {
 }
 
 
-@bot.tree.command(name="indisponible", description="Mettre un employé en indisponibilité (déplace son channel)")
+@bot.tree.command(name="indisponible", description="Mettre un employÃ© en indisponibilitÃ© (dÃ©place son channel)")
 @app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(membre="L'employé à mettre en indisponibilité")
+@app_commands.describe(membre="L'employÃ© Ã  mettre en indisponibilitÃ©")
 async def indisponible(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer(ephemeral=True)
 
@@ -8995,53 +9058,53 @@ async def indisponible(interaction: discord.Interaction, membre: discord.Member)
     clean_name = get_clean_name(membre)
     clean_name_normalized = normalize_employee_key(clean_name)
 
-    # Trouver la catégorie indispo
+    # Trouver la catÃ©gorie indispo
     category_indispo = guild.get_channel(CATEGORY_INDISPO_ID)
     if not category_indispo:
-        await interaction.followup.send("❌ Catégorie indisponible introuvable (`1524182164336279682`).", ephemeral=True)
+        await interaction.followup.send("âŒ CatÃ©gorie indisponible introuvable (`1524182164336279682`).", ephemeral=True)
         return
 
-    # Trouver le channel de l'employé
+    # Trouver le channel de l'employÃ©
     channel_found = None
     for ch in guild.text_channels:
-        if ch.name and len(ch.name) > 1 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+        if ch.name and len(ch.name) > 1 and ch.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
             if get_channel_employee_key(ch) == clean_name_normalized:
                 channel_found = ch
                 break
 
     if not channel_found:
         await interaction.followup.send(
-            f"❌ Aucun channel trouvé pour **{clean_name}**.",
+            f"âŒ Aucun channel trouvÃ© pour **{clean_name}**.",
             ephemeral=True
         )
         return
 
-    # Déplacer dans la catégorie indispo
+    # DÃ©placer dans la catÃ©gorie indispo
     try:
         await channel_found.edit(category=category_indispo)
     except Exception as e:
-        await interaction.followup.send(f"❌ Erreur lors du déplacement : `{e}`", ephemeral=True)
+        await interaction.followup.send(f"âŒ Erreur lors du dÃ©placement : `{e}`", ephemeral=True)
         return
 
     # Ping la personne dans son channel
     try:
         await channel_found.send(
-            f"⏸️ {membre.mention} — Votre channel a été mis en **indisponibilité** par la direction.\n"
-            f"Vous serez recontacté lors de votre retour."
+            f"â¸ï¸ {membre.mention} â€” Votre channel a Ã©tÃ© mis en **indisponibilitÃ©** par la direction.\n"
+            f"Vous serez recontactÃ© lors de votre retour."
         )
     except:
         pass
 
     await interaction.followup.send(
-        f"✅ **{clean_name}** est désormais en indisponibilité.\n"
-        f"📂 Channel déplacé : {channel_found.mention}",
+        f"âœ… **{clean_name}** est dÃ©sormais en indisponibilitÃ©.\n"
+        f"ðŸ“‚ Channel dÃ©placÃ© : {channel_found.mention}",
         ephemeral=True
     )
 
 
-@bot.tree.command(name="reouverture", description="Remettre un employé en activité (remet son channel dans la bonne catégorie)")
+@bot.tree.command(name="reouverture", description="Remettre un employÃ© en activitÃ© (remet son channel dans la bonne catÃ©gorie)")
 @app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(membre="L'employé à réactiver")
+@app_commands.describe(membre="L'employÃ© Ã  rÃ©activer")
 async def reouverture(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer(ephemeral=True)
 
@@ -9049,7 +9112,7 @@ async def reouverture(interaction: discord.Interaction, membre: discord.Member):
     clean_name = get_clean_name(membre)
     clean_name_normalized = normalize_employee_key(clean_name)
 
-    # Détecter le grade depuis le pseudo
+    # DÃ©tecter le grade depuis le pseudo
     grade_found = None
     for tag in ["DIR", "CAD", "CDS", "MED", "PSY", "INF", "ADS", "STG", "INT", "EMT"]:
         if f"[{tag}]" in membre.display_name:
@@ -9058,12 +9121,12 @@ async def reouverture(interaction: discord.Interaction, membre: discord.Member):
 
     if not grade_found:
         await interaction.followup.send(
-            f"❌ Impossible de détecter le grade de **{membre.display_name}**.",
+            f"âŒ Impossible de dÃ©tecter le grade de **{membre.display_name}**.",
             ephemeral=True
         )
         return
 
-    # Récupérer la bonne catégorie selon le grade
+    # RÃ©cupÃ©rer la bonne catÃ©gorie selon le grade
     cat_key = GRADE_TO_CATEGORY.get(grade_found)
     categories_data = load_categories()
     cat_id = categories_data.get(cat_key, 0)
@@ -9071,72 +9134,72 @@ async def reouverture(interaction: discord.Interaction, membre: discord.Member):
 
     if not category_target:
         await interaction.followup.send(
-            f"❌ Catégorie pour le grade **{grade_found}** introuvable. Vérifie la config des catégories.",
+            f"âŒ CatÃ©gorie pour le grade **{grade_found}** introuvable. VÃ©rifie la config des catÃ©gories.",
             ephemeral=True
         )
         return
 
-    # Trouver le channel dans la catégorie indispo
+    # Trouver le channel dans la catÃ©gorie indispo
     channel_found = None
     category_indispo = guild.get_channel(CATEGORY_INDISPO_ID)
     if category_indispo:
         for ch in category_indispo.text_channels:
-            if ch.name and len(ch.name) > 1 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+            if ch.name and len(ch.name) > 1 and ch.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
                 if get_channel_employee_key(ch) == clean_name_normalized:
                     channel_found = ch
                     break
 
-    # Si pas trouvé en indispo, chercher partout
+    # Si pas trouvÃ© en indispo, chercher partout
     if not channel_found:
         for ch in guild.text_channels:
-            if ch.name and len(ch.name) > 1 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+            if ch.name and len(ch.name) > 1 and ch.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
                 if get_channel_employee_key(ch) == clean_name_normalized:
                     channel_found = ch
                     break
 
     if not channel_found:
         await interaction.followup.send(
-            f"❌ Aucun channel trouvé pour **{clean_name}**.",
+            f"âŒ Aucun channel trouvÃ© pour **{clean_name}**.",
             ephemeral=True
         )
         return
 
-    # Remettre dans la bonne catégorie
+    # Remettre dans la bonne catÃ©gorie
     try:
         await channel_found.edit(category=category_target)
     except Exception as e:
-        await interaction.followup.send(f"❌ Erreur lors du déplacement : `{e}`", ephemeral=True)
+        await interaction.followup.send(f"âŒ Erreur lors du dÃ©placement : `{e}`", ephemeral=True)
         return
 
     # Ping la personne
     try:
         await channel_found.send(
-            f"✅ {membre.mention} — Bienvenue de retour ! Votre channel a été réactivé par la direction."
+            f"âœ… {membre.mention} â€” Bienvenue de retour ! Votre channel a Ã©tÃ© rÃ©activÃ© par la direction."
         )
     except:
         pass
 
     await interaction.followup.send(
-        f"✅ **{clean_name}** est de retour en activité.\n"
-        f"📂 Channel remis dans **{category_target.name}** : {channel_found.mention}",
+        f"âœ… **{clean_name}** est de retour en activitÃ©.\n"
+        f"ðŸ“‚ Channel remis dans **{category_target.name}** : {channel_found.mention}",
         ephemeral=True
     )
 
 
-@bot.tree.command(name="setup_avertissements", description="Envoyer le tableau des avertissements dans le salon dédié (admin)")
+@bot.tree.command(name="setup_avertissements", description="Envoyer le tableau des avertissements dans le salon dÃ©diÃ© (admin)")
 @app_commands.checks.has_permissions(administrator=True)
 async def setup_avertissements(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     global avert_board_message_id
-    avert_board_message_id = None  # Force la recréation
+    avert_board_message_id = None  # Force la recrÃ©ation
     await update_avert_board(interaction.guild)
-    await interaction.followup.send("✅ Tableau des avertissements envoyé !", ephemeral=True)
+    await interaction.followup.send("âœ… Tableau des avertissements envoyÃ© !", ephemeral=True)
 
 
-@bot.tree.command(name="avertissement", description="Donner un avertissement à un employé EMS (admin)")
+@bot.tree.command(name="avertissement", description="Donner un avertissement Ã  un employÃ© EMS (admin)")
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(
-    membre="L'employé concerné",
+    membre="L'employÃ© concernÃ©",
     raison="Raison de l'avertissement"
 )
 async def avertissement(interaction: discord.Interaction, membre: discord.Member, raison: str):
@@ -9147,7 +9210,7 @@ async def avertissement(interaction: discord.Interaction, membre: discord.Member
     user_id = str(membre.id)
     now = datetime.now(timezone.utc)
 
-    # Purge des anciens (>30j) pour cet employé
+    # Purge des anciens (>30j) pour cet employÃ©
     existing = data.get(user_id, [])
     existing = [av for av in existing if (now - datetime.fromisoformat(av["date"])).days < 30]
 
@@ -9164,21 +9227,21 @@ async def avertissement(interaction: discord.Interaction, membre: discord.Member
     emoji = get_avert_emoji(count)
     clean = get_clean_name(membre)
 
-    # DM à l'employé
+    # DM Ã  l'employÃ©
     try:
         dm_embed = discord.Embed(
-            title="⚠️ Avertissement — Los Santos EMS",
-            color=get_avert_emoji(count) == "🔴" and discord.Color.red() or discord.Color.orange() if count >= 2 else discord.Color.yellow(),
+            title="âš ï¸ Avertissement â€” Los Santos EMS",
+            color=get_avert_emoji(count) == "ðŸ”´" and discord.Color.red() or discord.Color.orange() if count >= 2 else discord.Color.yellow(),
             description=(
-                f"Vous avez reçu un **avertissement officiel** de la direction des EMS.\n\n"
+                f"Vous avez reÃ§u un **avertissement officiel** de la direction des EMS.\n\n"
                 f"**Motif :** {raison}\n"
-                f"**Délivré par :** {interaction.user.display_name}\n"
+                f"**DÃ©livrÃ© par :** {interaction.user.display_name}\n"
                 f"**Avertissements actifs :** {count}/3\n\n"
-                f"{'⚠️ Attention : vous avez atteint la limite. Des mesures disciplinaires pourront être prises.' if count >= 3 else 'Tout avertissement supplémentaire pourra entraîner des sanctions.'}\n\n"
-                f"*Les avertissements sont automatiquement annulés après 30 jours.*"
+                f"{'âš ï¸ Attention : vous avez atteint la limite. Des mesures disciplinaires pourront Ãªtre prises.' if count >= 3 else 'Tout avertissement supplÃ©mentaire pourra entraÃ®ner des sanctions.'}\n\n"
+                f"*Les avertissements sont automatiquement annulÃ©s aprÃ¨s 30 jours.*"
             )
         )
-        dm_embed.set_footer(text="🚑 Los Santos Fire & Medical Department")
+        dm_embed.set_footer(text="ðŸš‘ Los Santos Fire & Medical Department")
         await membre.send(embed=dm_embed)
     except:
         pass
@@ -9190,16 +9253,16 @@ async def avertissement(interaction: discord.Interaction, membre: discord.Member
         avert_channel = guild.get_channel(AVERT_CHANNEL_ID)
         if avert_channel:
             alert_embed = discord.Embed(
-                title="🚨 Alerte — 3ème Avertissement",
+                title="ðŸš¨ Alerte â€” 3Ã¨me Avertissement",
                 color=discord.Color.red(),
                 description=(
-                    f"**{clean}** vient de recevoir son **{count}ème avertissement**.\n\n"
+                    f"**{clean}** vient de recevoir son **{count}Ã¨me avertissement**.\n\n"
                     f"**Motif :** {raison}\n"
-                    f"**Délivré par :** {interaction.user.display_name}\n\n"
-                    f"Une action disciplinaire est recommandée."
+                    f"**DÃ©livrÃ© par :** {interaction.user.display_name}\n\n"
+                    f"Une action disciplinaire est recommandÃ©e."
                 )
             )
-            alert_embed.set_footer(text="🚑 EMS System")
+            alert_embed.set_footer(text="ðŸš‘ EMS System")
             await avert_channel.send(
                 content=ping_str,
                 embed=alert_embed,
@@ -9207,23 +9270,23 @@ async def avertissement(interaction: discord.Interaction, membre: discord.Member
             )
 
     confirm_embed = discord.Embed(
-        title=f"{emoji} Avertissement enregistré",
+        title=f"{emoji} Avertissement enregistrÃ©",
         color=discord.Color.red() if count >= 3 else discord.Color.orange() if count == 2 else discord.Color.yellow(),
         description=(
-            f"**Employé :** {membre.mention}\n"
+            f"**EmployÃ© :** {membre.mention}\n"
             f"**Motif :** {raison}\n"
             f"**Avertissements actifs :** {count}/3"
         )
     )
-    confirm_embed.set_footer(text="🚑 EMS System")
+    confirm_embed.set_footer(text="ðŸš‘ EMS System")
     await interaction.followup.send(embed=confirm_embed, ephemeral=True)
 
     await update_avert_board(guild)
 
 
-@bot.tree.command(name="retirer_avertissement", description="Retirer un avertissement d'un employé EMS (admin)")
+@bot.tree.command(name="retirer_avertissement", description="Retirer un avertissement d'un employÃ© EMS (admin)")
 @app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(membre="L'employé concerné")
+@app_commands.describe(membre="L'employÃ© concernÃ©")
 async def retirer_avertissement(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer(ephemeral=True)
 
@@ -9235,7 +9298,7 @@ async def retirer_avertissement(interaction: discord.Interaction, membre: discor
 
     if not existing:
         await interaction.followup.send(
-            f"✅ **{get_clean_name(membre)}** n'a aucun avertissement actif.",
+            f"âœ… **{get_clean_name(membre)}** n'a aucun avertissement actif.",
             ephemeral=True
         )
         return
@@ -9246,28 +9309,28 @@ async def retirer_avertissement(interaction: discord.Interaction, membre: discor
     save_avertissements(data)
 
     await interaction.followup.send(
-        f"✅ Avertissement retiré pour **{get_clean_name(membre)}**.\n"
+        f"âœ… Avertissement retirÃ© pour **{get_clean_name(membre)}**.\n"
         f"**Restants :** {len(existing)}/3",
         ephemeral=True
     )
     await update_avert_board(interaction.guild)
 
 
-@bot.tree.command(name="redispatch", description="Forcer un nouveau dispatch des employés en service")
+@bot.tree.command(name="redispatch", description="Forcer un nouveau dispatch des employÃ©s en service")
 @app_commands.checks.has_permissions(administrator=True)
 async def redispatch(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     global dispatch_message_id
-    dispatch_message_id = None  # Force recréation
+    dispatch_message_id = None  # Force recrÃ©ation
     await run_dispatch(interaction.guild)
     count = len(active_services)
     if count < 4:
         await interaction.followup.send(
-            f"⚠️ Seulement **{count}** employé(s) en service. Il en faut au minimum **4** pour lancer un dispatch.",
+            f"âš ï¸ Seulement **{count}** employÃ©(s) en service. Il en faut au minimum **4** pour lancer un dispatch.",
             ephemeral=True
         )
     else:
-        await interaction.followup.send("✅ Dispatch relancé !", ephemeral=True)
+        await interaction.followup.send("âœ… Dispatch relancÃ© !", ephemeral=True)
 
 
 @bot.tree.command(name="annonce", description="Envoyer une annonce dans un salon (admin)")
@@ -9283,7 +9346,7 @@ async def prise_command(interaction: discord.Interaction):
     
     service_channel = bot.get_channel(SERVICE_CHANNEL_ID)
     if not service_channel:
-        await interaction.followup.send("❌ Channel de service introuvable.", ephemeral=True)
+        await interaction.followup.send("âŒ Channel de service introuvable.", ephemeral=True)
         return
     
     embed = build_service_embed()
@@ -9294,7 +9357,7 @@ async def prise_command(interaction: discord.Interaction):
     service_status_message_id = msg.id
     save_service_message_id(msg.id)
     
-    await interaction.followup.send("✅ Annonce de prise de service envoyée !", ephemeral=True)
+    await interaction.followup.send("âœ… Annonce de prise de service envoyÃ©e !", ephemeral=True)
 
 @app_commands.checks.has_permissions(administrator=True)
 async def services_command(interaction: discord.Interaction):
@@ -9307,18 +9370,18 @@ async def services_command(interaction: discord.Interaction):
     if not week_data:
         await interaction.followup.send(
             embed=discord.Embed(
-                title="📊 Services de la Semaine",
-                description="Aucun service enregistré cette semaine.",
+                title="ðŸ“Š Services de la Semaine",
+                description="Aucun service enregistrÃ© cette semaine.",
                 color=EMS_RED
             )
         )
         return
     
-    # Trier par heures décroissantes
+    # Trier par heures dÃ©croissantes
     sorted_employees = sorted(week_data.items(), key=lambda x: x[1]["total_hours"], reverse=True)
     
     embed = discord.Embed(
-        title=f"📊 Services - Semaine du {week}",
+        title=f"ðŸ“Š Services - Semaine du {week}",
         color=EMS_RED
     )
     
@@ -9337,8 +9400,8 @@ async def services_command(interaction: discord.Interaction):
         display_name = employee_key.replace("-", " ").title()
         
         embed.add_field(
-            name=f"👤 {display_name}",
-            value=f"⏱️ {h}h{m:02d} | 🚑 {reas} réas | 📋 {sessions} services",
+            name=f"ðŸ‘¤ {display_name}",
+            value=f"â±ï¸ {h}h{m:02d} | ðŸš‘ {reas} rÃ©as | ðŸ“‹ {sessions} services",
             inline=False
         )
     
@@ -9347,27 +9410,27 @@ async def services_command(interaction: discord.Interaction):
     for uid, svc in active_services.items():
         start = datetime.fromisoformat(svc["start"])
         minutes = int((now_paris() - start).total_seconds() // 60)
-        en_service.append(f"• **{svc['employee_key']}** - {minutes} min (🚑 {svc.get('reas_count', 0)} réas)")
+        en_service.append(f"â€¢ **{svc['employee_key']}** - {minutes} min (ðŸš‘ {svc.get('reas_count', 0)} rÃ©as)")
     
     if en_service:
         embed.add_field(
-            name="🟢 En service actuellement",
+            name="ðŸŸ¢ En service actuellement",
             value="\n".join(en_service),
             inline=False
         )
     
     h_total = int(total_hours_all)
     m_total = int((total_hours_all - h_total) * 60)
-    embed.set_footer(text=f"🚑 EMS System | Total: {h_total}h{m_total:02d} - {total_reas_all} réas")
+    embed.set_footer(text=f"ðŸš‘ EMS System | Total: {h_total}h{m_total:02d} - {total_reas_all} rÃ©as")
     
     await interaction.followup.send(embed=embed)
 
-# --- TÂCHE AUTO FIN DE SERVICE (20 MIN SANS RÉA) ---
+# --- TÃ‚CHE AUTO FIN DE SERVICE (20 MIN SANS RÃ‰A) ---
 @tasks.loop(minutes=2)
 async def check_inactive_services():
-    """Vérifie toutes les 2 min si un employé n'a pas envoyé de réa depuis 20 min"""
+    """VÃ©rifie toutes les 2 min si un employÃ© n'a pas envoyÃ© de rÃ©a depuis 20 min"""
     try:
-        # Purge du set processed_reactions pour éviter une croissance infinie en mémoire
+        # Purge du set processed_reactions pour Ã©viter une croissance infinie en mÃ©moire
         global processed_reactions
         if len(processed_reactions) > 5000:
             processed_reactions = set()
@@ -9382,7 +9445,7 @@ async def check_inactive_services():
                 if (now - last_rea).total_seconds() >= threshold_seconds:
                     to_remove.append(user_id)
             except (ValueError, KeyError):
-                pass  # Service mal formé, ignorer
+                pass  # Service mal formÃ©, ignorer
         
         for user_id in to_remove:
             service = active_services.pop(user_id)
@@ -9397,7 +9460,7 @@ async def check_inactive_services():
             # Enregistrer les heures
             add_service_hours(employee_key, hours, reas)
 
-            # Retirer le rôle "En Service" + kick vocal
+            # Retirer le rÃ´le "En Service" + kick vocal
             try:
                 guild_auto = bot.get_guild(config["GUILD_ID"])
                 if guild_auto:
@@ -9420,55 +9483,55 @@ async def check_inactive_services():
             if log_channel:
                 try:
                     embed = discord.Embed(
-                        title="⏰ Fin de Service Automatique",
-                        description=f"**{employee_key}** - Service terminé automatiquement (30 min sans réa).",
+                        title="â° Fin de Service Automatique",
+                        description=f"**{employee_key}** - Service terminÃ© automatiquement (30 min sans rÃ©a).",
                         color=discord.Color.orange()
                     )
-                    embed.add_field(name="⏱️ Durée", value=f"{minutes} min", inline=True)
-                    embed.add_field(name="🚑 Réas", value=f"{reas}", inline=True)
-                    embed.set_footer(text=f"🚑 EMS System | {end.strftime('%H:%M')}")
+                    embed.add_field(name="â±ï¸ DurÃ©e", value=f"{minutes} min", inline=True)
+                    embed.add_field(name="ðŸš‘ RÃ©as", value=f"{reas}", inline=True)
+                    embed.set_footer(text=f"ðŸš‘ EMS System | {end.strftime('%H:%M')}")
                     await log_channel.send(embed=embed)
                 except:
                     pass
             
-            # DM à l'utilisateur
+            # DM Ã  l'utilisateur
             try:
                 guild = bot.get_guild(config["GUILD_ID"])
                 if guild:
                     member = guild.get_member(int(user_id))
                     if member:
                         await member.send(
-                            f"⏰ **Fin de service automatique**\n\n"
-                            f"Ton service a été terminé automatiquement car tu n'as pas envoyé de réa depuis 30 minutes.\n\n"
-                            f"⏱️ Durée : **{minutes} min**\n"
-                            f"🚑 Réas : **{reas}**"
+                            f"â° **Fin de service automatique**\n\n"
+                            f"Ton service a Ã©tÃ© terminÃ© automatiquement car tu n'as pas envoyÃ© de rÃ©a depuis 30 minutes.\n\n"
+                            f"â±ï¸ DurÃ©e : **{minutes} min**\n"
+                            f"ðŸš‘ RÃ©as : **{reas}**"
                         )
             except:
                 pass
         
         if to_remove:
-            print(f"[{now.strftime('%H:%M:%S')}] ⏰ Fin de service auto: {len(to_remove)} employé(s)")
+            print(f"[{now.strftime('%H:%M:%S')}] â° Fin de service auto: {len(to_remove)} employÃ©(s)")
             await update_service_status(force=True)
             for g in bot.guilds:
                 await run_dispatch(g)
     
     except Exception as e:
-        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur check_inactive_services: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur check_inactive_services: {e}")
 
 @check_inactive_services.before_loop
 async def before_check_inactive():
     await bot.wait_until_ready()
 
-# --- TÂCHE AUTO REFRESH MESSAGE PDS ---
+# --- TÃ‚CHE AUTO REFRESH MESSAGE PDS ---
 @tasks.loop(minutes=5)
 async def refresh_service_message():
-    """Rafraîchit le message PDS toutes les 5 minutes (seulement si quelqu'un est en service)"""
+    """RafraÃ®chit le message PDS toutes les 5 minutes (seulement si quelqu'un est en service)"""
     global service_status_message_id, last_pds_update
     try:
         if not service_status_message_id:
             return
         
-        # Ne rafraîchir que s'il y a des gens en service
+        # Ne rafraÃ®chir que s'il y a des gens en service
         if not active_services:
             return
         
@@ -9484,17 +9547,17 @@ async def refresh_service_message():
             service_status_message_id = None
             save_service_message_id(None)
     except Exception as e:
-        if e: print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur refresh PDS: {repr(e)}")
+        if e: print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur refresh PDS: {repr(e)}")
 
 @refresh_service_message.before_loop
 async def before_refresh_service():
     await bot.wait_until_ready()
     await asyncio.sleep(30)
 
-# --- TÂCHE DE MISE À JOUR DES DESCRIPTIONS AVEC DÉLAI ---
+# --- TÃ‚CHE DE MISE Ã€ JOUR DES DESCRIPTIONS AVEC DÃ‰LAI ---
 @tasks.loop(minutes=10)
 async def update_descriptions_background():
-    """Met à jour les descriptions de tous les channels EMS toutes les 5 minutes"""
+    """Met Ã  jour les descriptions de tous les channels EMS toutes les 5 minutes"""
     try:
         guild = bot.get_guild(config["GUILD_ID"])
         if not guild:
@@ -9507,15 +9570,15 @@ async def update_descriptions_background():
         updated_count = 0
         skipped_count = 0
 
-        # Construire l'index une seule fois (O(n) au lieu de O(n²))
+        # Construire l'index une seule fois (O(n) au lieu de O(nÂ²))
         channel_index = {}
         for ch in guild.text_channels:
-            if ch.name and len(ch.name) > 0 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+            if ch.name and len(ch.name) > 0 and ch.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
                 channel_index[get_channel_employee_key(ch)] = ch
 
         for key, value in stats.items():
             try:
-                # Lookup O(1) grâce à l'index
+                # Lookup O(1) grÃ¢ce Ã  l'index
                 channel = channel_index.get(key)
                 if not channel:
                     continue
@@ -9527,7 +9590,7 @@ async def update_descriptions_background():
                 bonus_text = f" {bonus_days}M" if bonus_days > 0 else ""
                 new_topic = f"{new_emoji} {value}/100{bonus_text}"
                 
-                # Vérifier si quelque chose a changé
+                # VÃ©rifier si quelque chose a changÃ©
                 name_changed = current_emoji != new_emoji
                 topic_changed = channel.topic != new_topic
                 
@@ -9545,31 +9608,31 @@ async def update_descriptions_background():
                 await channel.edit(**edit_args)
                 updated_count += 1
                 
-                # Délai de 35 secondes entre chaque channel modifié (rate limit Discord: 2 PATCH/10min/channel)
+                # DÃ©lai de 35 secondes entre chaque channel modifiÃ© (rate limit Discord: 2 PATCH/10min/channel)
                 await asyncio.sleep(35)
                 
             except Exception as e:
                 if e:
-                    print(f"[{now_paris().strftime('%H:%M:%S')}] ⚠️ Erreur update {key}: {repr(e)}")
+                    print(f"[{now_paris().strftime('%H:%M:%S')}] âš ï¸ Erreur update {key}: {repr(e)}")
                 await asyncio.sleep(60)
         
         if updated_count > 0:
-            print(f"[{now_paris().strftime('%H:%M:%S')}] 🔄 Descriptions: {updated_count} modifiés, {skipped_count} inchangés")
+            print(f"[{now_paris().strftime('%H:%M:%S')}] ðŸ”„ Descriptions: {updated_count} modifiÃ©s, {skipped_count} inchangÃ©s")
         
     except Exception as e:
-        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur descriptions: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur descriptions: {e}")
 
 @update_descriptions_background.before_loop
 async def before_update_descriptions():
     await bot.wait_until_ready()
-    await asyncio.sleep(180)  # Attendre 3 min après connexion avant la première mise à jour
+    await asyncio.sleep(180)  # Attendre 3 min aprÃ¨s connexion avant la premiÃ¨re mise Ã  jour
 
 @bot.event
 async def on_ready():
     global BOT_START_TIME
     if BOT_START_TIME is None:
         BOT_START_TIME = now_paris()
-    # Fix catégorie EMT
+    # Fix catÃ©gorie EMT
     global CATEGORY_EMT_ID
     cats = load_categories()
     cats["CATEGORY_EMT_ID"] = 1482044597822689388
@@ -9579,23 +9642,23 @@ async def on_ready():
     stats = load_stats()
     total_reas = sum(stats.values()) if stats else 0
     
-    log(f'📂 DATA_DIR = {DATA_DIR}')
-    log(f'✅ Bot connecté: {bot.user}')
-    log(f'📊 {len(stats)} employés | {total_reas} réas totales')
+    log(f'ðŸ“‚ DATA_DIR = {DATA_DIR}')
+    log(f'âœ… Bot connectÃ©: {bot.user}')
+    log(f'ðŸ“Š {len(stats)} employÃ©s | {total_reas} rÃ©as totales')
     
     # Recharger l'ID du message PDS persistant
     global service_status_message_id
     saved_msg_id = load_service_message_id()
     if saved_msg_id:
         service_status_message_id = saved_msg_id
-        log(f'📡 Message PDS rechargé: {saved_msg_id}')
+        log(f'ðŸ“¡ Message PDS rechargÃ©: {saved_msg_id}')
     
     # Enregistrer la vue persistante pour les boutons
     bot.add_view(ServiceView())
     bot.add_view(DispatchView())
     bot.add_view(DispatchDivisionView())
     
-    # Démarrer les tâches si pas déjà en cours
+    # DÃ©marrer les tÃ¢ches si pas dÃ©jÃ  en cours
     if not auto_backup_stats.is_running():
         auto_backup_stats.start()
     if not update_descriptions_background.is_running():
@@ -9609,7 +9672,7 @@ async def on_ready():
     if not auto_snapshot_current_week.is_running():
         auto_snapshot_current_week.start()
 
-    # Pré-remplir les données de la semaine du 20/07 (une seule fois, idempotent)
+    # PrÃ©-remplir les donnÃ©es de la semaine du 20/07 (une seule fois, idempotent)
     seed_last_week_data_once()
     
     # Initialiser le tableau des matricules
@@ -9617,9 +9680,9 @@ async def on_ready():
         try:
             await update_matricule_board(g)
         except Exception as e:
-            log(f'❌ Erreur mise à jour matricules: {e}')
+            log(f'âŒ Erreur mise Ã  jour matricules: {e}')
     
-    log(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) + Refresh PDS (5min) activées')
+    log(f'âœ… Sauvegarde auto (5min) + Mise Ã  jour descriptions (10min) + Check services (2min) + Refresh PDS (5min) activÃ©es')
 
     # Initialiser le tableau des avertissements
     for g in bot.guilds:
@@ -9629,12 +9692,12 @@ async def on_ready():
     for g in bot.guilds:
         await run_dispatch(g)
     
-    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) + Refresh PDS (5min) activées')
+    print(f'âœ… Sauvegarde auto (5min) + Mise Ã  jour descriptions (10min) + Check services (2min) + Refresh PDS (5min) activÃ©es')
 
 
-@bot.tree.command(name="parrain", description="Associe un parrain à un stagiaire (accès à son channel pour vérif)")
+@bot.tree.command(name="parrain", description="Associe un parrain Ã  un stagiaire (accÃ¨s Ã  son channel pour vÃ©rif)")
 @app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(stagiaire="Le stagiaire à parrainer", parrain="Le parrain/mentor")
+@app_commands.describe(stagiaire="Le stagiaire Ã  parrainer", parrain="Le parrain/mentor")
 async def parrain(interaction: discord.Interaction, stagiaire: discord.Member, parrain: discord.Member):
     await interaction.response.defer()
     guild = interaction.guild
@@ -9655,10 +9718,10 @@ async def parrain(interaction: discord.Interaction, stagiaire: discord.Member, p
     }
     save_parrainage(data)
 
-    # Donner l'accès au channel personnel du stagiaire pour que le parrain puisse vérifier
+    # Donner l'accÃ¨s au channel personnel du stagiaire pour que le parrain puisse vÃ©rifier
     channel_found = None
     for ch in guild.text_channels:
-        if ch.name and len(ch.name) > 1 and ch.name[0] in ['🔴', '🟠', '🟢']:
+        if ch.name and len(ch.name) > 1 and ch.name[0] in ['ðŸ”´', 'ðŸŸ ', 'ðŸŸ¢']:
             if get_channel_employee_key(ch) == stagiaire_key:
                 channel_found = ch
                 break
@@ -9670,23 +9733,23 @@ async def parrain(interaction: discord.Interaction, stagiaire: discord.Member, p
             print(f"Erreur permission channel parrainage: {e}")
 
     embed = discord.Embed(
-        title="🎓 Parrainage établi",
+        title="ðŸŽ“ Parrainage Ã©tabli",
         description=(
             f"**{parrain.mention}** est maintenant le parrain de **{stagiaire.mention}**.\n\n"
-            f"{'✅ Accès accordé au channel personnel du stagiaire.' if channel_found else '⚠️ Channel du stagiaire introuvable — accès non accordé automatiquement.'}"
+            f"{'âœ… AccÃ¨s accordÃ© au channel personnel du stagiaire.' if channel_found else 'âš ï¸ Channel du stagiaire introuvable â€” accÃ¨s non accordÃ© automatiquement.'}"
         ),
         color=discord.Color.blue()
     )
-    embed.set_footer(text="🚑 EMS System | Mentorat")
+    embed.set_footer(text="ðŸš‘ EMS System | Mentorat")
     await interaction.followup.send(embed=embed)
 
     # DM aux deux
     try:
-        await stagiaire.send(f"🎓 Tu as été mis en binôme avec **{parrain_clean}** comme mentor ! N'hésite pas à lui poser tes questions.")
+        await stagiaire.send(f"ðŸŽ“ Tu as Ã©tÃ© mis en binÃ´me avec **{parrain_clean}** comme mentor ! N'hÃ©site pas Ã  lui poser tes questions.")
     except:
         pass
     try:
-        await parrain.send(f"🎓 Tu es maintenant le parrain/mentor de **{stagiaire_clean}**. Tu as accès à son channel personnel pour vérifier ses réas.")
+        await parrain.send(f"ðŸŽ“ Tu es maintenant le parrain/mentor de **{stagiaire_clean}**. Tu as accÃ¨s Ã  son channel personnel pour vÃ©rifier ses rÃ©as.")
     except:
         pass
 
@@ -9701,45 +9764,45 @@ async def retirer_parrain(interaction: discord.Interaction, stagiaire: discord.M
 
     data = load_parrainage()
     if stagiaire_key not in data:
-        await interaction.followup.send("❌ Ce stagiaire n'a pas de parrain enregistré.")
+        await interaction.followup.send("âŒ Ce stagiaire n'a pas de parrain enregistrÃ©.")
         return
 
     old_parrain_id = data[stagiaire_key].get('parrain_discord_id')
     del data[stagiaire_key]
     save_parrainage(data)
 
-    # Retirer l'accès au channel
+    # Retirer l'accÃ¨s au channel
     if old_parrain_id:
         try:
             old_parrain_member = guild.get_member(int(old_parrain_id))
             if old_parrain_member:
                 for ch in guild.text_channels:
-                    if ch.name and len(ch.name) > 1 and ch.name[0] in ['🔴', '🟠', '🟢']:
+                    if ch.name and len(ch.name) > 1 and ch.name[0] in ['ðŸ”´', 'ðŸŸ ', 'ðŸŸ¢']:
                         if get_channel_employee_key(ch) == stagiaire_key:
                             await ch.set_permissions(old_parrain_member, overwrite=None)
                             break
         except Exception as e:
             print(f"Erreur retrait permission parrainage: {e}")
 
-    await interaction.followup.send(f"✅ Parrainage retiré pour **{get_clean_name(stagiaire)}**.")
+    await interaction.followup.send(f"âœ… Parrainage retirÃ© pour **{get_clean_name(stagiaire)}**.")
 
 
-@bot.tree.command(name="repair_keys", description="Fusionne les anciennes clés employé cassées vers les clés propres actuelles (admin)")
+@bot.tree.command(name="repair_keys", description="Fusionne les anciennes clÃ©s employÃ© cassÃ©es vers les clÃ©s propres actuelles (admin)")
 @app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(dry_run="True = simulation sans changement (défaut), False = applique vraiment")
+@app_commands.describe(dry_run="True = simulation sans changement (dÃ©faut), False = applique vraiment")
 async def repair_keys(interaction: discord.Interaction, dry_run: bool = True):
     """
-    Répare les fichiers stats.json, absences.json, formations.json, daily_reas.json,
-    embauche.json et promo_history.json qui peuvent contenir des clés employé
-    héritées d'anciennes versions du bot (ex: 'psy-claire-foo' au lieu de 'claire-foo').
+    RÃ©pare les fichiers stats.json, absences.json, formations.json, daily_reas.json,
+    embauche.json et promo_history.json qui peuvent contenir des clÃ©s employÃ©
+    hÃ©ritÃ©es d'anciennes versions du bot (ex: 'psy-claire-foo' au lieu de 'claire-foo').
 
-    Fonctionne en comparant chaque clé stockée à la liste des clés canoniques
-    actuellement calculées depuis les pseudos Discord réels des membres.
+    Fonctionne en comparant chaque clÃ© stockÃ©e Ã  la liste des clÃ©s canoniques
+    actuellement calculÃ©es depuis les pseudos Discord rÃ©els des membres.
     """
     await interaction.response.defer(ephemeral=True)
     guild = interaction.guild
 
-    # 1. Construire les clés canoniques actuelles (basées sur les pseudos Discord réels)
+    # 1. Construire les clÃ©s canoniques actuelles (basÃ©es sur les pseudos Discord rÃ©els)
     canonical_keys = set()
     for member in guild.members:
         if member.bot:
@@ -9769,55 +9832,55 @@ async def repair_keys(interaction: discord.Interaction, dry_run: bool = True):
                     break
         if stripped in canonical_keys:
             return stripped
-        # Suffix match : l'ancienne clé se termine par une clé canonique connue
+        # Suffix match : l'ancienne clÃ© se termine par une clÃ© canonique connue
         for ck in canonical_keys:
             if old_key.endswith(ck) and old_key != ck and len(ck) >= 4:
                 return ck
-        return old_key  # rien trouvé, on garde tel quel
+        return old_key  # rien trouvÃ©, on garde tel quel
 
     report_lines = []
     total_changes = 0
 
-    # 2. STATS_FILE — {key: int}
+    # 2. STATS_FILE â€” {key: int}
     stats = robust_load_json(STATS_FILE, {})
     new_stats = {}
     stats_changes = []
     for old_k, v in stats.items():
         new_k = find_canonical(old_k)
         if new_k != old_k:
-            stats_changes.append(f"`{old_k}` ({v}) → `{new_k}`")
+            stats_changes.append(f"`{old_k}` ({v}) â†’ `{new_k}`")
             total_changes += 1
         new_stats[new_k] = new_stats.get(new_k, 0) + v
     if stats_changes:
-        report_lines.append(f"**📊 stats.json** ({len(stats_changes)} clés)\n" + "\n".join(f"• {l}" for l in stats_changes[:10]))
+        report_lines.append(f"**ðŸ“Š stats.json** ({len(stats_changes)} clÃ©s)\n" + "\n".join(f"â€¢ {l}" for l in stats_changes[:10]))
         if not dry_run:
             atomic_write_json(STATS_FILE, new_stats)
 
-    # 3. ABSENCE_FILE — {key: {date: {...}}}
+    # 3. ABSENCE_FILE â€” {key: {date: {...}}}
     absences = robust_load_json(ABSENCE_FILE, {})
     new_abs = {}
     abs_changes = []
     for old_k, v in absences.items():
         new_k = find_canonical(old_k)
         if new_k != old_k:
-            abs_changes.append(f"`{old_k}` → `{new_k}`")
+            abs_changes.append(f"`{old_k}` â†’ `{new_k}`")
             total_changes += 1
         if new_k not in new_abs:
             new_abs[new_k] = {}
         new_abs[new_k].update(v)
     if abs_changes:
-        report_lines.append(f"**📋 absences.json** ({len(abs_changes)} clés)\n" + "\n".join(f"• {l}" for l in abs_changes[:10]))
+        report_lines.append(f"**ðŸ“‹ absences.json** ({len(abs_changes)} clÃ©s)\n" + "\n".join(f"â€¢ {l}" for l in abs_changes[:10]))
         if not dry_run:
             atomic_write_json(ABSENCE_FILE, new_abs)
 
-    # 4. FORMATIONS_FILE — {key: [str,...]}
+    # 4. FORMATIONS_FILE â€” {key: [str,...]}
     formations = robust_load_json(FORMATIONS_FILE, {})
     new_forms = {}
     forms_changes = []
     for old_k, v in formations.items():
         new_k = find_canonical(old_k)
         if new_k != old_k:
-            forms_changes.append(f"`{old_k}` → `{new_k}`")
+            forms_changes.append(f"`{old_k}` â†’ `{new_k}`")
             total_changes += 1
         if new_k not in new_forms:
             new_forms[new_k] = []
@@ -9825,11 +9888,11 @@ async def repair_keys(interaction: discord.Interaction, dry_run: bool = True):
             if item not in new_forms[new_k]:
                 new_forms[new_k].append(item)
     if forms_changes:
-        report_lines.append(f"**🎓 formations.json** ({len(forms_changes)} clés)\n" + "\n".join(f"• {l}" for l in forms_changes[:10]))
+        report_lines.append(f"**ðŸŽ“ formations.json** ({len(forms_changes)} clÃ©s)\n" + "\n".join(f"â€¢ {l}" for l in forms_changes[:10]))
         if not dry_run:
             atomic_write_json(FORMATIONS_FILE, new_forms)
 
-    # 5. DAILY_REAS_FILE — {date: {key: int}}
+    # 5. DAILY_REAS_FILE â€” {date: {key: int}}
     daily = robust_load_json(DAILY_REAS_FILE, {})
     daily_changes_count = 0
     new_daily = {}
@@ -9843,88 +9906,88 @@ async def repair_keys(interaction: discord.Interaction, dry_run: bool = True):
             new_day[new_k] = new_day.get(new_k, 0) + v
         new_daily[date_k] = new_day
     if daily_changes_count:
-        report_lines.append(f"**📈 daily_reas.json** ({daily_changes_count} clés fusionnées)")
+        report_lines.append(f"**ðŸ“ˆ daily_reas.json** ({daily_changes_count} clÃ©s fusionnÃ©es)")
         if not dry_run:
             atomic_write_json(DAILY_REAS_FILE, new_daily)
 
-    # 6. EMBAUCHE_FILE — {key: date_str}
+    # 6. EMBAUCHE_FILE â€” {key: date_str}
     embauche = robust_load_json(EMBAUCHE_FILE, {})
     new_emb = {}
     emb_changes = []
     for old_k, v in embauche.items():
         new_k = find_canonical(old_k)
         if new_k != old_k:
-            emb_changes.append(f"`{old_k}` → `{new_k}`")
+            emb_changes.append(f"`{old_k}` â†’ `{new_k}`")
             total_changes += 1
         if new_k not in new_emb:
             new_emb[new_k] = v
     if emb_changes:
-        report_lines.append(f"**🟢 embauche.json** ({len(emb_changes)} clés)\n" + "\n".join(f"• {l}" for l in emb_changes[:10]))
+        report_lines.append(f"**ðŸŸ¢ embauche.json** ({len(emb_changes)} clÃ©s)\n" + "\n".join(f"â€¢ {l}" for l in emb_changes[:10]))
         if not dry_run:
             atomic_write_json(EMBAUCHE_FILE, new_emb)
 
-    # 7. PROMO_HISTORY_FILE — {key: [dict,...]}
+    # 7. PROMO_HISTORY_FILE â€” {key: [dict,...]}
     promos = robust_load_json(PROMO_HISTORY_FILE, {})
     new_promos = {}
     promo_changes = []
     for old_k, v in promos.items():
         new_k = find_canonical(old_k)
         if new_k != old_k:
-            promo_changes.append(f"`{old_k}` → `{new_k}`")
+            promo_changes.append(f"`{old_k}` â†’ `{new_k}`")
             total_changes += 1
         if new_k not in new_promos:
             new_promos[new_k] = []
         new_promos[new_k].extend(v)
     if promo_changes:
-        report_lines.append(f"**📈 promo_history.json** ({len(promo_changes)} clés)\n" + "\n".join(f"• {l}" for l in promo_changes[:10]))
+        report_lines.append(f"**ðŸ“ˆ promo_history.json** ({len(promo_changes)} clÃ©s)\n" + "\n".join(f"â€¢ {l}" for l in promo_changes[:10]))
         if not dry_run:
             atomic_write_json(PROMO_HISTORY_FILE, new_promos)
 
     # Rapport
-    mode = "🔍 **SIMULATION** — aucun changement appliqué" if dry_run else "✅ **RÉPARATION APPLIQUÉE**"
+    mode = "ðŸ” **SIMULATION** â€” aucun changement appliquÃ©" if dry_run else "âœ… **RÃ‰PARATION APPLIQUÃ‰E**"
     embed = discord.Embed(
-        title=f"{'🔍' if dry_run else '✅'} Réparation des clés employé",
-        description=f"{mode}\n\n**{total_changes} clé(s)** au total détectée(s) comme obsolète(s)/mal formée(s).",
+        title=f"{'ðŸ”' if dry_run else 'âœ…'} RÃ©paration des clÃ©s employÃ©",
+        description=f"{mode}\n\n**{total_changes} clÃ©(s)** au total dÃ©tectÃ©e(s) comme obsolÃ¨te(s)/mal formÃ©e(s).",
         color=discord.Color.orange() if dry_run else discord.Color.green()
     )
     if report_lines:
         for line in report_lines[:6]:
             title, _, body = line.partition("\n")
-            embed.add_field(name=title.strip('*'), value=body[:1000] or "—", inline=False)
+            embed.add_field(name=title.strip('*'), value=body[:1000] or "â€”", inline=False)
     else:
-        embed.add_field(name="✅ Aucun problème détecté", value="Toutes les clés sont déjà propres et cohérentes.", inline=False)
+        embed.add_field(name="âœ… Aucun problÃ¨me dÃ©tectÃ©", value="Toutes les clÃ©s sont dÃ©jÃ  propres et cohÃ©rentes.", inline=False)
 
-    embed.set_footer(text=f"{'Simulé' if dry_run else 'Appliqué'} — {total_changes} clé(s) concernée(s)")
+    embed.set_footer(text=f"{'SimulÃ©' if dry_run else 'AppliquÃ©'} â€” {total_changes} clÃ©(s) concernÃ©e(s)")
     embed.timestamp = now_paris()
 
     if dry_run and total_changes > 0:
-        embed.description += "\n\n> 💡 Lance `/repair_keys dry_run:False` pour appliquer réellement les corrections."
+        embed.description += "\n\n> ðŸ’¡ Lance `/repair_keys dry_run:False` pour appliquer rÃ©ellement les corrections."
 
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="migration_grades", description="Migre les pseudos [INT]→[STG] et attribue le rôle PSY aux membres qui ont le tag [PSY] (admin)")
+@bot.tree.command(name="migration_grades", description="Migre les pseudos [INT]â†’[STG] et attribue le rÃ´le PSY aux membres qui ont le tag [PSY] (admin)")
 @app_commands.checks.has_permissions(administrator=True)
-@app_commands.describe(dry_run="True = simulation sans changement (défaut), False = applique vraiment")
+@app_commands.describe(dry_run="True = simulation sans changement (dÃ©faut), False = applique vraiment")
 async def migration_grades(interaction: discord.Interaction, dry_run: bool = True):
     """
-    Hiérarchie : EMT → Stagiaire → Aide-Soignant → Infirmier → Psychologue → Médecin → Chef Adjoint → Directeur Médical
+    HiÃ©rarchie : EMT â†’ Stagiaire â†’ Aide-Soignant â†’ Infirmier â†’ Psychologue â†’ MÃ©decin â†’ Chef Adjoint â†’ Directeur MÃ©dical
 
     Ce que fait cette commande :
-    1. Renomme les pseudos [INT] xx Nom → [STG] xx Nom  (rôle Discord inchangé)
-    2. Donne le rôle Psychologue aux membres qui ont [PSY] dans leur pseudo mais pas le bon rôle Discord
-    3. Ne touche PAS aux [CDS] — ils gardent leur grade (Chef Adjoint)
+    1. Renomme les pseudos [INT] xx Nom â†’ [STG] xx Nom  (rÃ´le Discord inchangÃ©)
+    2. Donne le rÃ´le Psychologue aux membres qui ont [PSY] dans leur pseudo mais pas le bon rÃ´le Discord
+    3. Ne touche PAS aux [CDS] â€” ils gardent leur grade (Chef Adjoint)
     """
     await interaction.response.defer(ephemeral=True)
     guild = interaction.guild
 
-    # IDs des rôles corrects
-    R_PSY = 1528560704511148092   # Rôle Psychologue
-    R_INF = 894311352225656862    # Infirmier (retiré quand passage PSY)
-    CAT_PSY = 1528562582804365312 # Catégorie Psychologue
+    # IDs des rÃ´les corrects
+    R_PSY = 1528560704511148092   # RÃ´le Psychologue
+    R_INF = 894311352225656862    # Infirmier (retirÃ© quand passage PSY)
+    CAT_PSY = 1528562582804365312 # CatÃ©gorie Psychologue
 
     int_to_stg = []   # membres dont le pseudo contient [INT]
-    psy_no_role = []  # membres avec tag [PSY] mais sans rôle PSY
+    psy_no_role = []  # membres avec tag [PSY] mais sans rÃ´le PSY
     errors = []
 
     for member in guild.members:
@@ -9933,7 +9996,7 @@ async def migration_grades(interaction: discord.Interaction, dry_run: bool = Tru
         nick = member.display_name
         member_role_ids = {r.id for r in member.roles}
 
-        # 1. [INT] dans le pseudo → renommer en [STG]
+        # 1. [INT] dans le pseudo â†’ renommer en [STG]
         if "[INT]" in nick.upper():
             
             new_nick = _re.sub(r"(?i)\[INT\]", "[STG]", nick)
@@ -9944,23 +10007,23 @@ async def migration_grades(interaction: discord.Interaction, dry_run: bool = Tru
                 except Exception as e:
                     errors.append(f"Renommage `{nick}`: {e}")
 
-        # 2. Tag [PSY] dans le pseudo mais pas le rôle PSY Discord
+        # 2. Tag [PSY] dans le pseudo mais pas le rÃ´le PSY Discord
         if "[PSY]" in nick.upper() and R_PSY not in member_role_ids:
             psy_no_role.append({"member": member, "nick": nick})
             if not dry_run:
                 try:
                     role_psy = guild.get_role(R_PSY)
                     role_inf = guild.get_role(R_INF)
-                    # Retirer rôle INF si présent (PSY remplace INF dans la hiérarchie)
+                    # Retirer rÃ´le INF si prÃ©sent (PSY remplace INF dans la hiÃ©rarchie)
                     if role_inf and R_INF in member_role_ids:
                         await member.remove_roles(role_inf)
                     if role_psy:
                         await member.add_roles(role_psy)
-                    # Déplacer le channel dans catégorie PSY
+                    # DÃ©placer le channel dans catÃ©gorie PSY
                     clean_norm = normalize_employee_key(get_clean_name(member))
                     new_cat = guild.get_channel(CAT_PSY)
                     for ch in guild.text_channels:
-                        if ch.name and len(ch.name) > 1 and ch.name[0] in ["🔴", "🟠", "🟢"]:
+                        if ch.name and len(ch.name) > 1 and ch.name[0] in ["ðŸ”´", "ðŸŸ ", "ðŸŸ¢"]:
                             if get_channel_employee_key(ch) == clean_norm:
                                 try:
                                     await ch.edit(category=new_cat)
@@ -9968,50 +10031,50 @@ async def migration_grades(interaction: discord.Interaction, dry_run: bool = Tru
                                     pass
                                 break
                 except Exception as e:
-                    errors.append(f"Rôle PSY `{nick}`: {e}")
+                    errors.append(f"RÃ´le PSY `{nick}`: {e}")
 
     # Rapport
-    mode = "🔍 **SIMULATION** — aucun changement appliqué" if dry_run else "✅ **MIGRATION APPLIQUÉE**"
+    mode = "ðŸ” **SIMULATION** â€” aucun changement appliquÃ©" if dry_run else "âœ… **MIGRATION APPLIQUÃ‰E**"
     embed = discord.Embed(
-        title=f"{'🔍' if dry_run else '✅'} Migration des grades EMS",
-        description=f"{mode}\n\n**Hiérarchie :** EMT → STG → ADS → INF → PSY → MED → CDS → CAD → DIR",
+        title=f"{'ðŸ”' if dry_run else 'âœ…'} Migration des grades EMS",
+        description=f"{mode}\n\n**HiÃ©rarchie :** EMT â†’ STG â†’ ADS â†’ INF â†’ PSY â†’ MED â†’ CDS â†’ CAD â†’ DIR",
         color=discord.Color.orange() if dry_run else discord.Color.green()
     )
 
-    # Section [INT] → [STG]
+    # Section [INT] â†’ [STG]
     if int_to_stg:
-        val = "\n".join(f"• `{r['old']}` → `{r['new']}`" for r in int_to_stg[:15])
+        val = "\n".join(f"â€¢ `{r['old']}` â†’ `{r['new']}`" for r in int_to_stg[:15])
         if len(int_to_stg) > 15:
-            val += f"\n_…et {len(int_to_stg)-15} autres_"
-        embed.add_field(name=f"📋 [INT] → [STG] ({len(int_to_stg)} membres)", value=val, inline=False)
+            val += f"\n_â€¦et {len(int_to_stg)-15} autres_"
+        embed.add_field(name=f"ðŸ“‹ [INT] â†’ [STG] ({len(int_to_stg)} membres)", value=val, inline=False)
     else:
-        embed.add_field(name="📋 [INT] → [STG]", value="✅ Aucun pseudo [INT] trouvé", inline=False)
+        embed.add_field(name="ðŸ“‹ [INT] â†’ [STG]", value="âœ… Aucun pseudo [INT] trouvÃ©", inline=False)
 
     # Section PSY
     if psy_no_role:
-        val = "\n".join(f"• {r['member'].mention} — `{r['nick']}`" for r in psy_no_role[:10])
-        embed.add_field(name=f"🧠 [PSY] sans rôle PSY ({len(psy_no_role)} membres)", value=val, inline=False)
+        val = "\n".join(f"â€¢ {r['member'].mention} â€” `{r['nick']}`" for r in psy_no_role[:10])
+        embed.add_field(name=f"ðŸ§  [PSY] sans rÃ´le PSY ({len(psy_no_role)} membres)", value=val, inline=False)
     else:
-        embed.add_field(name="🧠 [PSY] sans rôle PSY", value="✅ Tous les PSY ont le bon rôle", inline=False)
+        embed.add_field(name="ðŸ§  [PSY] sans rÃ´le PSY", value="âœ… Tous les PSY ont le bon rÃ´le", inline=False)
 
-    # CDS — info seulement, pas de changement
+    # CDS â€” info seulement, pas de changement
     embed.add_field(
-        name="🏥 Chef Adjoint [CDS]",
-        value="✅ Non touché — les membres [CDS] gardent leur grade intact",
+        name="ðŸ¥ Chef Adjoint [CDS]",
+        value="âœ… Non touchÃ© â€” les membres [CDS] gardent leur grade intact",
         inline=False
     )
 
     if errors:
-        embed.add_field(name=f"❌ Erreurs ({len(errors)})", value="\n".join(errors[:5]), inline=False)
+        embed.add_field(name=f"âŒ Erreurs ({len(errors)})", value="\n".join(errors[:5]), inline=False)
 
     total = len(int_to_stg) + len(psy_no_role)
-    embed.set_footer(text=f"{'Simulé' if dry_run else 'Appliqué'} — {total} membre(s) concerné(s)")
+    embed.set_footer(text=f"{'SimulÃ©' if dry_run else 'AppliquÃ©'} â€” {total} membre(s) concernÃ©(s)")
     embed.timestamp = now_paris()
 
     if dry_run and total > 0:
-        embed.description += "\n\n> 💡 Lance `/migration_grades dry_run:False` pour appliquer."
+        embed.description += "\n\n> ðŸ’¡ Lance `/migration_grades dry_run:False` pour appliquer."
     elif dry_run and total == 0:
-        embed.description += "\n\n✅ Rien à migrer, tout est déjà à jour !"
+        embed.description += "\n\nâœ… Rien Ã  migrer, tout est dÃ©jÃ  Ã  jour !"
 
     await interaction.followup.send(embed=embed, ephemeral=True)
     if not dry_run:
@@ -10020,15 +10083,15 @@ async def migration_grades(interaction: discord.Interaction, dry_run: bool = Tru
 
 # --- COMMANDE /blacklist_cv ---
 
-@bot.tree.command(name="blacklist_cv", description="Gérer la blacklist des candidatures CV (admin)")
+@bot.tree.command(name="blacklist_cv", description="GÃ©rer la blacklist des candidatures CV (admin)")
 @app_commands.checks.has_permissions(administrator=True)
 @app_commands.describe(
     action="Ajouter ou retirer de la blacklist",
-    membre="Membre à blacklister / débloquer",
+    membre="Membre Ã  blacklister / dÃ©bloquer",
     raison="Raison de la blacklist"
 )
 @app_commands.choices(action=[
-    app_commands.Choice(name="Ajouter à la blacklist", value="add"),
+    app_commands.Choice(name="Ajouter Ã  la blacklist", value="add"),
     app_commands.Choice(name="Retirer de la blacklist", value="remove"),
     app_commands.Choice(name="Voir la blacklist", value="list"),
 ])
@@ -10036,14 +10099,14 @@ async def blacklist_cv_cmd(
     interaction: discord.Interaction,
     action: str,
     membre: discord.Member = None,
-    raison: str = "Non précisée"
+    raison: str = "Non prÃ©cisÃ©e"
 ):
     await interaction.response.defer(ephemeral=True)
     bl = load_blacklist_cv()
 
     if action == "add":
         if not membre:
-            await interaction.followup.send("❌ Tu dois mentionner un membre.", ephemeral=True)
+            await interaction.followup.send("âŒ Tu dois mentionner un membre.", ephemeral=True)
             return
         bl[str(membre.id)] = {
             "date": datetime.utcnow().isoformat(),
@@ -10052,14 +10115,14 @@ async def blacklist_cv_cmd(
         }
         save_blacklist_cv(bl)
         await interaction.followup.send(
-            f"🚫 **{membre.display_name}** ajouté à la blacklist CV.\n"
-            f"Raison : {raison}\nDéblocage automatique dans 1 semaine.",
+            f"ðŸš« **{membre.display_name}** ajoutÃ© Ã  la blacklist CV.\n"
+            f"Raison : {raison}\nDÃ©blocage automatique dans 1 semaine.",
             ephemeral=True
         )
         try:
             await membre.send(
-                f"🚫 **Blacklist CV — EMS**\n\n"
-                f"Vous avez été ajouté à la liste noire des candidatures EMS.\n"
+                f"ðŸš« **Blacklist CV â€” EMS**\n\n"
+                f"Vous avez Ã©tÃ© ajoutÃ© Ã  la liste noire des candidatures EMS.\n"
                 f"**Raison :** {raison}\n"
                 f"Vous pourrez re-postuler dans **1 semaine**."
             )
@@ -10068,19 +10131,19 @@ async def blacklist_cv_cmd(
 
     elif action == "remove":
         if not membre:
-            await interaction.followup.send("❌ Tu dois mentionner un membre.", ephemeral=True)
+            await interaction.followup.send("âŒ Tu dois mentionner un membre.", ephemeral=True)
             return
         uid = str(membre.id)
         if uid in bl:
             del bl[uid]
             save_blacklist_cv(bl)
-            await interaction.followup.send(f"✅ **{membre.display_name}** retiré de la blacklist CV.", ephemeral=True)
+            await interaction.followup.send(f"âœ… **{membre.display_name}** retirÃ© de la blacklist CV.", ephemeral=True)
         else:
-            await interaction.followup.send(f"ℹ️ **{membre.display_name}** n'est pas dans la blacklist.", ephemeral=True)
+            await interaction.followup.send(f"â„¹ï¸ **{membre.display_name}** n'est pas dans la blacklist.", ephemeral=True)
 
     elif action == "list":
         if not bl:
-            await interaction.followup.send("✅ Aucune blacklist CV active.", ephemeral=True)
+            await interaction.followup.send("âœ… Aucune blacklist CV active.", ephemeral=True)
             return
         lines = []
         now = datetime.utcnow()
@@ -10091,28 +10154,28 @@ async def blacklist_cv_cmd(
             member_obj = interaction.guild.get_member(int(uid))
             name = member_obj.display_name if member_obj else f"ID:{uid}"
             remaining = max(unlock - now, timedelta(0))
-            status = f"⏳ {remaining.days}j {remaining.seconds//3600}h restants" if still_bl else "✅ Délai expiré"
-            lines.append(f"• **{name}** — {entry.get('raison', '?')} — {status}")
+            status = f"â³ {remaining.days}j {remaining.seconds//3600}h restants" if still_bl else "âœ… DÃ©lai expirÃ©"
+            lines.append(f"â€¢ **{name}** â€” {entry.get('raison', '?')} â€” {status}")
         embed = discord.Embed(
-            title="🚫 Blacklist CV",
+            title="ðŸš« Blacklist CV",
             description="\n".join(lines[:20]),
             color=discord.Color.red()
         )
         await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-# --- ALERTE INACTIVITÉ RÉA (3-5 jours sans réa) ---
+# --- ALERTE INACTIVITÃ‰ RÃ‰A (3-5 jours sans rÃ©a) ---
 REA_INACTIVITY_FILE = os.path.join(DATA_DIR, 'rea_last_activity.json')
 REA_INACTIVITY_ALERTED_FILE = os.path.join(DATA_DIR, 'rea_inactivity_alerted.json')
 REA_INACTIVITY_CHANNEL_ID = 1485278000986587333  # Channel direction
-REA_INACTIVITY_ROLE_ID = 838120186585940010       # Rôle direction
-REA_INACTIVITY_DAYS = 4                           # Seuil : 4 jours sans réa
+REA_INACTIVITY_ROLE_ID = 838120186585940010       # RÃ´le direction
+REA_INACTIVITY_DAYS = 4                           # Seuil : 4 jours sans rÃ©a
 
 @tasks.loop(hours=6)
 async def auto_snapshot_current_week():
-    """Sauvegarde périodique (toutes les 6h) d'un instantané PROVISOIRE de la semaine en cours
-    dans l'historique multi-semaines, pour ne jamais perdre plus de quelques heures de données
-    même en cas de crash/redémarrage avant que /semaine soit lancée."""
+    """Sauvegarde pÃ©riodique (toutes les 6h) d'un instantanÃ© PROVISOIRE de la semaine en cours
+    dans l'historique multi-semaines, pour ne jamais perdre plus de quelques heures de donnÃ©es
+    mÃªme en cas de crash/redÃ©marrage avant que /semaine soit lancÃ©e."""
     try:
         week_key = get_week_start()
         current_stats = load_stats()
@@ -10124,15 +10187,15 @@ async def auto_snapshot_current_week():
             'saved_at': now_paris().isoformat(),
         }
         save_week_to_history(week_key, snapshot, finalized=False)
-        print(f"[{now_paris().strftime('%H:%M:%S')}] 📸 Auto-snapshot semaine en cours ({week_key}) sauvegardé")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ðŸ“¸ Auto-snapshot semaine en cours ({week_key}) sauvegardÃ©")
     except Exception as e:
         print(f"Erreur auto_snapshot_current_week: {e}")
 
 
 @tasks.loop(hours=6)
 async def check_rea_inactivity():
-    """Vérifie toutes les 6h si un employé n'a pas fait de réa depuis REA_INACTIVITY_DAYS jours.
-    Envoie une alerte dans le channel direction et ping le rôle direction, une seule fois par période."""
+    """VÃ©rifie toutes les 6h si un employÃ© n'a pas fait de rÃ©a depuis REA_INACTIVITY_DAYS jours.
+    Envoie une alerte dans le channel direction et ping le rÃ´le direction, une seule fois par pÃ©riode."""
     try:
         stats = load_stats()
         if not stats:
@@ -10147,11 +10210,11 @@ async def check_rea_inactivity():
 
         for emp_key, rea_count in stats.items():
             if rea_count == 0:
-                continue  # Jamais fait de réa — pas encore suivi
+                continue  # Jamais fait de rÃ©a â€” pas encore suivi
 
             last_str = last_activity.get(emp_key)
             if not last_str:
-                continue  # Pas de date d'activité enregistrée
+                continue  # Pas de date d'activitÃ© enregistrÃ©e
 
             try:
                 last_dt = datetime.fromisoformat(last_str)
@@ -10162,13 +10225,13 @@ async def check_rea_inactivity():
 
             delta = now - last_dt
             if delta < threshold:
-                # Actif — réinitialiser l'alerte si elle avait été envoyée
+                # Actif â€” rÃ©initialiser l'alerte si elle avait Ã©tÃ© envoyÃ©e
                 if emp_key in alerted:
                     del alerted[emp_key]
                 continue
 
             if emp_key in alerted:
-                continue  # Déjà alerté pour cette période
+                continue  # DÃ©jÃ  alertÃ© pour cette pÃ©riode
 
             newly_alerted.append((emp_key, delta))
             alerted[emp_key] = now.isoformat()
@@ -10178,7 +10241,7 @@ async def check_rea_inactivity():
         if not newly_alerted:
             return
 
-        # Envoyer une seule alerte groupée dans le channel direction
+        # Envoyer une seule alerte groupÃ©e dans le channel direction
         for guild in bot.guilds:
             channel = guild.get_channel(REA_INACTIVITY_CHANNEL_ID)
             if not channel:
@@ -10190,22 +10253,22 @@ async def check_rea_inactivity():
             for emp_key, delta in newly_alerted:
                 jours = delta.days
                 display = emp_key.replace("-", " ").title()
-                lines.append(f"• **{display}** — {jours} jours sans réanimation")
+                lines.append(f"â€¢ **{display}** â€” {jours} jours sans rÃ©animation")
 
             embed = discord.Embed(
-                title="⚠️ Alerte Inactivité — Réanimations",
+                title="âš ï¸ Alerte InactivitÃ© â€” RÃ©animations",
                 description=(
-                    f"Les employés suivants n'ont pas effectué de réanimation depuis plus de **{REA_INACTIVITY_DAYS} jours** :\n\n"
+                    f"Les employÃ©s suivants n'ont pas effectuÃ© de rÃ©animation depuis plus de **{REA_INACTIVITY_DAYS} jours** :\n\n"
                     + "\n".join(lines)
                 ),
                 color=discord.Color.orange()
             )
-            embed.set_footer(text="🚑 EMS System | Alerte automatique")
+            embed.set_footer(text="ðŸš‘ EMS System | Alerte automatique")
             embed.timestamp = now
             await channel.send(content=ping, embed=embed)
 
     except Exception as e:
-        print(f"[check_rea_inactivity] ❌ Erreur: {e}")
+        print(f"[check_rea_inactivity] âŒ Erreur: {e}")
 
 @check_rea_inactivity.before_loop
 async def before_check_rea_inactivity():
@@ -10224,7 +10287,7 @@ def save_absences(data):
     atomic_write_json(ABSENCE_FILE, data)
 
 def parse_date_short(date_str: str) -> str:
-    """Convertit jj/mm en YYYY-MM-DD avec l'année courante"""
+    """Convertit jj/mm en YYYY-MM-DD avec l'annÃ©e courante"""
     parts = date_str.strip().split('/')
     if len(parts) == 2:
         day, month = parts
@@ -10240,10 +10303,10 @@ def fmt_date_display(date_iso: str) -> str:
     except:
         return date_iso
 
-@bot.tree.command(name="absence", description="Déclarer une absence (format date: jj/mm)")
+@bot.tree.command(name="absence", description="DÃ©clarer une absence (format date: jj/mm)")
 @app_commands.describe(
-    membre="Membre à marquer absent (mention)",
-    date_debut="Date de début (ex: 15/07)",
+    membre="Membre Ã  marquer absent (mention)",
+    date_debut="Date de dÃ©but (ex: 15/07)",
     date_retour="Date de retour (ex: 20/07) - optionnel",
     raison="Raison de l'absence"
 )
@@ -10258,14 +10321,14 @@ async def declare_absence(
     await interaction.response.defer(ephemeral=True)
     
     try:
-        # Convertir les dates jj/mm → YYYY-MM-DD
+        # Convertir les dates jj/mm â†’ YYYY-MM-DD
         date_debut_iso = parse_date_short(date_debut)
         date_retour_iso = parse_date_short(date_retour) if date_retour else None
         
         # Normaliser le nom depuis le pseudo Discord
         employee_key = normalize_employee_key(membre.display_name)
         if not employee_key:
-            await interaction.followup.send("❌ Impossible de normaliser le nom de cet employé", ephemeral=True)
+            await interaction.followup.send("âŒ Impossible de normaliser le nom de cet employÃ©", ephemeral=True)
             return
         
         # Charger les absences
@@ -10274,7 +10337,7 @@ async def declare_absence(
         if employee_key not in absences:
             absences[employee_key] = {}
         
-        # Créer l'enregistrement
+        # CrÃ©er l'enregistrement
         absence_record = {
             'date_debut': date_debut_iso,
             'raison': raison,
@@ -10285,32 +10348,32 @@ async def declare_absence(
         absences[employee_key][date_debut_iso] = absence_record
         save_absences(absences)
         
-        # Confirmation à l'auteur
+        # Confirmation Ã  l'auteur
         await interaction.followup.send(
-            f"✅ Absence enregistrée pour {membre.mention} — {date_debut}/{date_retour or '?'} — {raison}",
+            f"âœ… Absence enregistrÃ©e pour {membre.mention} â€” {date_debut}/{date_retour or '?'} â€” {raison}",
             ephemeral=True
         )
         
-        # Log dans le channel dédié
+        # Log dans le channel dÃ©diÃ©
         log_channel = bot.get_channel(ABSENCE_LOG_CHANNEL)
         if log_channel:
             date_display = date_debut
             if date_retour:
-                date_display += f" → {date_retour}"
-            log_msg = f"📋 **Absence déclarée**\n{membre.mention} — **{date_display}** — {raison}"
+                date_display += f" â†’ {date_retour}"
+            log_msg = f"ðŸ“‹ **Absence dÃ©clarÃ©e**\n{membre.mention} â€” **{date_display}** â€” {raison}"
             await log_channel.send(log_msg)
         
     except ValueError as e:
-        await interaction.followup.send(f"❌ Format de date invalide. Utilise jj/mm (ex: 15/07)\n{e}", ephemeral=True)
+        await interaction.followup.send(f"âŒ Format de date invalide. Utilise jj/mm (ex: 15/07)\n{e}", ephemeral=True)
     except Exception as e:
-        await interaction.followup.send(f"❌ Erreur: {str(e)}", ephemeral=True)
+        await interaction.followup.send(f"âŒ Erreur: {str(e)}", ephemeral=True)
 
-# --- LOG DE CHAQUE COMMANDE UTILISÉE ---
+# --- LOG DE CHAQUE COMMANDE UTILISÃ‰E ---
 COMMAND_LOG_CHANNEL_ID = 1494003170299613254
 
 @bot.listen('on_interaction')
 async def log_all_commands(interaction: discord.Interaction):
-    """Log chaque commande slash utilisée dans le channel dédié"""
+    """Log chaque commande slash utilisÃ©e dans le channel dÃ©diÃ©"""
     # Ne logger que les commandes slash (type 2 = application command)
     if interaction.type != discord.InteractionType.application_command:
         return
@@ -10327,17 +10390,17 @@ async def log_all_commands(interaction: discord.Interaction):
                 if params_list:
                     params = " | Params: " + ", ".join(params_list)
             embed = discord.Embed(
-                title="📋 Commande utilisée",
+                title="ðŸ“‹ Commande utilisÃ©e",
                 description=f"**/{cmd_name}**{params}",
                 color=discord.Color.blue()
             )
-            embed.add_field(name="👤 Utilisateur", value=f"{user.mention} (`{user.name}`, ID: `{user.id}`)", inline=False)
-            embed.add_field(name="📍 Channel", value=channel_mention, inline=True)
-            embed.add_field(name="🕐 Date", value=ts, inline=True)
-            embed.set_footer(text="📋 Log des commandes")
+            embed.add_field(name="ðŸ‘¤ Utilisateur", value=f"{user.mention} (`{user.name}`, ID: `{user.id}`)", inline=False)
+            embed.add_field(name="ðŸ“ Channel", value=channel_mention, inline=True)
+            embed.add_field(name="ðŸ• Date", value=ts, inline=True)
+            embed.set_footer(text="ðŸ“‹ Log des commandes")
             await log_channel.send(embed=embed)
     except Exception as e:
-        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur log commande: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur log commande: {e}")
 
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -10345,27 +10408,27 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     if isinstance(error, app_commands.MissingPermissions):
         try:
             if not interaction.response.is_done():
-                await interaction.response.send_message("❌ Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+                await interaction.response.send_message("âŒ Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
             else:
-                await interaction.followup.send("❌ Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+                await interaction.followup.send("âŒ Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
         except:
             pass
     else:
-        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur commande /{interaction.command.name if interaction.command else '?'}: {error}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur commande /{interaction.command.name if interaction.command else '?'}: {error}")
         try:
             if not interaction.response.is_done():
-                await interaction.response.send_message("❌ Une erreur est survenue.", ephemeral=True)
+                await interaction.response.send_message("âŒ Une erreur est survenue.", ephemeral=True)
             else:
-                await interaction.followup.send("❌ Une erreur est survenue.", ephemeral=True)
+                await interaction.followup.send("âŒ Une erreur est survenue.", ephemeral=True)
         except:
             pass
 
-# --- TÂCHE DE SAUVEGARDE AUTOMATIQUE ---
+# --- TÃ‚CHE DE SAUVEGARDE AUTOMATIQUE ---
 @tasks.loop(minutes=5)
 async def auto_backup_stats():
     """Sauvegarde automatique des stats toutes les 5 minutes"""
     try:
-        # Utiliser la variable stats en mémoire directement (évite une lecture disque inutile)
+        # Utiliser la variable stats en mÃ©moire directement (Ã©vite une lecture disque inutile)
         global stats_data
         try:
             _stats = stats_data
@@ -10373,9 +10436,9 @@ async def auto_backup_stats():
             _stats = load_stats()
         total_reas = sum(_stats.values()) if _stats else 0
         atomic_write_json(STATS_FILE, _stats, make_backup=True)
-        print(f"[{now_paris().strftime('%H:%M:%S')}] 💾 Sauvegarde: {len(_stats)} employés, {total_reas} réas")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ðŸ’¾ Sauvegarde: {len(_stats)} employÃ©s, {total_reas} rÃ©as")
     except Exception as e:
-        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur sauvegarde: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] âŒ Erreur sauvegarde: {e}")
 
 @auto_backup_stats.before_loop
 async def before_auto_backup():
@@ -10385,7 +10448,7 @@ if __name__ == "__main__":
     # --- SERVEUR WEB DASHBOARD ---
     web_app = Flask(__name__, static_folder=None)
     
-    # Désactiver les logs des requêtes HTTP (trop de bruit)
+    # DÃ©sactiver les logs des requÃªtes HTTP (trop de bruit)
     import logging
     log_werkzeug = logging.getLogger('werkzeug')
     log_werkzeug.setLevel(logging.ERROR)
@@ -10419,7 +10482,7 @@ if __name__ == "__main__":
                 838102445103775752: 'PDG',
             }
             # Raffinage : si le tag pseudo contient [PSY], on override le grade
-            # (car PSY et STG partagent le même rôle Discord pour l'instant)
+            # (car PSY et STG partagent le mÃªme rÃ´le Discord pour l'instant)
             employee_info = {}
             for guild in bot.guilds:
                 for member in guild.members:
@@ -10440,9 +10503,9 @@ if __name__ == "__main__":
                                 break
                         if not grade:
                             continue
-                        matricule = '—'
+                        matricule = 'â€”'
                         nom = member.display_name
-                    # Override grade PSY/STG si tag pseudo présent (même rôle Discord)
+                    # Override grade PSY/STG si tag pseudo prÃ©sent (mÃªme rÃ´le Discord)
                     disp_upper = member.display_name.upper()
                     if '[PSY]' in disp_upper:
                         grade = 'PSY'
@@ -10471,7 +10534,7 @@ if __name__ == "__main__":
                     'key': key,
                 }
 
-            # Agréger evening_reas (clé "employee_key_YYYY-MM-DD") par employé
+            # AgrÃ©ger evening_reas (clÃ© "employee_key_YYYY-MM-DD") par employÃ©
             evening_reas_summary = {}
             for ev_key, count in evening_reas.items():
                 emp_key = ev_key.rsplit('_', 1)[0]
@@ -10519,21 +10582,21 @@ if __name__ == "__main__":
 
     @web_app.route('/manifest.json')
     def pwa_manifest():
-        """Manifest PWA pour l'installation sur écran d'accueil (iPhone/Android)."""
+        """Manifest PWA pour l'installation sur Ã©cran d'accueil (iPhone/Android)."""
         base = os.path.dirname(os.path.abspath(__file__))
         path = os.path.join(base, 'manifest.json')
         if os.path.exists(path):
             return send_file(path, mimetype='application/manifest+json')
-        return "Non trouvé", 404
+        return "Non trouvÃ©", 404
 
     @web_app.route('/icon-<size>.png')
     def pwa_icon(size):
-        """Icônes de l'app pour l'écran d'accueil (180, 192, 512, 1024)."""
+        """IcÃ´nes de l'app pour l'Ã©cran d'accueil (180, 192, 512, 1024)."""
         base = os.path.dirname(os.path.abspath(__file__))
         path = os.path.join(base, 'static_icons', f'icon-{size}.png')
         if os.path.exists(path):
             return send_file(path, mimetype='image/png')
-        return "Non trouvé", 404
+        return "Non trouvÃ©", 404
 
     @web_app.route('/service-worker.js')
     def pwa_service_worker():
@@ -10542,18 +10605,18 @@ if __name__ == "__main__":
 
     @web_app.route('/aptitude')
     def aptitude_page():
-        """Site de génération de bilans d'aptitude LSPD/BCSO."""
+        """Site de gÃ©nÃ©ration de bilans d'aptitude LSPD/BCSO."""
         pub_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'aptitude.html')
         if os.path.exists(pub_path):
             return send_file(pub_path)
         fallback = os.path.join(os.getcwd(), 'aptitude.html')
         if os.path.exists(fallback):
             return send_file(fallback)
-        return "Page non trouvée", 404
+        return "Page non trouvÃ©e", 404
 
     @web_app.route('/api/aptitude/generate', methods=['POST'])
     def api_aptitude_generate():
-        """Génère un bilan d'aptitude (image) et l'envoie dans le channel LSPD ou BCSO."""
+        """GÃ©nÃ¨re un bilan d'aptitude (image) et l'envoie dans le channel LSPD ou BCSO."""
         try:
             data = request.get_json() or {}
             org = (data.get('org') or '').strip().upper()
@@ -10576,7 +10639,7 @@ if __name__ == "__main__":
                     _, b64data = photo_data_uri.split(',', 1)
                     photo_bytes = base64.b64decode(b64data)
                 except Exception as _decode_err:
-                    print(f"Erreur décodage photo aptitude: {_decode_err}")
+                    print(f"Erreur dÃ©codage photo aptitude: {_decode_err}")
 
             report_data = {
                 'org': org,
@@ -10593,7 +10656,7 @@ if __name__ == "__main__":
 
             img_buf = generate_aptitude_report(report_data)
             if not img_buf:
-                return jsonify({'ok': False, 'error': "Génération de l'image indisponible (Pillow manquant)"}), 500
+                return jsonify({'ok': False, 'error': "GÃ©nÃ©ration de l'image indisponible (Pillow manquant)"}), 500
 
             CHANNEL_LSPD = 1158372479971115009
             CHANNEL_BCSO = 1297607904790188143
@@ -10606,9 +10669,9 @@ if __name__ == "__main__":
                         continue
                     img_buf.seek(0)
                     file = discord.File(img_buf, filename=f"bilan_aptitude_{matricule}.png")
-                    statut_txt = "✅ APTE" if apte else "⛔ NON APTE"
+                    statut_txt = "âœ… APTE" if apte else "â›” NON APTE"
                     await ch.send(
-                        content=f"📋 **Nouveau bilan d'aptitude** — {nom_officier} (Matricule {matricule}) — {statut_txt}",
+                        content=f"ðŸ“‹ **Nouveau bilan d'aptitude** â€” {nom_officier} (Matricule {matricule}) â€” {statut_txt}",
                         file=file
                     )
                     return True
@@ -10623,14 +10686,14 @@ if __name__ == "__main__":
 
     @web_app.route('/patients')
     def patients_page():
-        """Page de gestion des dossiers médicaux patients"""
+        """Page de gestion des dossiers mÃ©dicaux patients"""
         pub_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'patients.html')
         if os.path.exists(pub_path):
             return send_file(pub_path)
         fallback = os.path.join(os.getcwd(), 'patients.html')
         if os.path.exists(fallback):
             return send_file(fallback)
-        return "Page non trouvée", 404
+        return "Page non trouvÃ©e", 404
 
     @web_app.route('/api/patients/list', methods=['GET'])
     def api_patients_list():
@@ -10666,7 +10729,7 @@ if __name__ == "__main__":
             photo = data.get('photo', '')  # data URI base64, optionnel
 
             if not nom or not prenom:
-                return jsonify({'ok': False, 'error': 'Nom et prénom requis'}), 400
+                return jsonify({'ok': False, 'error': 'Nom et prÃ©nom requis'}), 400
 
             patients = load_patients()
             import uuid as _uuid
@@ -10678,7 +10741,7 @@ if __name__ == "__main__":
                 'nom': nom,
                 'prenom': prenom,
                 'date_naissance': date_naissance,
-                'photo_filename': photo_filename,  # fichier séparé, pas de base64 dans le JSON
+                'photo_filename': photo_filename,  # fichier sÃ©parÃ©, pas de base64 dans le JSON
                 'created': now_paris().isoformat(),
                 'dossiers': [],
             }
@@ -10691,11 +10754,11 @@ if __name__ == "__main__":
     def api_patients_photo(filename):
         """Sert l'image d'un patient depuis le disque (pas depuis le JSON)."""
         try:
-            safe_name = os.path.basename(filename)  # évite tout path traversal
+            safe_name = os.path.basename(filename)  # Ã©vite tout path traversal
             filepath = os.path.join(PATIENT_PHOTOS_DIR, safe_name)
             if os.path.exists(filepath):
                 return send_file(filepath)
-            return "Photo non trouvée", 404
+            return "Photo non trouvÃ©e", 404
         except Exception as e:
             return str(e), 500
 
@@ -10714,7 +10777,7 @@ if __name__ == "__main__":
 
     @web_app.route('/api/patients/<pid>/attestation', methods=['POST'])
     def api_patients_attestation(pid):
-        """Génère une attestation médicale officielle (image) et l'envoie dans le channel Discord dédié."""
+        """GÃ©nÃ¨re une attestation mÃ©dicale officielle (image) et l'envoie dans le channel Discord dÃ©diÃ©."""
         try:
             patients = load_patients()
             if pid not in patients:
@@ -10731,7 +10794,7 @@ if __name__ == "__main__":
             praticien_nom = (data.get('praticien_nom') or '').strip()
             praticien_grade = (data.get('praticien_grade') or '').strip()
             note = (data.get('note') or '').strip()
-            photo_data_uri = data.get('photo', '')  # nouvelle photo carte identité, optionnelle (data URI base64)
+            photo_data_uri = data.get('photo', '')  # nouvelle photo carte identitÃ©, optionnelle (data URI base64)
 
             if not motif or not praticien_nom:
                 return jsonify({'ok': False, 'error': 'Motif et praticien requis'}), 400
@@ -10742,9 +10805,9 @@ if __name__ == "__main__":
             today_str = now_paris().strftime('%d/%m/%Y')
             ref_doc = f"EMS-{now_paris().strftime('%Y-%m%d')}-{pid[-4:].upper()}"
 
-            # Déterminer la photo à intégrer sur le document :
-            # 1) une nouvelle photo envoyée avec ce formulaire (prioritaire)
-            # 2) sinon la photo déjà enregistrée sur la fiche du patient
+            # DÃ©terminer la photo Ã  intÃ©grer sur le document :
+            # 1) une nouvelle photo envoyÃ©e avec ce formulaire (prioritaire)
+            # 2) sinon la photo dÃ©jÃ  enregistrÃ©e sur la fiche du patient
             photo_bytes = None
             new_photo_filename = None
             if photo_data_uri and photo_data_uri.startswith('data:'):
@@ -10755,7 +10818,7 @@ if __name__ == "__main__":
                     if not p.get('photo_filename'):
                         new_photo_filename = save_patient_photo(pid, photo_data_uri)
                 except Exception as _decode_err:
-                    print(f"Erreur décodage photo attestation: {_decode_err}")
+                    print(f"Erreur dÃ©codage photo attestation: {_decode_err}")
             elif p.get('photo_filename'):
                 try:
                     existing_path = os.path.join(PATIENT_PHOTOS_DIR, p['photo_filename'])
@@ -10771,30 +10834,30 @@ if __name__ == "__main__":
                 p = patients[pid]
 
             if disposition_type == 'inapte':
-                disposition = f"{'Monsieur' if data.get('civilite')!='mme' else 'Madame'} {prenom} {nom} est déclaré{'e' if data.get('civilite')=='mme' else ''} INAPTE AU TRAVAIL {duree or 'pour la journée du ' + today_str}."
+                disposition = f"{'Monsieur' if data.get('civilite')!='mme' else 'Madame'} {prenom} {nom} est dÃ©clarÃ©{'e' if data.get('civilite')=='mme' else ''} INAPTE AU TRAVAIL {duree or 'pour la journÃ©e du ' + today_str}."
             elif disposition_type == 'apte':
-                disposition = f"{'Monsieur' if data.get('civilite')!='mme' else 'Madame'} {prenom} {nom} est déclaré{'e' if data.get('civilite')=='mme' else ''} APTE À REPRENDRE LE TRAVAIL {duree or 'à compter du ' + today_str}."
+                disposition = f"{'Monsieur' if data.get('civilite')!='mme' else 'Madame'} {prenom} {nom} est dÃ©clarÃ©{'e' if data.get('civilite')=='mme' else ''} APTE Ã€ REPRENDRE LE TRAVAIL {duree or 'Ã  compter du ' + today_str}."
             else:
-                disposition = f"{'Monsieur' if data.get('civilite')!='mme' else 'Madame'} {prenom} {nom} doit observer un repos médical {duree or ('pour la journée du ' + today_str)}."
+                disposition = f"{'Monsieur' if data.get('civilite')!='mme' else 'Madame'} {prenom} {nom} doit observer un repos mÃ©dical {duree or ('pour la journÃ©e du ' + today_str)}."
 
             avis_intro = (
-                f"Je soussigné, {praticien_nom}, {praticien_grade}, certifie avoir pris en charge "
+                f"Je soussignÃ©, {praticien_nom}, {praticien_grade}, certifie avoir pris en charge "
                 f"{'le sieur' if data.get('civilite')!='mme' else 'la dame'} {prenom} {nom}"
-                f"{' à la suite de : ' + motif if motif else ''}. "
-                f"Au vu des blessures/symptômes constatés et par mesure de sécurité médicale, "
-                f"les dispositions suivantes ont été prises."
+                f"{' Ã  la suite de : ' + motif if motif else ''}. "
+                f"Au vu des blessures/symptÃ´mes constatÃ©s et par mesure de sÃ©curitÃ© mÃ©dicale, "
+                f"les dispositions suivantes ont Ã©tÃ© prises."
             )
 
             att_data = {
                 'ref_doc': ref_doc,
                 'emetteur': f"{praticien_nom}, {praticien_grade}",
-                'destinataire': destinataire or '—',
+                'destinataire': destinataire or 'â€”',
                 'date_doc': today_str,
                 'nom': nom.upper(),
                 'prenom': prenom,
                 'date_naissance': date_naissance,
                 'heure': heure or today_str,
-                'lieu': lieu or '—',
+                'lieu': lieu or 'â€”',
                 'motif': motif,
                 'avis_intro': avis_intro,
                 'disposition': disposition,
@@ -10802,19 +10865,19 @@ if __name__ == "__main__":
                 'praticien_nom': praticien_nom,
                 'praticien_grade': praticien_grade,
                 'praticien_prenom_sig': praticien_nom,
-                'footer': f"DOCUMENT OFFICIEL EMS LOS SANTOS — DOCUMENT RP{' À DESTINATION EXCLUSIVE DE ' + destinataire.upper() if destinataire else ''} — TOUTE FALSIFICATION EST PASSIBLE DE POURSUITES.",
+                'footer': f"DOCUMENT OFFICIEL EMS LOS SANTOS â€” DOCUMENT RP{' Ã€ DESTINATION EXCLUSIVE DE ' + destinataire.upper() if destinataire else ''} â€” TOUTE FALSIFICATION EST PASSIBLE DE POURSUITES.",
                 'photo_bytes': photo_bytes,
             }
 
             img_buf = generate_attestation_medicale(att_data)
             if not img_buf:
-                return jsonify({'ok': False, 'error': "Génération de l'image indisponible (Pillow manquant)"}), 500
+                return jsonify({'ok': False, 'error': "GÃ©nÃ©ration de l'image indisponible (Pillow manquant)"}), 500
 
             # Sauvegarder aussi une trace dans le dossier du patient
             patients[pid].setdefault('dossiers', []).append({
                 'date': now_paris().isoformat(),
                 'symptome': motif,
-                'description': f"Attestation générée — {disposition}",
+                'description': f"Attestation gÃ©nÃ©rÃ©e â€” {disposition}",
                 'examens': '',
                 'conseils': note,
                 'par': praticien_nom,
@@ -10830,7 +10893,7 @@ if __name__ == "__main__":
                     img_buf.seek(0)
                     file = discord.File(img_buf, filename=f"attestation_{pid}.png")
                     await ch.send(
-                        content=f"📄 **Nouvelle attestation médicale** — {prenom} {nom}",
+                        content=f"ðŸ“„ **Nouvelle attestation mÃ©dicale** â€” {prenom} {nom}",
                         file=file
                     )
                     return True
@@ -10888,7 +10951,7 @@ if __name__ == "__main__":
 
     @web_app.route('/api/patients/<pid>', methods=['PUT'])
     def api_patients_edit(pid):
-        """Modifie les infos de base d'un patient (nom, prénom, photo)."""
+        """Modifie les infos de base d'un patient (nom, prÃ©nom, photo)."""
         try:
             patients = load_patients()
             if pid not in patients:
@@ -10901,7 +10964,7 @@ if __name__ == "__main__":
             photo = data.get('photo', None)  # None = ne pas changer la photo, '' = supprimer la photo
 
             if not nom or not prenom:
-                return jsonify({'ok': False, 'error': 'Nom et prénom requis'}), 400
+                return jsonify({'ok': False, 'error': 'Nom et prÃ©nom requis'}), 400
 
             patients[pid]['nom'] = nom
             patients[pid]['prenom'] = prenom
@@ -10910,7 +10973,7 @@ if __name__ == "__main__":
             if photo:  # nouvelle photo fournie (data URI)
                 delete_patient_photo(patients[pid].get('photo_filename', ''))
                 patients[pid]['photo_filename'] = save_patient_photo(pid, photo)
-            elif photo == '':  # explicitement vidée
+            elif photo == '':  # explicitement vidÃ©e
                 delete_patient_photo(patients[pid].get('photo_filename', ''))
                 patients[pid]['photo_filename'] = ''
             save_patients(patients)
@@ -10923,14 +10986,14 @@ if __name__ == "__main__":
 
     @web_app.route('/api/patients/<pid>/dossier/<int:idx>', methods=['PUT'])
     def api_patients_edit_dossier(pid, idx):
-        """Modifie une entrée médicale précise d'un patient."""
+        """Modifie une entrÃ©e mÃ©dicale prÃ©cise d'un patient."""
         try:
             patients = load_patients()
             if pid not in patients:
                 return jsonify({'ok': False, 'error': 'Patient introuvable'}), 404
             dossiers = patients[pid].get('dossiers', [])
             if idx < 0 or idx >= len(dossiers):
-                return jsonify({'ok': False, 'error': 'Entrée introuvable'}), 404
+                return jsonify({'ok': False, 'error': 'EntrÃ©e introuvable'}), 404
 
             data = request.get_json()
             for field in ('symptome', 'description', 'examens', 'conseils'):
@@ -10943,14 +11006,14 @@ if __name__ == "__main__":
 
     @web_app.route('/api/patients/<pid>/dossier/<int:idx>', methods=['DELETE'])
     def api_patients_delete_dossier(pid, idx):
-        """Supprime une entrée médicale précise d'un patient."""
+        """Supprime une entrÃ©e mÃ©dicale prÃ©cise d'un patient."""
         try:
             patients = load_patients()
             if pid not in patients:
                 return jsonify({'ok': False, 'error': 'Patient introuvable'}), 404
             dossiers = patients[pid].get('dossiers', [])
             if idx < 0 or idx >= len(dossiers):
-                return jsonify({'ok': False, 'error': 'Entrée introuvable'}), 404
+                return jsonify({'ok': False, 'error': 'EntrÃ©e introuvable'}), 404
             dossiers.pop(idx)
             patients[pid]['dossiers'] = dossiers
             save_patients(patients)
@@ -10960,19 +11023,19 @@ if __name__ == "__main__":
 
     @web_app.route('/reunion')
     def reunion_public():
-        """Page publique anonyme de préparation de réunion"""
+        """Page publique anonyme de prÃ©paration de rÃ©union"""
         pub_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'reunion_public.html')
         if os.path.exists(pub_path):
             return send_file(pub_path)
-        # Fallback : même dossier courant
+        # Fallback : mÃªme dossier courant
         fallback = os.path.join(os.getcwd(), 'reunion_public.html')
         if os.path.exists(fallback):
             return send_file(fallback)
-        return "Page non trouvée", 404
+        return "Page non trouvÃ©e", 404
 
     @web_app.route('/api/reunion_public', methods=['GET'])
     def reunion_public_get():
-        """Retourne seulement les points positifs/négatifs de la réunion (anonyme)"""
+        """Retourne seulement les points positifs/nÃ©gatifs de la rÃ©union (anonyme)"""
         return jsonify({
             'pos': shared_state.get('reunion_pos', []),
             'neg': shared_state.get('reunion_neg', []),
@@ -10980,13 +11043,13 @@ if __name__ == "__main__":
 
     @web_app.route('/api/reunion_public', methods=['POST'])
     def reunion_public_post():
-        """Ajoute un point (anonyme) à la liste de réunion"""
+        """Ajoute un point (anonyme) Ã  la liste de rÃ©union"""
         try:
             data = request.get_json()
             typ = data.get('type', '')   # 'pos' ou 'neg'
             text = data.get('text', '').strip()
             if typ not in ('pos', 'neg') or not text or len(text) > 300:
-                return jsonify({'ok': False, 'error': 'Paramètres invalides'}), 400
+                return jsonify({'ok': False, 'error': 'ParamÃ¨tres invalides'}), 400
             key = 'reunion_pos' if typ == 'pos' else 'reunion_neg'
             shared_state.setdefault(key, [])
             shared_state[key].append(text)
@@ -11041,14 +11104,14 @@ if __name__ == "__main__":
                                 break
                     if not member:
                         continue
-                        # Trouver le channel de l'employé
+                        # Trouver le channel de l'employÃ©
                     clean_norm = normalize_employee_key(get_clean_name(member))
                     for ch in guild.text_channels:
-                        if ch.name and len(ch.name) > 1 and ch.name[0] in ['🔴','🟠','🟢']:
+                        if ch.name and len(ch.name) > 1 and ch.name[0] in ['ðŸ”´','ðŸŸ ','ðŸŸ¢']:
                             if get_channel_employee_key(ch) == clean_norm:
                                 await ch.send(
-                                    f"⚠️ {member.mention} — La direction vous demande de **remonter votre activité**.\n"
-                                    f"Votre quota de réas est insuffisant. Sans amélioration, un avertissement pourra être émis."
+                                    f"âš ï¸ {member.mention} â€” La direction vous demande de **remonter votre activitÃ©**.\n"
+                                    f"Votre quota de rÃ©as est insuffisant. Sans amÃ©lioration, un avertissement pourra Ãªtre Ã©mis."
                                 )
                                 break
 
@@ -11097,7 +11160,7 @@ if __name__ == "__main__":
                                 member = m
                                 break
 
-                        # Appliquer les rôles s'ils existent
+                        # Appliquer les rÃ´les s'ils existent
                     if roles and member:
                         try:
                             for role_id in roles:
@@ -11110,14 +11173,14 @@ if __name__ == "__main__":
                                         if role in member.roles:
                                             await member.remove_roles(role)
                         except Exception as e:
-                            print(f'Erreur rôle formation {role_id}: {e}')
+                            print(f'Erreur rÃ´le formation {role_id}: {e}')
 
                         # Log dans le channel de formations
                     log_ch = guild.get_channel(FORMATION_LOG_CHANNEL)
                     if log_ch and member:
                         clean = get_clean_name(member)
                         if action == 'add':
-                            msg = f'→ formation {fname.lower()} [{grade}] {clean}'
+                            msg = f'â†’ formation {fname.lower()} [{grade}] {clean}'
                             try:
                                 await log_ch.send(msg)
                             except Exception as e:
@@ -11146,7 +11209,7 @@ if __name__ == "__main__":
         try:
             data = request.get_json()
             discord_id = data.get('discord_id', '')
-            nom = data.get('nom', 'Employé')
+            nom = data.get('nom', 'EmployÃ©')
             heure = data.get('heure', '14h00')
 
             async def do_convocation():
@@ -11157,7 +11220,7 @@ if __name__ == "__main__":
                         if member:
                                 # Envoyer un DM
                             try:
-                                await member.send(f"📞 **Convocation**\n\nTu dois te présenter à l'accueil à **{heure}**.")
+                                await member.send(f"ðŸ“ž **Convocation**\n\nTu dois te prÃ©senter Ã  l'accueil Ã  **{heure}**.")
                             except:
                                 pass
                             return True
@@ -11205,14 +11268,14 @@ if __name__ == "__main__":
                         if ch.name and len(ch.name) > 1 and ch.name[0] in ['\U0001f534', '\U0001f7e0', '\U0001f7e2']:
                             if get_channel_employee_key(ch) == key:
                                 embed = discord.Embed(
-                                    title="⚠️ Mise en garde — Los Santos EMS",
+                                    title="âš ï¸ Mise en garde â€” Los Santos EMS",
                                     color=discord.Color.from_rgb(255, 159, 10),
                                     description=(
                                         f"{message}\n\n"
                                         f"*Ce message est une mise en garde informelle de la direction.*"
                                     )
                                 )
-                                embed.set_footer(text="🚑 Direction — Los Santos EMS")
+                                embed.set_footer(text="ðŸš‘ Direction â€” Los Santos EMS")
                                 mention = member.mention if member else ''
                                 await ch.send(content=mention, embed=embed)
                                 return True
@@ -11252,16 +11315,16 @@ if __name__ == "__main__":
                         if ch.name and len(ch.name) > 1 and ch.name[0] in ['\U0001f534', '\U0001f7e0', '\U0001f7e2']:
                             if get_channel_employee_key(ch) == clean_norm:
                                 embed = discord.Embed(
-                                    title="📋 Convocation — Los Santos EMS",
+                                    title="ðŸ“‹ Convocation â€” Los Santos EMS",
                                     color=discord.Color.from_rgb(255, 59, 48),
                                     description=(
-                                        f"Vous êtes convoqué(e) à vous présenter à "
-                                        f"**l'Hôpital de Los Santos — Accueil** à **{heure}**."
+                                        f"Vous Ãªtes convoquÃ©(e) Ã  vous prÃ©senter Ã  "
+                                        f"**l'HÃ´pital de Los Santos â€” Accueil** Ã  **{heure}**."
                                         + (f"\n\n**Motif :** {message_extra}" if message_extra else "")
-                                        + "\n\n*Merci d'être présent(e) à l'heure indiquée.*"
+                                        + "\n\n*Merci d'Ãªtre prÃ©sent(e) Ã  l'heure indiquÃ©e.*"
                                     )
                                 )
-                                embed.set_footer(text="🚑 Direction — Los Santos EMS")
+                                embed.set_footer(text="ðŸš‘ Direction â€” Los Santos EMS")
                                 mention = member.mention if member else ''
                                 await ch.send(content=mention, embed=embed)
                                 return True
@@ -11272,7 +11335,7 @@ if __name__ == "__main__":
             if result:
                 return jsonify({'ok': True})
             else:
-                return jsonify({'ok': False, 'error': 'Channel introuvable pour cet employé'})
+                return jsonify({'ok': False, 'error': 'Channel introuvable pour cet employÃ©'})
         except Exception as e:
             return jsonify({'ok': False, 'error': str(e)}), 500
 
@@ -11284,9 +11347,9 @@ if __name__ == "__main__":
             discord_id = data.get('discord_id', '')
             date_debut = data.get('date_debut', '')  # format YYYY-MM-DD
             date_retour = data.get('date_retour', '') or None
-            raison = data.get('raison', '—')
+            raison = data.get('raison', 'â€”')
             if not key or not date_debut:
-                return jsonify({'ok': False, 'error': 'Employé ou date manquant'}), 400
+                return jsonify({'ok': False, 'error': 'EmployÃ© ou date manquant'}), 400
 
             absences = load_absences()
             if key not in absences:
@@ -11314,9 +11377,9 @@ if __name__ == "__main__":
                     if log_channel:
                         date_display = date_debut
                         if date_retour:
-                            date_display += f" → {date_retour}"
+                            date_display += f" â†’ {date_retour}"
                         mention = member.mention if member else key.replace('-', ' ').title()
-                        await log_channel.send(f"📋 **Absence déclarée (via dashboard)**\n{mention} — **{date_display}** — {raison}")
+                        await log_channel.send(f"ðŸ“‹ **Absence dÃ©clarÃ©e (via dashboard)**\n{mention} â€” **{date_display}** â€” {raison}")
                     return
 
             future = _asyncio.run_coroutine_threadsafe(do_log(), bot.loop)
@@ -11333,7 +11396,7 @@ if __name__ == "__main__":
             discord_id = data.get('discord_id', '')
             raison = data.get('raison', '').strip()
             if not discord_id or not raison:
-                return jsonify({'ok': False, 'error': 'Employé ou raison manquant'}), 400
+                return jsonify({'ok': False, 'error': 'EmployÃ© ou raison manquant'}), 400
 
             avert_data = load_avertissements()
             now = datetime.now(timezone.utc)
@@ -11360,17 +11423,17 @@ if __name__ == "__main__":
                     clean = get_clean_name(member)
                     try:
                         dm_embed = discord.Embed(
-                            title="⚠️ Avertissement — Los Santos EMS",
+                            title="âš ï¸ Avertissement â€” Los Santos EMS",
                             color=discord.Color.red() if count >= 3 else discord.Color.orange() if count == 2 else discord.Color.yellow(),
                             description=(
-                                f"Vous avez reçu un **avertissement officiel** de la direction des EMS.\n\n"
+                                f"Vous avez reÃ§u un **avertissement officiel** de la direction des EMS.\n\n"
                                 f"**Motif :** {raison}\n"
                                 f"**Avertissements actifs :** {count}/3\n\n"
-                                f"{'⚠️ Attention : vous avez atteint la limite. Des mesures disciplinaires pourront être prises.' if count >= 3 else 'Tout avertissement supplémentaire pourra entraîner des sanctions.'}\n\n"
-                                f"*Les avertissements sont automatiquement annulés après 30 jours.*"
+                                f"{'âš ï¸ Attention : vous avez atteint la limite. Des mesures disciplinaires pourront Ãªtre prises.' if count >= 3 else 'Tout avertissement supplÃ©mentaire pourra entraÃ®ner des sanctions.'}\n\n"
+                                f"*Les avertissements sont automatiquement annulÃ©s aprÃ¨s 30 jours.*"
                             )
                         )
-                        dm_embed.set_footer(text="🚑 Los Santos Fire & Medical Department")
+                        dm_embed.set_footer(text="ðŸš‘ Los Santos Fire & Medical Department")
                         await member.send(embed=dm_embed)
                     except:
                         pass
@@ -11381,16 +11444,16 @@ if __name__ == "__main__":
                         avert_channel = guild.get_channel(AVERT_CHANNEL_ID)
                         if avert_channel:
                             alert_embed = discord.Embed(
-                                title="🚨 Alerte — 3ème Avertissement",
+                                title="ðŸš¨ Alerte â€” 3Ã¨me Avertissement",
                                 color=discord.Color.red(),
                                 description=(
-                                    f"**{clean}** vient de recevoir son **{count}ème avertissement**.\n\n"
+                                    f"**{clean}** vient de recevoir son **{count}Ã¨me avertissement**.\n\n"
                                     f"**Motif :** {raison}\n"
-                                    f"**Délivré par :** Direction (dashboard)\n\n"
-                                    f"Une action disciplinaire est recommandée."
+                                    f"**DÃ©livrÃ© par :** Direction (dashboard)\n\n"
+                                    f"Une action disciplinaire est recommandÃ©e."
                                 )
                             )
-                            alert_embed.set_footer(text="🚑 EMS System")
+                            alert_embed.set_footer(text="ðŸš‘ EMS System")
                             await avert_channel.send(content=ping_str, embed=alert_embed, allowed_mentions=discord.AllowedMentions(roles=True))
                     try:
                         await update_avert_board(guild)
@@ -11466,11 +11529,11 @@ if __name__ == "__main__":
                         if ch.name and len(ch.name) > 1 and ch.name[0] in ['\U0001f534', '\U0001f7e0', '\U0001f7e2']:
                             if get_channel_employee_key(ch) == clean_norm:
                                 embed = discord.Embed(
-                                    title="✉️ Message de la direction — Los Santos EMS",
+                                    title="âœ‰ï¸ Message de la direction â€” Los Santos EMS",
                                     color=discord.Color.blue(),
                                     description=message
                                 )
-                                embed.set_footer(text="🚑 Direction — Los Santos EMS")
+                                embed.set_footer(text="ðŸš‘ Direction â€” Los Santos EMS")
                                 await ch.send(content=member.mention, embed=embed)
                                 return True
                 return False
@@ -11480,7 +11543,7 @@ if __name__ == "__main__":
             if result:
                 return jsonify({'ok': True})
             else:
-                return jsonify({'ok': False, 'error': 'Channel introuvable pour cet employé'})
+                return jsonify({'ok': False, 'error': 'Channel introuvable pour cet employÃ©'})
         except Exception as e:
             return jsonify({'ok': False, 'error': str(e)}), 500
 
@@ -11494,10 +11557,10 @@ if __name__ == "__main__":
             raison_custom = data.get('raison_custom', '').strip()
 
             if not discord_id and not key:
-                return jsonify({'ok': False, 'error': 'Employé introuvable'}), 400
+                return jsonify({'ok': False, 'error': 'EmployÃ© introuvable'}), 400
 
             if raison_type == 'autre' and not raison_custom:
-                return jsonify({'ok': False, 'error': 'Raison personnalisée manquante'}), 400
+                return jsonify({'ok': False, 'error': 'Raison personnalisÃ©e manquante'}), 400
 
             async def do_virer():
                 for guild in bot.guilds:
@@ -11521,32 +11584,32 @@ if __name__ == "__main__":
                     if raison_type == 'inactivite':
                         raison_dm = (
                             f"Cher **{clean_name}**,\n\n"
-                            f"Nous avons le regret de vous informer que votre contrat au sein de l'Hôpital de Los Santos a été résilié en raison d'une **inactivité prolongée** et non justifiée.\n\n"
-                            f"Malgré les attentes fixées en termes de présence et d'investissement, votre absence répétée n'est pas compatible avec les exigences de notre service.\n\n"
+                            f"Nous avons le regret de vous informer que votre contrat au sein de l'HÃ´pital de Los Santos a Ã©tÃ© rÃ©siliÃ© en raison d'une **inactivitÃ© prolongÃ©e** et non justifiÃ©e.\n\n"
+                            f"MalgrÃ© les attentes fixÃ©es en termes de prÃ©sence et d'investissement, votre absence rÃ©pÃ©tÃ©e n'est pas compatible avec les exigences de notre service.\n\n"
                             f"Nous vous remercions pour votre passage parmi nous et vous souhaitons bonne continuation.\n\n"
                             f"Cordialement,\n**La Direction des EMS.**"
                         )
-                        raison_label = "⏳ Inactivité prolongée"
+                        raison_label = "â³ InactivitÃ© prolongÃ©e"
                     elif raison_type == 'erreur_pro':
                         raison_dm = (
                             f"Cher **{clean_name}**,\n\n"
-                            f"Nous avons le regret de vous informer que votre contrat au sein de l'Hôpital de Los Santos a été résilié suite à une **erreur professionnelle grave**.\n\n"
-                            f"Cette décision fait suite à une analyse approfondie des faits constatés, jugés incompatibles avec les valeurs, les protocoles et les standards de notre service médical.\n\n"
-                            f"Nous vous remercions pour votre engagement passé et vous souhaitons bonne continuation dans vos projets.\n\n"
+                            f"Nous avons le regret de vous informer que votre contrat au sein de l'HÃ´pital de Los Santos a Ã©tÃ© rÃ©siliÃ© suite Ã  une **erreur professionnelle grave**.\n\n"
+                            f"Cette dÃ©cision fait suite Ã  une analyse approfondie des faits constatÃ©s, jugÃ©s incompatibles avec les valeurs, les protocoles et les standards de notre service mÃ©dical.\n\n"
+                            f"Nous vous remercions pour votre engagement passÃ© et vous souhaitons bonne continuation dans vos projets.\n\n"
                             f"Cordialement,\n**La Direction des EMS.**"
                         )
-                        raison_label = "⚠️ Erreur professionnelle"
+                        raison_label = "âš ï¸ Erreur professionnelle"
                     else:
                         raison_dm = (
                             f"Cher **{clean_name}**,\n\n"
-                            f"Nous avons le regret de vous informer que votre contrat au sein de l'Hôpital de Los Santos a été résilié.\n\n"
+                            f"Nous avons le regret de vous informer que votre contrat au sein de l'HÃ´pital de Los Santos a Ã©tÃ© rÃ©siliÃ©.\n\n"
                             f"**Motif :** {raison_custom}\n\n"
                             f"Nous vous remercions pour votre passage parmi nous et vous souhaitons bonne continuation.\n\n"
                             f"Cordialement,\n**La Direction des EMS.**"
                         )
-                        raison_label = f"📝 {raison_custom}"
+                        raison_label = f"ðŸ“ {raison_custom}"
 
-                    # 1. Rôles
+                    # 1. RÃ´les
                     role_target_id = 838102445095256066
                     roles_to_remove = [r for r in member.roles if r.id in EMS_ROLE_IDS_TO_REMOVE]
                     role_to_add = guild.get_role(role_target_id)
@@ -11585,7 +11648,7 @@ if __name__ == "__main__":
                         bl = load_blacklist_cv()
                         bl[str(member.id)] = {
                             "date": datetime.utcnow().isoformat(),
-                            "raison": f"Licenciement — {raison_label}",
+                            "raison": f"Licenciement â€” {raison_label}",
                             "blacklisted_by": "dashboard",
                         }
                         save_blacklist_cv(bl)
@@ -11607,13 +11670,13 @@ if __name__ == "__main__":
                     except:
                         pass
 
-                    # 7. Mise à jour board matricules
+                    # 7. Mise Ã  jour board matricules
                     try:
                         await update_matricule_board(guild)
                     except:
                         pass
 
-                    return True, f"{raison_label} | channel {'supprimé' if channel_deleted else 'non trouvé'}"
+                    return True, f"{raison_label} | channel {'supprimÃ©' if channel_deleted else 'non trouvÃ©'}"
 
                 return False, 'Serveur Discord introuvable'
 
@@ -11636,7 +11699,7 @@ if __name__ == "__main__":
             raison = data.get('raison', '').strip()
 
             if not discord_id or action not in ('accept', 'refuse', 'blacklist_remove'):
-                return jsonify({'ok': False, 'error': 'Paramètres invalides'}), 400
+                return jsonify({'ok': False, 'error': 'ParamÃ¨tres invalides'}), 400
 
             if action == 'blacklist_remove':
                 bl = load_blacklist_cv()
@@ -11664,33 +11727,33 @@ if __name__ == "__main__":
                             pass
                         try:
                             embed_accept = discord.Embed(
-                                title="🎉 FÉLICITATIONS !",
+                                title="ðŸŽ‰ FÃ‰LICITATIONS !",
                                 description=(
-                                    "✅ Votre candidature a été **ACCEPTÉE** !\n\n"
-                                    "Bienvenue dans la famille des **EMS** ! 🚑\n\n"
-                                    "📝 **Étape suivante :**\n"
-                                    "Merci de mettre vos disponibilités dans le channel <#1482838723656941829>.\n\n"
+                                    "âœ… Votre candidature a Ã©tÃ© **ACCEPTÃ‰E** !\n\n"
+                                    "Bienvenue dans la famille des **EMS** ! ðŸš‘\n\n"
+                                    "ðŸ“ **Ã‰tape suivante :**\n"
+                                    "Merci de mettre vos disponibilitÃ©s dans le channel <#1482838723656941829>.\n\n"
                                     "Nous nous chargerons de faire un recrutement.\n\n"
-                                    "Cordialement,\n**La Direction des EMS** 🚑"
+                                    "Cordialement,\n**La Direction des EMS** ðŸš‘"
                                 ),
                                 color=discord.Color.green()
                             )
-                            embed_accept.set_footer(text="🚑 EMS System | Direction")
+                            embed_accept.set_footer(text="ðŸš‘ EMS System | Direction")
                             await member.send(embed=embed_accept)
                         except:
                             pass
                         cv_track_update(discord_id, 'accepted')
-                        return True, 'CV accepté'
+                        return True, 'CV acceptÃ©'
 
                     elif action == 'refuse':
                         raison_finale = raison or 'Candidature non retenue'
                         try:
                             await member.send(
-                                f"❌ **Candidature Refusée**\n\n"
-                                f"Nous regrettons de vous informer que votre candidature n'a pas été retenue.\n\n"
+                                f"âŒ **Candidature RefusÃ©e**\n\n"
+                                f"Nous regrettons de vous informer que votre candidature n'a pas Ã©tÃ© retenue.\n\n"
                                 f"**Motif :** {raison_finale}\n\n"
-                                f"Nous vous encourageons à postuler à nouveau dans le futur.\n\n"
-                                f"Cordialement,\n**La Direction des EMS** 🚑"
+                                f"Nous vous encourageons Ã  postuler Ã  nouveau dans le futur.\n\n"
+                                f"Cordialement,\n**La Direction des EMS** ðŸš‘"
                             )
                         except:
                             pass
@@ -11703,7 +11766,7 @@ if __name__ == "__main__":
                         }
                         save_blacklist_cv(bl)
                         cv_track_update(discord_id, 'refused', raison_finale)
-                        return True, 'CV refusé + blacklist 1 semaine'
+                        return True, 'CV refusÃ© + blacklist 1 semaine'
 
                 return False, 'Serveur Discord introuvable'
 
@@ -11718,14 +11781,14 @@ if __name__ == "__main__":
 
     @web_app.route('/api/sync_cv', methods=['POST'])
     def api_sync_cv():
-        """Lit le channel CV Discord et remplit cv_tracking.json rétroactivement."""
+        """Lit le channel CV Discord et remplit cv_tracking.json rÃ©troactivement."""
         try:
 
             async def do_sync():
                 results = {'added': 0, 'skipped': 0, 'errors': 0}
-                cv_channel = bot.get_channel(1460755743228825641)
+                cv_channel = bot.get_channel(1539697901540745317)
                 if not cv_channel:
-                    return False, 'Channel CV introuvable (ID 1460755743228825641)', results
+                    return False, 'Channel CV introuvable (ID 1539697901540745317)', results
 
                 data = load_cv_tracking()
                 # Lire les 300 derniers messages du channel CV
@@ -11733,7 +11796,7 @@ if __name__ == "__main__":
                     try:
                         for emb in msg.embeds:
                             footer = emb.footer.text if emb.footer else ''
-                            # Extraire l'ID depuis "🚑 EMS System | ID: 123456789"
+                            # Extraire l'ID depuis "ðŸš‘ EMS System | ID: 123456789"
                             id_match = _re.search(r'ID:\s*(\d+)', footer)
                             if not id_match:
                                 continue
@@ -11741,11 +11804,11 @@ if __name__ == "__main__":
                             if uid in data:
                                 results['skipped'] += 1
                                 continue
-                            # Extraire le nom depuis le titre "📋 CV - Nom Prénom"
+                            # Extraire le nom depuis le titre "ðŸ“‹ CV - Nom PrÃ©nom"
                             title = emb.title or ''
-                            nom_match = _re.match(r'📋 CV\s*[-–]\s*(.+)', title)
+                            nom_match = _re.match(r'ðŸ“‹ CV\s*[-â€“]\s*(.+)', title)
                             nom = nom_match.group(1).strip() if nom_match else f'Candidat {uid}'
-                            # Déterminer le statut à partir des boutons désactivés si possible
+                            # DÃ©terminer le statut Ã  partir des boutons dÃ©sactivÃ©s si possible
                             statut = 'pending'
                             for comp in (msg.components or []):
                                 for btn in getattr(comp, 'children', []):
@@ -11777,7 +11840,7 @@ if __name__ == "__main__":
                         continue
 
                 save_cv_tracking(data)
-                return True, f"Import terminé : {results['added']} ajoutés, {results['skipped']} déjà présents, {results['errors']} erreurs", results
+                return True, f"Import terminÃ© : {results['added']} ajoutÃ©s, {results['skipped']} dÃ©jÃ  prÃ©sents, {results['errors']} erreurs", results
 
             future = _asyncio.run_coroutine_threadsafe(do_sync(), bot.loop)
             ok, msg, results = future.result(timeout=60)
@@ -11865,7 +11928,7 @@ if __name__ == "__main__":
                 838102445103775747: 'DRH',
                 838102445103775752: 'PDG',
             }
-            BASE_EMS_ROLE_ID = 838102445095256068  # rôle que tous les EMS ont
+            BASE_EMS_ROLE_ID = 838102445095256068  # rÃ´le que tous les EMS ont
 
             for guild in bot.guilds:
                 members_list = list(guild.members)
@@ -11878,7 +11941,7 @@ if __name__ == "__main__":
                     'member_count_from_discord': guild.member_count,
                     'sample_members': [],
                 }
-                # Prendre un échantillon de 15 membres non-bot pour diagnostic détaillé
+                # Prendre un Ã©chantillon de 15 membres non-bot pour diagnostic dÃ©taillÃ©
                 non_bot = [m for m in members_list if not m.bot][:15]
                 for m in non_bot:
                     role_ids = [r.id for r in m.roles]
@@ -11908,16 +11971,16 @@ if __name__ == "__main__":
 
     @web_app.route('/api/parrainage/remove', methods=['POST'])
     def api_parrainage_remove():
-        """Retire l'association parrain/stagiaire, révoque l'accès au channel."""
+        """Retire l'association parrain/stagiaire, rÃ©voque l'accÃ¨s au channel."""
         try:
             data = request.get_json()
             stagiaire_key = data.get('stagiaire_key', '')
             if not stagiaire_key:
-                return jsonify({'ok': False, 'error': 'Clé stagiaire manquante'}), 400
+                return jsonify({'ok': False, 'error': 'ClÃ© stagiaire manquante'}), 400
 
             parrainage = load_parrainage()
             if stagiaire_key not in parrainage:
-                return jsonify({'ok': False, 'error': "Ce stagiaire n'a pas de parrain enregistré"}), 404
+                return jsonify({'ok': False, 'error': "Ce stagiaire n'a pas de parrain enregistrÃ©"}), 404
 
             old_parrain_id = parrainage[stagiaire_key].get('parrain_discord_id')
             del parrainage[stagiaire_key]
@@ -11930,7 +11993,7 @@ if __name__ == "__main__":
                             old_parrain_member = guild.get_member(int(old_parrain_id))
                             if old_parrain_member:
                                 for ch in guild.text_channels:
-                                    if ch.name and len(ch.name) > 1 and ch.name[0] in ['🔴', '🟠', '🟢']:
+                                    if ch.name and len(ch.name) > 1 and ch.name[0] in ['ðŸ”´', 'ðŸŸ ', 'ðŸŸ¢']:
                                         if get_channel_employee_key(ch) == stagiaire_key:
                                             await ch.set_permissions(old_parrain_member, overwrite=None)
                                             break
@@ -11946,7 +12009,7 @@ if __name__ == "__main__":
 
     @web_app.route('/api/repair_keys', methods=['POST'])
     def api_repair_keys():
-        """Répare les clés employé cassées dans tous les fichiers JSON (fusion vers clés canoniques actuelles)."""
+        """RÃ©pare les clÃ©s employÃ© cassÃ©es dans tous les fichiers JSON (fusion vers clÃ©s canoniques actuelles)."""
         try:
             data = request.get_json() or {}
             dry_run = data.get('dry_run', True)
@@ -12086,8 +12149,8 @@ if __name__ == "__main__":
             data = request.get_json()
             pwds = data.get('pwds', [])
             if not isinstance(pwds, list):
-                return jsonify({'ok': False, 'error': 'pwds doit être une liste'}), 400
-                # Stocker les mots de passe dans le fichier de données
+                return jsonify({'ok': False, 'error': 'pwds doit Ãªtre une liste'}), 400
+                # Stocker les mots de passe dans le fichier de donnÃ©es
             pwds_file = os.path.join(DATA_DIR, 'api_pwds.json')
             atomic_write_json(pwds_file, {'pwds': pwds, 'updated': now_paris().isoformat()})
             return jsonify({'ok': True, 'count': len(pwds)})
@@ -12097,7 +12160,7 @@ if __name__ == "__main__":
     @web_app.route('/api/reset-all', methods=['POST'])
     def api_reset_all():
         try:
-                # Réinitialiser tous les fichiers de données
+                # RÃ©initialiser tous les fichiers de donnÃ©es
             atomic_write_json(STATS_FILE, {})
             atomic_write_json(TAXI_STATS_FILE, {})
             atomic_write_json(SERVICE_FILE, {})
@@ -12107,7 +12170,7 @@ if __name__ == "__main__":
             atomic_write_json(FORMATIONS_FILE, {})
             atomic_write_json(SERVICE_MSG_FILE, {})
                 
-            return jsonify({'ok': True, 'message': 'Toutes les données ont été réinitialisées'})
+            return jsonify({'ok': True, 'message': 'Toutes les donnÃ©es ont Ã©tÃ© rÃ©initialisÃ©es'})
         except Exception as e:
             return jsonify({'ok': False, 'error': str(e)}), 500
 
@@ -12127,7 +12190,7 @@ if __name__ == "__main__":
                 'jour': jour,
                 'heure': heure,
                 'timestamp': datetime.now(PARIS_TZ).isoformat(),
-                'message': f"Réunion des EMS ce {jour} à {heure}"
+                'message': f"RÃ©union des EMS ce {jour} Ã  {heure}"
             }
             atomic_write_json(REUNION_FILE, reunion_data)
 
@@ -12147,24 +12210,24 @@ if __name__ == "__main__":
                     # Message SIMPLE et DIRECT
                     message = f"""{role_mention}
 
-Bonjour à tous
+Bonjour Ã  tous
 
-La réunion des EMS se tiendra ce {jour} à {heure} au rooftop
+La rÃ©union des EMS se tiendra ce {jour} Ã  {heure} au rooftop
 
-La fin de semaine se fera à 20h30, les payes suivront également la réunion
+La fin de semaine se fera Ã  20h30, les payes suivront Ã©galement la rÃ©union
 
-Je vous demanderai de prendre votre fin de service dès 20h45 !
+Je vous demanderai de prendre votre fin de service dÃ¨s 20h45 !
 
-PS : la réunion est importante et obligatoire pour tous. Donc si vous ne pouvez pas être là merci de mettre une absence sur le canal <#{ABSENCE_CHANNEL}> , sous peine d'avertissements
+PS : la rÃ©union est importante et obligatoire pour tous. Donc si vous ne pouvez pas Ãªtre lÃ  merci de mettre une absence sur le canal <#{ABSENCE_CHANNEL}> , sous peine d'avertissements
 
-Merci de TOUS cocher ce message par ✅ ou ❌ pour nous faire savoir si vous serez présent ou non
+Merci de TOUS cocher ce message par âœ… ou âŒ pour nous faire savoir si vous serez prÃ©sent ou non
 
-Bien à vous tous,
+Bien Ã  vous tous,
 La direction des EMS"""
                     
                     msg = await ch.send(message)
-                    await msg.add_reaction('✅')
-                    await msg.add_reaction('❌')
+                    await msg.add_reaction('âœ…')
+                    await msg.add_reaction('âŒ')
                     return True
                 return False
 
@@ -12172,15 +12235,15 @@ La direction des EMS"""
             result = future.result(timeout=10)
             
             if result:
-                return jsonify({'ok': True, 'message': 'Annonce envoyée'})
+                return jsonify({'ok': True, 'message': 'Annonce envoyÃ©e'})
             else:
-                return jsonify({'ok': False, 'error': 'Channel non trouvé'}), 500
+                return jsonify({'ok': False, 'error': 'Channel non trouvÃ©'}), 500
         except Exception as e:
             return jsonify({'ok': False, 'error': str(e)}), 500
 
     @web_app.route('/api/debrief_send', methods=['POST'])
     def api_debrief_send():
-        """Envoie le débrief hebdomadaire (remarques/payes/promotions par employé) dans le channel réunion."""
+        """Envoie le dÃ©brief hebdomadaire (remarques/payes/promotions par employÃ©) dans le channel rÃ©union."""
         try:
             data = request.get_json()
             entries = data.get('entries', [])  # [{name, grade, remark, pay, rankup}]
@@ -12190,7 +12253,7 @@ La direction des EMS"""
             if not entries:
                 return jsonify({'ok': False, 'error': "Aucune remarque, paye ou promotion saisie"}), 400
 
-            chart_buf = generate_debrief_chart(all_stats, title=f"Débrief de la semaine")
+            chart_buf = generate_debrief_chart(all_stats, title=f"DÃ©brief de la semaine")
 
             async def send_debrief():
                 DEBRIEF_CHANNEL = 1482843520254611653
@@ -12204,9 +12267,9 @@ La direction des EMS"""
                     role_mention = role.mention if role else f"<@&{DEBRIEF_ROLE}>"
 
                     date_str = now_paris().strftime('%d/%m/%Y')
-                    lines = [f"📋 **Débrief de la semaine — Los Santos EMS** ({date_str})", ""]
+                    lines = [f"ðŸ“‹ **DÃ©brief de la semaine â€” Los Santos EMS** ({date_str})", ""]
                     for e in entries:
-                        name = e.get('name', 'Employé')
+                        name = e.get('name', 'EmployÃ©')
                         grade = e.get('grade', '')
                         remark = (e.get('remark') or '').strip()
                         pay = (e.get('pay') or '').strip()
@@ -12215,15 +12278,15 @@ La direction des EMS"""
                         header = f"**{name}**" + (f" [{grade}]" if grade else "")
                         lines.append(header)
                         if remark:
-                            lines.append(f"📝 {remark}")
+                            lines.append(f"ðŸ“ {remark}")
                         if pay:
-                            lines.append(f"💰 Paye : **{pay}**")
+                            lines.append(f"ðŸ’° Paye : **{pay}**")
                         if rankup:
-                            lines.append(f"📈 Promotion : **{rankup}**")
-                        lines.append("")  # ligne vide entre chaque employé
+                            lines.append(f"ðŸ“ˆ Promotion : **{rankup}**")
+                        lines.append("")  # ligne vide entre chaque employÃ©
 
-                    # Découper en messages de 2000 caractères max (limite Discord)
-                    # Le ping du rôle est réservé (compté à part) pour être ajouté sur CHAQUE message
+                    # DÃ©couper en messages de 2000 caractÃ¨res max (limite Discord)
+                    # Le ping du rÃ´le est rÃ©servÃ© (comptÃ© Ã  part) pour Ãªtre ajoutÃ© sur CHAQUE message
                     ping_prefix = f"{role_mention}\n\n"
                     max_body_len = 1900 - len(ping_prefix)
                     full_text = "\n".join(lines)
@@ -12242,7 +12305,7 @@ La direction des EMS"""
                         await ch.send(content=full_msg, allowed_mentions=discord.AllowedMentions(roles=True))
                         await asyncio.sleep(0.5)
 
-                    # Image du graphique envoyée en tout dernier
+                    # Image du graphique envoyÃ©e en tout dernier
                     if chart_buf:
                         chart_buf.seek(0)
                         file = discord.File(chart_buf, filename="debrief_chart.png")
@@ -12257,7 +12320,7 @@ La direction des EMS"""
             if result:
                 return jsonify({'ok': True, 'count': len(entries)})
             else:
-                return jsonify({'ok': False, 'error': 'Channel non trouvé'}), 500
+                return jsonify({'ok': False, 'error': 'Channel non trouvÃ©'}), 500
         except Exception as e:
             return jsonify({'ok': False, 'error': str(e)}), 500
 
@@ -12363,7 +12426,7 @@ La direction des EMS"""
 
     @web_app.route('/api/test/rea/set', methods=['POST'])
     def api_test_rea_set():
-        """Définir directement le total de réas d'un joueur (écrase l'ancien)."""
+        """DÃ©finir directement le total de rÃ©as d'un joueur (Ã©crase l'ancien)."""
         data = request.get_json(silent=True) or {}
         key = (data.get('license') or data.get('nom') or '').strip()
         total = int(data.get('total', 0))
@@ -12381,7 +12444,7 @@ La direction des EMS"""
         rea_data[key]['history'].insert(0, {
             'action': 'set',
             'amount': total,
-            'note': f"Définition manuelle (ancien: {ancien})",
+            'note': f"DÃ©finition manuelle (ancien: {ancien})",
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         })
         save_json(_wt_rea, rea_data)
@@ -12394,7 +12457,7 @@ La direction des EMS"""
             return jsonify({'error': 'stats.json vide ou introuvable'}), 404
         lmap = load_json(_wt_map, {})
 
-        # Index license → nom_key du stats (dans les deux sens)
+        # Index license â†’ nom_key du stats (dans les deux sens)
         name_to_lic = {}
         for lic, info in lmap.items():
             for field in ('employee', 'joueur'):
@@ -12410,12 +12473,12 @@ La direction des EMS"""
             nom_display = lmap.get(lic, {}).get('nom') or nom_key.replace('-', ' ').title()
             key = lic or nom_key
             ancien = rea_data.get(key, {}).get('reas', 0)
-            # Si l'entrée nom-clé existe ET qu'on a maintenant une license, fusionner
+            # Si l'entrÃ©e nom-clÃ© existe ET qu'on a maintenant une license, fusionner
             if lic and nom_key in rea_data and lic not in rea_data:
                 old_entry = rea_data.pop(nom_key)
                 ancien = old_entry.get('reas', 0)
             elif lic and nom_key in rea_data and lic in rea_data:
-                # Doublon : additionner puis supprimer l'ancienne clé nom
+                # Doublon : additionner puis supprimer l'ancienne clÃ© nom
                 rea_data[lic]['reas'] += rea_data[nom_key].get('reas', 0)
                 rea_data[lic]['history'] = rea_data[nom_key].get('history', []) + rea_data[lic].get('history', [])
                 rea_data[lic]['nom'] = nom_display
@@ -12435,7 +12498,7 @@ La direction des EMS"""
 
     @web_app.route('/api/test/rea/fix-keys', methods=['POST'])
     def api_test_rea_fix_keys():
-        """Fusionne toutes les entrées nom-clé avec leur license correspondante."""
+        """Fusionne toutes les entrÃ©es nom-clÃ© avec leur license correspondante."""
         lmap = load_json(_wt_map, {})
         name_to_lic = {}
         for lic, info in lmap.items():
@@ -12469,7 +12532,7 @@ La direction des EMS"""
 
     @web_app.route('/api/test/reset-week', methods=['POST'])
     def api_test_reset_week():
-        """Marque un reset hebdomadaire : archive les réas et repart à zéro."""
+        """Marque un reset hebdomadaire : archive les rÃ©as et repart Ã  zÃ©ro."""
         ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         rea_data = load_json(_wt_rea, {})
         # Archive dans meta
@@ -12504,7 +12567,7 @@ La direction des EMS"""
             'total_errors':       len(errors),
             'total_reas':         sum(v.get('reas', 0) for v in rea_data.values()),
             'joueurs_rea':        len(rea_data),
-            'last_reset':         meta.get('last_reset', '—'),
+            'last_reset':         meta.get('last_reset', 'â€”'),
         })
 
     @web_app.route('/api/test/clear', methods=['POST'])
@@ -12524,7 +12587,7 @@ La direction des EMS"""
 
     web_thread = threading.Thread(target=run_web, daemon=True)
     web_thread.start()
-    print(f"🌐 Dashboard web démarré sur le port {os.environ.get('PORT', 8080)}")
+    print(f"ðŸŒ Dashboard web dÃ©marrÃ© sur le port {os.environ.get('PORT', 8080)}")
 
     import time
     max_retries = 5
@@ -12533,38 +12596,40 @@ La direction des EMS"""
     if config['TOKEN']:
         while retry_count < max_retries:
             try:
-                print(f"🚀 Démarrage du bot EMS... (Tentative {retry_count + 1}/{max_retries})")
+                print(f"ðŸš€ DÃ©marrage du bot EMS... (Tentative {retry_count + 1}/{max_retries})")
                 bot.run(config['TOKEN'])
-                break  # Si le bot s'arrête proprement, sortir de la boucle
+                break  # Si le bot s'arrÃªte proprement, sortir de la boucle
             except KeyboardInterrupt:
-                    # 💾 SAUVEGARDE FINALE AVANT ARRÊT MANUEL
+                    # ðŸ’¾ SAUVEGARDE FINALE AVANT ARRÃŠT MANUEL
                 try:
                     stats = load_stats()
                     atomic_write_json(STATS_FILE, stats, make_backup=True)
-                    print(f"💾 Sauvegarde finale effectuée avant arrêt")
+                    print(f"ðŸ’¾ Sauvegarde finale effectuÃ©e avant arrÃªt")
                 except:
                     pass
-                print("⏹️ Arrêt manuel du bot...")
+                print("â¹ï¸ ArrÃªt manuel du bot...")
                 break
             except Exception as e:
-                    # 💾 SAUVEGARDE D'URGENCE EN CAS D'ERREUR
+                    # ðŸ’¾ SAUVEGARDE D'URGENCE EN CAS D'ERREUR
                 try:
                     stats = load_stats()
                     atomic_write_json(STATS_FILE, stats, make_backup=True)
-                    print(f"💾 Sauvegarde d'urgence effectuée")
+                    print(f"ðŸ’¾ Sauvegarde d'urgence effectuÃ©e")
                 except:
                     pass
                 
                 retry_count += 1
-                print(f"❌ Erreur critique: {e}")
+                print(f"âŒ Erreur critique: {e}")
                 
                 if retry_count < max_retries:
                     wait_time = min(30 * retry_count, 300)  # Max 5 minutes
-                    print(f"🔄 Redémarrage automatique dans {wait_time} secondes...")
+                    print(f"ðŸ”„ RedÃ©marrage automatique dans {wait_time} secondes...")
                     time.sleep(wait_time)
                 else:
-                    print(f"❌ Nombre maximum de tentatives atteint ({max_retries}). Arrêt définitif.")
+                    print(f"âŒ Nombre maximum de tentatives atteint ({max_retries}). ArrÃªt dÃ©finitif.")
                     break
+
+
 
 
 
