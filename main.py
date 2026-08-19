@@ -9770,18 +9770,25 @@ async def on_ready():
     # Démarrer les tâches si pas déjà en cours
     if not auto_backup_stats.is_running():
         auto_backup_stats.start()
+        log("✅ Tâche auto_backup_stats démarrée")
     if not update_descriptions_background.is_running():
         update_descriptions_background.start()
+        log("✅ Tâche update_descriptions_background démarrée")
     if not check_inactive_services.is_running():
         check_inactive_services.start()
+        log("✅ Tâche check_inactive_services démarrée")
     if not refresh_service_message.is_running():
         refresh_service_message.start()
+        log("✅ Tâche refresh_service_message démarrée")
     if not check_rea_inactivity.is_running():
         check_rea_inactivity.start()
+        log("✅ Tâche check_rea_inactivity démarrée")
     if not auto_snapshot_current_week.is_running():
         auto_snapshot_current_week.start()
+        log("✅ Tâche auto_snapshot_current_week démarrée")
     if not auto_update_avert_board.is_running():
         auto_update_avert_board.start()
+        log("✅ Tâche auto_update_avert_board démarrée — Tableau avertissements mis à jour toutes les 2 minutes")
 
     # Pré-remplir les données de la semaine du 20/07 (une seule fois, idempotent)
     seed_last_week_data_once()
@@ -9793,17 +9800,21 @@ async def on_ready():
         except Exception as e:
             log(f'❌ Erreur mise à jour matricules: {e}')
     
-    log(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) + Refresh PDS (5min) activées')
+    log(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) + Refresh PDS (5min) + Tableau avert (2min) activées')
 
     # Initialiser le tableau des avertissements
     for g in bot.guilds:
-        await update_avert_board(g)
+        try:
+            await update_avert_board(g)
+            log(f"✅ Tableau avertissements initialisé pour {g.name}")
+        except Exception as e:
+            log(f"❌ Erreur initialisation tableau avertissements: {e}")
 
     # Initialiser le dispatch
     for g in bot.guilds:
         await run_dispatch(g)
     
-    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) + Refresh PDS (5min) activées')
+    print(f'✅ Sauvegarde auto (5min) + Mise à jour descriptions (10min) + Check services (2min) + Refresh PDS (5min) + Tableau avert (2min) activées')
 
 
 @bot.tree.command(name="parrain", description="Associe un parrain à un stagiaire (accès à son channel pour vérif)")
@@ -10562,15 +10573,18 @@ async def auto_update_avert_board():
     try:
         for guild in bot.guilds:
             try:
+                print(f"[{now_paris().strftime('%H:%M:%S')}] 🔄 Mise à jour tableau avertissements pour {guild.name}...")
                 await update_avert_board(guild)
+                print(f"[{now_paris().strftime('%H:%M:%S')}] ✅ Tableau avertissements mis à jour pour {guild.name}")
             except Exception as e:
-                print(f"Erreur mise à jour avert_board pour {guild.name}: {e}")
+                print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur mise à jour avert_board pour {guild.name}: {e}")
     except Exception as e:
-        print(f"Erreur auto_update_avert_board: {e}")
+        print(f"[{now_paris().strftime('%H:%M:%S')}] ❌ Erreur auto_update_avert_board: {e}")
 
 @auto_update_avert_board.before_loop
 async def before_auto_update_avert():
     await bot.wait_until_ready()
+    print(f"[{now_paris().strftime('%H:%M:%S')}] ✅ Tâche auto_update_avert_board prête à démarrer")
 
 if __name__ == "__main__":
     # --- SERVEUR WEB DASHBOARD ---
