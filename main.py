@@ -3312,6 +3312,17 @@ QUESTIONS = [
     "📅 **Disponibilités - Week-end**\nWeek-end : [Horaire]"
 ]
 
+
+def normalize_cv_full_name(raw_name: str) -> str:
+    """Nettoie un nom saisi pour le pseudo Discord, sans tag, sans espaces parasites."""
+    if not raw_name:
+        return ""
+    name = raw_name.strip()
+    name = _re.sub(r'\s+', ' ', name)
+    name = name.replace(' - ', ' ').replace('–', ' ').replace('|', ' ')
+    name = name[:32].strip()
+    return name
+
 # --- SYSTÈME DE CV ---
 class ReviewView(discord.ui.View):
     def __init__(self, target_user: discord.User):
@@ -3575,16 +3586,17 @@ class CVButton(discord.ui.View):
                 msg = await bot.wait_for('message', check=check, timeout=600)
                 
                 if i == 1:
-                    user_fullname = msg.content[:32]  # Limiter a 32 caracteres (limite Discord)
-                    try:
-                        member = guild.get_member(user_id)
-                        if member:
-                            await member.edit(nick=user_fullname)
-                            print(f"✅ Membre renommé: {interaction.user.name} -> {user_fullname}")
-                        else:
-                            print(f"❌ Membre non trouvé pour renommer: {user_id}")
-                    except Exception as e:
-                        print(f"❌ Erreur renommage membre: {e}")
+                    user_fullname = normalize_cv_full_name(msg.content)
+                    if user_fullname:
+                        try:
+                            member = guild.get_member(user_id)
+                            if member:
+                                await member.edit(nick=user_fullname)
+                                print(f"✅ Membre renommé: {interaction.user.name} -> {user_fullname}")
+                            else:
+                                print(f"❌ Membre non trouvé pour renommer: {user_id}")
+                        except Exception as e:
+                            print(f"❌ Erreur renommage membre: {e}")
                 
                 answers.append(f"**{question}**\n{msg.content}")
 
@@ -4081,7 +4093,17 @@ class FormulaireCVButton(discord.ui.View):
                 msg = await bot.wait_for('message', check=check, timeout=600)
                 
                 if i == 1:
-                    user_fullname = msg.content
+                    user_fullname = normalize_cv_full_name(msg.content)
+                    if user_fullname:
+                        try:
+                            member = guild.get_member(user_id)
+                            if member:
+                                await member.edit(nick=user_fullname)
+                                print(f"✅ Membre renommé: {interaction.user.name} -> {user_fullname}")
+                            else:
+                                print(f"❌ Membre non trouvé pour renommer: {user_id}")
+                        except Exception as e:
+                            print(f"❌ Erreur renommage membre: {e}")
                 
                 answers.append(f"**{question}**\n{msg.content}")
             except asyncio.TimeoutError:
