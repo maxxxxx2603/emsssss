@@ -993,15 +993,69 @@ def cv_track_update(user_id: str, statut: str, raison: str = None):
 # Services actifs en mémoire: {user_id: {"start": datetime_iso, "last_rea": datetime_iso, "employee_key": str}}
 active_services = {}
 service_status_message_id = None  # ID du message de statut en temps réel
+CV_FORM_MESSAGE_FILE = os.path.join(DATA_DIR, 'cv_form_message.json')
+CV_FORM_MESSAGE_ID = None
+CV_FORM_CHANNEL_ID = None
+
 
 def load_service_message_id():
     """Charge l'ID du message PDS depuis le fichier"""
     data = robust_load_json(SERVICE_MSG_FILE, {})
     return data.get("message_id") if data else None
 
+
 def save_service_message_id(msg_id):
     """Sauvegarde l'ID du message PDS dans un fichier"""
     atomic_write_json(SERVICE_MSG_FILE, {"message_id": msg_id})
+
+
+def load_cv_form_message():
+    """Charge l'ID du message CV persisté pour le restaurer après redémarrage."""
+    data = robust_load_json(CV_FORM_MESSAGE_FILE, {})
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def save_cv_form_message(channel_id, message_id, form_type='cv'):
+    """Sauvegarde le channel/message du formulaire CV pour la reprise après reboot."""
+    atomic_write_json(CV_FORM_MESSAGE_FILE, {
+        'channel_id': channel_id,
+        'message_id': message_id,
+        'form_type': form_type,
+    })
+
+
+async def restore_cv_form_message():
+    """Restaure le bouton du formulaire CV après un redémarrage du bot."""
+    global CV_FORM_MESSAGE_ID, CV_FORM_CHANNEL_ID
+    data = load_cv_form_message()
+    if not data or not data.get('channel_id') or not data.get('message_id'):
+        return
+
+    channel_id = int(data['channel_id'])
+    message_id = int(data['message_id'])
+    form_type = data.get('form_type', 'cv')
+
+    try:
+        channel = bot.get_channel(channel_id)
+        if not channel:
+            return
+        message = await channel.fetch_message(message_id)
+        if form_type == 'formulairecv':
+            await message.edit(view=FormulaireCVButton())
+        else:
+            await message.edit(view=CVButton())
+        CV_FORM_MESSAGE_ID = message_id
+        CV_FORM_CHANNEL_ID = channel_id
+        print(f"✅ Formulaire CV restauré: #{channel.name} / message {message_id}")
+    except Exception as e:
+        print(f"⚠️ Impossible de restaurer le formulaire CV: {e}")
+        try:
+            if os.path.exists(CV_FORM_MESSAGE_FILE):
+                os.remove(CV_FORM_MESSAGE_FILE)
+        except Exception:
+            pass
 
 # Configuration Taxi
 TAXI_CHANNEL_ID = 1457304629456011264
@@ -1941,7 +1995,7 @@ class EMSBot(commands.Bot):
     async def setup_hook(self):
         await self.tree.sync()
         self.add_view(CVButton())
-        # self.add_view(FormulaireCVButton())  # Désactivé - on utilise l'ancien système
+        self.add_view(FormulaireCVButton())
         self.add_view(RoleRequestButton())
         self.add_view(AppointmentButton())
         self.add_view(ResetMemberButton())
@@ -4262,7 +4316,8 @@ async def setup_cv(interaction: discord.Interaction):
     view = CVButton()
     
     try:
-        await interaction.channel.send(embed=embed, view=view)
+        msg = await interaction.channel.send(embed=embed, view=view)
+        save_cv_form_message(interaction.channel.id, msg.id, 'cv')
         await interaction.followup.send("✅ Bouton de CV posté !", ephemeral=True)
     except Exception as e:
         await interaction.followup.send(f"❌ Erreur: {e}", ephemeral=True)
@@ -4293,7 +4348,8 @@ async def formulairecv(interaction: discord.Interaction):
     view = FormulaireCVButton()
     
     try:
-        await interaction.channel.send(embed=embed, view=view)
+        msg = await interaction.channel.send(embed=embed, view=view)
+        save_cv_form_message(interaction.channel.id, msg.id, 'formulairecv')
         await interaction.followup.send("✅ Formulaire posté !", ephemeral=True)
     except Exception as e:
         await interaction.followup.send(f"❌ Erreur: {e}", ephemeral=True)
@@ -9822,6 +9878,7 @@ async def on_ready():
     bot.add_view(ServiceView())
     bot.add_view(DispatchView())
     bot.add_view(DispatchDivisionView())
+    await restore_cv_form_message()
     
     # Démarrer les tâches si pas déjà en cours
     if not auto_backup_stats.is_running():
