@@ -1,0 +1,18 @@
+{
+  "leaderboard": true,
+  "dispo": true,
+  "giveaway": true,
+  "burgershot": true,
+  "tickets": true,
+  "reunions": true,
+  "formations": true,
+  "parrainage": true,
+  "patients": true,
+  "avertissements": true,
+  "absences": true,
+  "cv_system": true,
+  "dispatch": true,
+  "matricules": true,
+  "badges": true,
+  "semaine_auto": true
+}

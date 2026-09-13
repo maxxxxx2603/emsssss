@@ -1,0 +1,502 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMS — Réas</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0c;--bg1:#111114;--bg2:#1c1c1f;--bg3:#252528;
+  --bdr:rgba(255,255,255,0.06);--bdr2:rgba(255,255,255,0.1);
+  --red:#ff3b30;--green:#30d158;--orange:#ff9f0a;--blue:#0a84ff;--purple:#bf5af2;
+  --t1:#ffffff;--t2:rgba(255,255,255,0.68);--t3:rgba(255,255,255,0.32);
+  --glass:rgba(28,28,31,0.72);
+  --r:14px;--r2:10px;--r3:8px;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+
+/* ── TOPBAR ── */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:300;
+  height:52px;
+  background:rgba(10,10,12,0.82);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:0.5px solid var(--bdr2);
+  display:flex;align-items:center;padding:0 20px;gap:12px;
+}
+.tb-logo{
+  width:26px;height:26px;border-radius:8px;
+  background:linear-gradient(145deg,#ff3b30,#ff6259);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:11px;letter-spacing:-.3px;flex-shrink:0;
+}
+.tb-title{font-size:15px;font-weight:600;flex:1;letter-spacing:-.2px}
+.tb-live{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(48,209,88,0.1);border:0.5px solid rgba(48,209,88,0.3);
+  border-radius:20px;padding:3px 9px;font-size:11px;color:var(--green);font-weight:500;
+}
+.tb-live .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(48,209,88,.4)}50%{opacity:.5;box-shadow:0 0 0 4px rgba(48,209,88,0)}}
+.tb-back{color:var(--t3);text-decoration:none;font-size:13px;font-weight:400;transition:color .15s}
+.tb-back:hover{color:var(--t1)}
+
+/* ── STATS BAR ── */
+.statsbar{
+  position:fixed;top:52px;left:0;right:0;z-index:200;
+  background:rgba(10,10,12,0.72);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:0.5px solid var(--bdr2);
+  display:flex;align-items:stretch;overflow-x:auto;height:52px;
+}
+.statsbar::-webkit-scrollbar{display:none}
+.sbi{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:0 20px;border-right:0.5px solid var(--bdr);min-width:88px;flex-shrink:0;
+}
+.sbi-val{font-size:17px;font-weight:700;letter-spacing:-.4px;line-height:1.1}
+.sbi-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-top:2px;white-space:nowrap}
+.sbi-val.g{color:var(--green)}.sbi-val.o{color:var(--orange)}.sbi-val.r{color:var(--red)}.sbi-val.p{color:var(--purple)}
+.sbi-reset{font-size:9px;color:var(--t3);margin-top:1px;white-space:nowrap}
+.sb-actions{display:flex;align-items:center;gap:8px;padding:0 16px;margin-left:auto;border-left:0.5px solid var(--bdr);flex-shrink:0}
+.btn-pill{
+  display:flex;align-items:center;gap:5px;
+  border:none;border-radius:20px;padding:5px 12px;
+  font-size:12px;font-weight:500;cursor:pointer;transition:all .18s;
+  font-family:inherit;white-space:nowrap;
+}
+.btn-reset{background:rgba(255,59,48,.12);color:var(--red)}
+.btn-reset:hover{background:rgba(255,59,48,.22)}
+.btn-clear{background:var(--bg2);color:var(--t2)}
+.btn-clear:hover{background:var(--bg3)}
+
+/* ── LAYOUT ── */
+.layout{
+  position:fixed;top:104px;left:0;right:0;bottom:0;
+  display:grid;
+  grid-template-columns:1fr 360px 300px;
+}
+
+/* ── PANEL ── */
+.panel{display:flex;flex-direction:column;border-right:0.5px solid var(--bdr);overflow:hidden;min-width:0}
+.panel:last-child{border-right:none}
+.ph{
+  padding:12px 16px;border-bottom:0.5px solid var(--bdr);
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+  background:rgba(10,10,12,0.4);
+}
+.ph h2{font-size:11px;font-weight:600;flex:1;text-transform:uppercase;letter-spacing:.8px;color:var(--t2)}
+.ph-count{
+  font-size:10px;color:var(--t3);
+  background:var(--bg2);border-radius:20px;padding:2px 7px;
+  border:0.5px solid var(--bdr);
+}
+.pb{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.pb::-webkit-scrollbar{width:3px}
+.pb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:3px}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:0.5px solid var(--bdr);flex-shrink:0;background:rgba(10,10,12,0.4)}
+.tab{
+  flex:1;text-align:center;padding:10px;
+  font-size:12px;font-weight:500;color:var(--t3);
+  cursor:pointer;border-bottom:1.5px solid transparent;
+  transition:all .15s;
+}
+.tab.active{color:var(--t1);border-bottom-color:var(--red)}
+
+/* ── REA CARD ── */
+.rc{
+  background:var(--bg1);
+  border:0.5px solid var(--bdr2);
+  border-left:2.5px solid var(--green);
+  border-radius:var(--r2);
+  overflow:hidden;flex-shrink:0;
+  transition:border-color .15s;
+}
+.rc-head{
+  display:flex;align-items:center;gap:10px;padding:13px 14px;
+  cursor:pointer;transition:background .15s;user-select:none;
+}
+.rc-head:hover{background:rgba(255,255,255,.03)}
+.rc-info{flex:1;min-width:0}
+.rc-nom{font-weight:600;font-size:14px;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-lic{font-size:10px;color:var(--t3);font-family:'SF Mono',ui-monospace,monospace;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Mini barre de progression */
+.rc-bar{height:4px;background:var(--bg3);border-radius:2px;margin-top:6px;overflow:hidden}
+.rc-bar-fill{height:100%;border-radius:2px;transition:width .4s ease}
+.rc-num{text-align:right;flex-shrink:0}
+.rc-total{font-size:28px;font-weight:800;line-height:1;letter-spacing:-1px}
+.rc-rlbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px}
+/* Bouton set total inline */
+.rc-set-form{display:none;align-items:center;gap:5px;padding:8px 14px;border-top:0.5px solid var(--bdr);background:rgba(10,10,12,.3)}
+.rc-set-form.open{display:flex}
+.rc-set-input{flex:1;background:var(--bg2);border:0.5px solid var(--bdr2);border-radius:6px;padding:6px 8px;color:var(--t1);font-size:13px;font-family:inherit;outline:none}
+.rc-set-input:focus{border-color:rgba(255,59,48,.5)}
+.rc-set-btn{border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:rgba(255,59,48,.15);color:var(--red);border:0.5px solid rgba(255,59,48,.3)}
+.rc-set-btn:hover{background:rgba(255,59,48,.25)}
+.rc-set-cancel{font-size:11px;color:var(--t3);cursor:pointer;padding:0 4px}
+.rc-set-cancel:hover{color:var(--t1)}
+.rc-arr{color:var(--t3);font-size:10px;margin-left:2px;transition:transform .2s;flex-shrink:0}
+.rc-head.open .rc-arr{transform:rotate(90deg)}
+
+.rc-detail{display:none;border-top:0.5px solid var(--bdr);padding:8px 12px;flex-direction:column;gap:5px}
+.rc-detail.open{display:flex}
+.rdd{
+  background:var(--bg2);border-radius:var(--r3);
+  padding:8px 10px;
+  display:grid;grid-template-columns:1fr auto auto;gap:6px 10px;align-items:center;
+  font-size:11px;
+}
+.rdd-t{color:var(--t3);font-size:10px}
+.rdd-type{color:var(--t2)}
+.rdd-money{color:var(--green);font-weight:600;font-size:12px}
+
+/* ── LOG CARD ── */
+.lc{
+  background:var(--bg1);border:0.5px solid var(--bdr2);
+  border-radius:var(--r2);padding:11px 13px;flex-shrink:0;
+}
+.lc.ps{border-left:2.5px solid var(--blue)}
+.lc.fs{border-left:2.5px solid var(--red)}
+.lc-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.lc-badge{font-size:10px;font-weight:600;padding:3px 7px;border-radius:6px;letter-spacing:.2px}
+.ps .lc-badge{background:rgba(10,132,255,.12);color:var(--blue)}
+.fs .lc-badge{background:rgba(255,59,48,.12);color:var(--red)}
+.lc-ts{font-size:10px;color:var(--t3);flex:1}
+.lc-del{background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:2px;transition:color .15s}
+.lc-del:hover{color:var(--red)}
+.lc-row{display:grid;grid-template-columns:72px 1fr;gap:3px 8px;font-size:11px;margin-bottom:2px}
+.lc-k{color:var(--t3);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;padding-top:1px}
+.lc-v{color:var(--t2);word-break:break-all}
+.lc-v.mono{font-family:'SF Mono',ui-monospace,monospace;font-size:10px;background:var(--bg2);padding:1px 4px;border-radius:4px}
+
+/* ── ERR CARD ── */
+.ec{
+  background:var(--bg1);
+  border:0.5px solid rgba(255,59,48,.18);
+  border-left:2.5px solid var(--red);
+  border-radius:var(--r2);padding:11px 13px;flex-shrink:0;
+}
+.ec-reason{font-size:12px;color:var(--red);font-weight:500;margin-bottom:5px}
+.ec-ts{font-size:10px;color:var(--t3);margin-bottom:4px}
+.ec-who{font-size:11px;color:var(--t2);margin-bottom:4px}
+.ec-raw{font-size:10px;color:var(--t3);font-family:'SF Mono',ui-monospace,monospace;background:var(--bg2);padding:7px;border-radius:6px;white-space:pre-wrap;word-break:break-all;max-height:70px;overflow-y:auto}
+
+/* ── FORM ── */
+.form-area{padding:12px 14px;border-bottom:0.5px solid var(--bdr);flex-shrink:0;background:rgba(10,10,12,.2)}
+.frow{display:flex;gap:5px;margin-bottom:6px}
+.finput{
+  flex:1;background:var(--bg2);
+  border:0.5px solid var(--bdr2);border-radius:var(--r3);
+  padding:8px 10px;color:var(--t1);font-size:12px;font-family:inherit;outline:none;
+  transition:border-color .15s;
+}
+.finput:focus{border-color:rgba(255,59,48,.5);background:var(--bg3)}
+.finput::placeholder{color:var(--t3)}
+.fnum{width:52px;flex:none}
+.fbtn{
+  border:none;border-radius:var(--r3);padding:8px 10px;
+  font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;
+}
+.fbtn.add{background:rgba(48,209,88,.12);color:var(--green);border:0.5px solid rgba(48,209,88,.25)}
+.fbtn.add:hover{background:rgba(48,209,88,.2)}
+.fbtn.rem{background:rgba(255,59,48,.12);color:var(--red);border:0.5px solid rgba(255,59,48,.25)}
+.fbtn.rem:hover{background:rgba(255,59,48,.2)}
+
+/* ── MANUAL REA CARD ── */
+.mrc{
+  background:var(--bg1);border:0.5px solid var(--bdr2);border-radius:var(--r2);
+  padding:10px 13px;display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.mrc-info{flex:1;min-width:0}
+.mrc-nom{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrc-lic{font-size:10px;color:var(--t3);font-family:'SF Mono',ui-monospace,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrc-n{font-size:20px;font-weight:800;color:var(--green);min-width:30px;text-align:right}
+.mrc-del{background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;padding:2px;transition:color .15s;flex-shrink:0}
+.mrc-del:hover{color:var(--red)}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 20px;color:var(--t3);font-size:13px}
+.empty-icon{font-size:28px;margin-bottom:10px;opacity:.5}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--glass);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:0.5px solid var(--bdr2);border-radius:20px;padding:9px 18px;
+  font-size:13px;font-weight:500;z-index:9999;opacity:0;
+  transition:opacity .2s,transform .2s;pointer-events:none;
+  transform:translateX(-50%) translateY(8px);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:rgba(48,209,88,.3);color:var(--green)}
+#toast.err{border-color:rgba(255,59,48,.3);color:var(--red)}
+
+@media(max-width:1100px){
+  .layout{grid-template-columns:1fr 340px}
+  .panel:nth-child(3){display:none}
+}
+@media(max-width:750px){
+  .layout{grid-template-columns:1fr}
+  .panel:nth-child(2),.panel:nth-child(3){display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-logo">T</div>
+  <div class="tb-title">R&eacute;as — EMS</div>
+  <div class="tb-live"><span class="dot"></span>Live</div>
+  <a href="/" class="tb-back">&#8592; Dashboard</a>
+</div>
+
+<div class="statsbar">
+  <div class="sbi"><div class="sbi-val g" id="sv-reas">—</div><div class="sbi-lbl">R&eacute;as</div></div>
+  <div class="sbi"><div class="sbi-val g" id="sv-joueurs">—</div><div class="sbi-lbl">Joueurs</div></div>
+  <div class="sbi"><div class="sbi-val o" id="sv-in">—</div><div class="sbi-lbl">Prises svc</div></div>
+  <div class="sbi"><div class="sbi-val r" id="sv-out">—</div><div class="sbi-lbl">Fins svc</div></div>
+  <div class="sbi"><div class="sbi-val r" id="sv-err">—</div><div class="sbi-lbl">Erreurs</div></div>
+  <div class="sbi" style="min-width:130px"><div class="sbi-val" style="font-size:11px;color:var(--t2)" id="sv-reset">—</div><div class="sbi-lbl">Dernier reset</div></div>
+  <div class="sb-actions">
+    <button class="btn-pill btn-reset" onclick="resetWeek()">&#8635; Reset semaine</button>
+    <button class="btn-pill" style="background:rgba(10,132,255,.12);color:var(--blue)" onclick="importStats()" title="Importer les r&eacute;as actuelles depuis le syst&egrave;me principal">&#8659; Importer stats</button>
+    <button class="btn-pill" style="background:rgba(191,90,242,.12);color:var(--purple)" onclick="fixKeys()" title="Recalculer les licenses depuis les PDS">&#128279; Recalculer</button>
+    <button class="btn-pill btn-clear" onclick="clearAll()">&#128465;</button>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- COL 1 — REAS -->
+  <div class="panel">
+    <div class="ph">
+      <h2>&#128137; R&eacute;as par joueur</h2>
+      <span class="ph-count" id="pc-j">0</span>
+      <span style="font-size:10px;color:var(--t3);margin-left:2px">&#9654; d&eacute;tail</span>
+    </div>
+    <div class="pb" id="reas-list"><div class="empty"><div class="empty-icon">&#128137;</div>Aucune r&eacute;a enregistr&eacute;e</div></div>
+  </div>
+
+  <!-- COL 2 — SERVICES + ERREURS -->
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="sv" onclick="switchTab('sv')">&#128197; Services <span id="tc-sv" style="color:var(--t3);font-size:10px"></span></div>
+      <div class="tab" data-tab="er" onclick="switchTab('er')">&#128680; Erreurs <span id="tc-er" style="color:var(--red);font-size:10px"></span></div>
+    </div>
+    <div class="pb" id="sv-list"></div>
+    <div class="pb" id="er-list" style="display:none"></div>
+  </div>
+
+  <!-- COL 3 — AJOUT MANUEL -->
+  <div class="panel">
+    <div class="ph"><h2>&#43; Ajout manuel</h2><span class="ph-count" id="pc-m">0</span></div>
+    <div class="form-area">
+      <div class="frow">
+        <input type="text" class="finput" id="f-nom" placeholder="Nom du joueur" />
+        <input type="text" class="finput" id="f-lic" placeholder="license:xxx" style="flex:1.3" />
+      </div>
+      <div class="frow">
+        <input type="number" class="finput fnum" id="f-n" value="1" min="1" />
+        <input type="text" class="finput" id="f-note" placeholder="Note (optionnel)" />
+        <button class="fbtn add" onclick="reaAct('add')">+&nbsp;R&eacute;a</button>
+        <button class="fbtn rem" onclick="reaAct('remove')">&minus;&nbsp;R&eacute;a</button>
+      </div>
+    </div>
+    <div class="pb" id="man-list"><div class="empty"><div class="empty-icon">&#128137;</div>Aucun ajout manuel</div></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+var aLogs=[],aErr=[],aRea={},cTab='sv';
+// Mémoriser quels détails sont ouverts entre chaque refresh
+var openUids=new Set();
+
+loadAll();setInterval(loadAll,5000);
+
+function switchTab(t){
+  cTab=t;
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('active',x.dataset.tab===t);});
+  document.getElementById('sv-list').style.display=t==='sv'?'flex':'none';
+  document.getElementById('er-list').style.display=t==='er'?'flex':'none';
+}
+async function loadAll(){await Promise.all([loadLogs(),loadErr(),loadRea(),loadStats()]);}
+async function loadLogs(){try{var r=await fetch('/api/test/logs');var d=await r.json();aLogs=d.logs||[];renderReas();renderSv();}catch(e){}}
+async function loadErr(){try{var r=await fetch('/api/test/errors');var d=await r.json();aErr=d.errors||[];renderErr();}catch(e){}}
+async function loadRea(){try{var r=await fetch('/api/test/rea');var d=await r.json();aRea=d.rea||{};renderMan();}catch(e){}}
+async function loadStats(){try{
+  var r=await fetch('/api/test/stats');var d=await r.json();
+  set('sv-reas',d.total_reas??'—');set('sv-joueurs',d.joueurs_rea??'—');
+  set('sv-in',d.total_services_in??'—');set('sv-out',d.total_services_out??'—');
+  set('sv-err',d.total_errors??'—');
+  set('sv-reset',d.last_reset&&d.last_reset!=='—'?d.last_reset:'Jamais');
+}catch(e){}}
+function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+
+function renderReas(){
+  var c=document.getElementById('reas-list');
+  var items=Object.values(aRea).sort(function(a,b){return b.reas-a.reas;});
+  set('pc-j',items.length);
+  if(!items.length){c.innerHTML='<div class="empty"><div class="empty-icon">&#128137;</div>Aucune r&eacute;a enregistr&eacute;e</div>';return;}
+  var byLic={};
+  aLogs.filter(function(l){return l.type==='vente'||l.type==='vente_importante';}).forEach(function(l){
+    var k=l.license||'';if(!byLic[k])byLic[k]=[];byLic[k].push(l);
+  });
+  var QUOTA=100;
+  c.innerHTML=items.map(function(e){
+    var lic=e.license||'';
+    var vs=byLic[lic]||[];
+    var uid='r'+lic.replace(/[^a-z0-9]/gi,'');
+    var isOpen=openUids.has(uid);
+    // Barre de progression
+    var pct=Math.min(100,Math.round((e.reas/QUOTA)*100));
+    var barColor=e.reas>=QUOTA?'var(--green)':'var(--orange)';
+    var totalColor=e.reas>=QUOTA?'var(--green)':'var(--orange)';
+    var rows=vs.slice(0,30).map(function(l){
+      return '<div class="rdd"><span class="rdd-t">'+esc(l.timestamp||'')+'</span><span class="rdd-type">'+(l.type==='vente_importante'?'&#128176; Importante':'&#128230; Vente')+'</span><span class="rdd-money">'+fm(l.montant)+'</span></div>';
+    }).join('');
+    if(!rows)rows='<div style="font-size:11px;color:var(--t3);padding:4px 0">Aucun d&eacute;tail disponible</div>';
+    var sfid='sf'+uid;
+    return '<div class="rc"><div class="rc-head'+(isOpen?' open':'')+'" onclick="tog(\''+uid+'\')" id="h'+uid+'">'
+      +'<div class="rc-info">'
+        +'<div class="rc-nom">'+esc(e.nom||lic)+'</div>'
+        +(lic?'<div class="rc-lic">'+esc(lic)+'</div>':'')
+        +'<div class="rc-bar"><div class="rc-bar-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
+      +'</div>'
+      +'<div class="rc-num" style="margin-left:10px">'
+        +'<div class="rc-total" style="color:'+totalColor+'">'+e.reas+'</div>'
+        +'<div class="rc-rlbl">/ '+QUOTA+' r&eacute;as</div>'
+        +'<div style="font-size:9px;color:var(--t3);margin-top:2px">'+pct+'%</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:4px;margin-left:8px;flex-shrink:0">'
+        +'<span class="rc-arr">&#9654;</span>'
+        +'<span onclick="event.stopPropagation();toggleSet(\''+sfid+'\')" style="font-size:9px;color:var(--t3);cursor:pointer;text-align:center;background:var(--bg2);border-radius:4px;padding:2px 4px;border:0.5px solid var(--bdr)">&#9998;</span>'
+      +'</div>'
+      +'</div>'
+      +'<div class="rc-set-form" id="'+sfid+'">'
+        +'<span style="font-size:11px;color:var(--t2);white-space:nowrap">D&eacute;finir total :</span>'
+        +'<input type="number" class="rc-set-input" id="si'+uid+'" placeholder="'+e.reas+'" min="0" />'
+        +'<button class="rc-set-btn" onclick="setTotal(\''+lic+'\',\''+esc(e.nom||'')+'\',\''+sfid+'\',\''+uid+'\')">Appliquer</button>'
+        +'<span class="rc-set-cancel" onclick="toggleSet(\''+sfid+'\')">Annuler</span>'
+      +'</div>'
+      +'<div class="rc-detail'+(isOpen?' open':'')+'" id="'+uid+'">'+rows+'</div></div>';
+  }).join('');
+}
+function tog(uid){
+  var d=document.getElementById(uid),h=document.getElementById('h'+uid);
+  var o=d.classList.contains('open');
+  d.classList.toggle('open',!o);h.classList.toggle('open',!o);
+  if(!o) openUids.add(uid); else openUids.delete(uid);
+}
+function toggleSet(sfid){
+  var f=document.getElementById(sfid);
+  f.classList.toggle('open');
+}
+
+function renderSv(){
+  var c=document.getElementById('sv-list');
+  var sv=aLogs.filter(function(l){return l.type==='prise_service'||l.type==='fin_service';});
+  set('tc-sv',sv.length?'('+sv.length+')':'');
+  if(!sv.length){c.innerHTML='<div class="empty"><div class="empty-icon">&#128197;</div>Aucun service</div>';return;}
+  c.innerHTML=sv.map(function(l){
+    var ps=l.type==='prise_service';
+    return '<div class="lc '+(ps?'ps':'fs')+'">'
+      +'<div class="lc-head"><span class="lc-badge">'+(ps?'&#9989; Prise':'&#10060; Fin')+' service</span><span class="lc-ts">'+esc(l.timestamp||'')+'</span>'
+      +'<button class="lc-del" onclick="delLog('+l.id+')">&#10005;</button></div>'
+      +'<div class="lc-row"><span class="lc-k">Joueur</span><span class="lc-v">'+esc(l.joueur)+'</span></div>'
+      +(l.employee&&l.employee!==l.joueur?'<div class="lc-row"><span class="lc-k">Employ&eacute;</span><span class="lc-v">'+esc(l.employee)+'</span></div>':'')
+      +'<div class="lc-row"><span class="lc-k">License</span><span class="lc-v mono">'+esc(l.license)+'</span></div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderErr(){
+  var c=document.getElementById('er-list');
+  var cnt=aErr.length;
+  set('tc-er',cnt?'('+cnt+')':'');
+  if(!cnt){c.innerHTML='<div class="empty"><div class="empty-icon">&#9989;</div>Aucune erreur</div>';return;}
+  c.innerHTML=aErr.map(function(e){
+    var raw=Object.entries(e.raw_fields||{}).map(function(kv){return kv[0]+': '+kv[1];}).join('\n');
+    return '<div class="ec"><div class="ec-reason">&#9888; '+esc(e.reason)+'</div>'
+      +'<div class="ec-ts">'+(e.timestamp||'')+' — '+esc(e.raw_title||'')+'</div>'
+      +(e.joueur?'<div class="ec-who">'+esc(e.joueur)+(e.license?' · <code style="font-size:9px">'+esc(e.license)+'</code>':'')+'</div>':'')
+      +(raw?'<div class="ec-raw">'+esc(raw)+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+function renderMan(){
+  var c=document.getElementById('man-list');
+  var items=Object.values(aRea).sort(function(a,b){return b.reas-a.reas;});
+  set('pc-m',items.length);
+  if(!items.length){c.innerHTML='<div class="empty"><div class="empty-icon">&#128137;</div>Aucun ajout</div>';return;}
+  c.innerHTML=items.map(function(e){
+    var k=e.license||e.nom||'';
+    return '<div class="mrc"><div class="mrc-info"><div class="mrc-nom">'+esc(e.nom||k)+'</div>'+(e.license?'<div class="mrc-lic">'+esc(e.license)+'</div>':'')+'</div>'
+      +'<div class="mrc-n">'+e.reas+'</div>'
+      +'<button class="mrc-del" onclick="delRea(\''+esc(k)+'\')">&#10005;</button></div>';
+  }).join('');
+}
+
+async function delLog(id){if(!confirm('Supprimer ?'))return;var r=await fetch('/api/test/logs?id='+id,{method:'DELETE'});if(r.ok){toast('Supprim\u00e9','ok');loadLogs();loadStats();}else toast('Erreur','err');}
+
+async function setTotal(lic,nom,sfid,uid){
+  var val=parseInt(document.getElementById('si'+uid).value);
+  if(isNaN(val)||val<0){toast('Valeur invalide','err');return;}
+  var r=await fetch('/api/test/rea/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({license:lic,nom:nom,total:val})});
+  var d=await r.json();
+  if(r.ok){toast('Total d\u00e9fini : '+val+' r\u00e9as','ok');document.getElementById(sfid).classList.remove('open');loadRea();loadStats();}
+  else toast(d.error||'Erreur','err');
+}
+async function reaAct(a){
+  var nom=g('f-nom').trim(),lic=g('f-lic').trim(),n=parseInt(g('f-n'))||1,note=g('f-note').trim();
+  if(!nom&&!lic){toast('Nom ou license requis','err');return;}
+  var r=await fetch('/api/test/rea/'+a,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:nom,license:lic,amount:n,note:note})});
+  var d=await r.json();
+  if(r.ok){toast((a==='add'?'+':'\u2212')+n+' r\u00e9a — '+(nom||lic)+' (total: '+d.reas+')','ok');loadRea();loadStats();['f-nom','f-lic','f-note'].forEach(function(i){document.getElementById(i).value='';});document.getElementById('f-n').value=1;}
+  else toast(d.error||'Erreur','err');
+}
+async function delRea(k){
+  if(!confirm('Supprimer r\u00e9as de '+k+' ?'))return;
+  var r=await fetch('/api/test/rea/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({license:k,nom:k})});
+  if(r.ok){toast('Supprim\u00e9','ok');loadRea();loadStats();}else toast('Erreur','err');
+}
+async function resetWeek(){
+  if(!confirm('Reset semaine ?\nLes r\u00e9as seront archiv\u00e9es et remises \u00e0 z\u00e9ro.'))return;
+  var r=await fetch('/api/test/reset-week',{method:'POST',headers:{'Content-Type':'application/json'}});
+  if(r.ok){toast('Reset \u2713','ok');loadAll();}else toast('Erreur','err');
+}
+async function fixKeys(){
+  var r=await fetch('/api/test/rea/fix-keys',{method:'POST',headers:{'Content-Type':'application/json'}});
+  var d=await r.json();
+  if(r.ok){toast('Recalcul \u2713 — '+d.merged+' fusion(s)','ok');loadAll();}
+  else toast(d.error||'Erreur','err');
+}
+async function importStats(){
+  if(!confirm('Importer les r\u00e9as depuis le syst\u00e8me principal ?\nTout le monde sera mis \u00e0 jour automatiquement avec leur total actuel.'))return;
+  var r=await fetch('/api/test/import-stats',{method:'POST',headers:{'Content-Type':'application/json'}});
+  var d=await r.json();
+  if(r.ok){toast('Import \u2713 — '+d.imported+' joueurs mis \u00e0 jour','ok');loadAll();}
+  else toast(d.error||'Erreur','err');
+}
+async function clearAll(){
+  if(!confirm('Vider TOUT (logs, erreurs, r\u00e9as, map) ?'))return;
+  var r=await fetch('/api/test/clear',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({target:'all'})});
+  if(r.ok){toast('Vid\u00e9 \u2713','ok');loadAll();}else toast('Erreur','err');
+}
+function g(id){return document.getElementById(id).value;}
+function fm(n){return (n||0).toLocaleString('fr-FR')+'\u00a0$';}
+function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+var _tt;
+function toast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='show '+t;clearTimeout(_tt);_tt=setTimeout(function(){e.className='';},3000);}
+</script>
+</body>
+</html>

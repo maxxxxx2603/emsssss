@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚙️ Options du Bot EMS</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);color:#ecf0f1;padding:20px;min-height:100vh}
+        .container{max-width:1300px;margin:0 auto}
+        header{text-align:center;margin-bottom:28px;padding:18px;background:rgba(255,255,255,.05);border-radius:10px;border-bottom:3px solid #e74c3c}
+        h1{font-size:1.9em;color:#e74c3c;margin-bottom:5px}
+        .back-link{display:inline-block;margin-bottom:18px;padding:9px 18px;background:#95a5a6;color:#fff;text-decoration:none;border-radius:5px;font-size:.88em}
+        .back-link:hover{background:#7f8c8d}
+
+        /* TABS NAV */
+        .tabs-nav{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap}
+        .tab-btn{padding:10px 20px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.05);color:#ecf0f1;cursor:pointer;font-size:.9em;transition:all .2s}
+        .tab-btn:hover,.tab-btn.active{background:rgba(231,76,60,.2);border-color:#e74c3c;color:#e74c3c;font-weight:bold}
+
+        /* SECTIONS */
+        .tab-panel{display:none}
+        .tab-panel.active{display:block}
+        .section{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:20px;margin-bottom:22px}
+        .section-title{color:#e74c3c;font-size:1.15em;font-weight:bold;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e74c3c;display:flex;align-items:center;justify-content:space-between}
+
+        /* SAVE BTN */
+        .save-btn{padding:9px 22px;border:none;border-radius:6px;background:#e74c3c;color:#fff;cursor:pointer;font-size:.88em;font-weight:bold;transition:background .2s;white-space:nowrap}
+        .save-btn:hover{background:#c0392b}
+
+        /* TOAST */
+        #toast{position:fixed;top:20px;right:20px;z-index:9999;background:#27ae60;color:#fff;padding:13px 20px;border-radius:8px;font-weight:bold;display:none;box-shadow:0 4px 15px rgba(0,0,0,.4);max-width:320px}
+        #toast.error{background:#e74c3c}
+
+        /* FEATURE CARDS */
+        .features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+        .feature-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:10px;overflow:hidden;transition:border-color .2s}
+        .feature-card.enabled{border-color:rgba(39,174,96,.35)}
+        .feature-card.disabled{border-color:rgba(231,76,60,.25);opacity:.75}
+        .feature-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none}
+        .feature-header:hover{background:rgba(255,255,255,.04)}
+        .feature-info strong{display:block;font-size:.95em;margin-bottom:2px}
+        .feature-info small{color:#7f8c8d;font-size:.78em}
+        .feature-ids{padding:0 16px 14px;display:none;border-top:1px solid rgba(255,255,255,.07);margin-top:0}
+        .feature-card.has-ids .feature-ids{display:block}
+        .feature-card .expand-arrow{color:#7f8c8d;font-size:.8em;transition:transform .2s}
+        .feature-card.open .expand-arrow{transform:rotate(180deg)}
+        .feature-card.open .feature-ids{display:block!important}
+
+        /* TOGGLE */
+        .toggle{position:relative;display:inline-block;width:44px;height:23px;flex-shrink:0}
+        .toggle input{opacity:0;width:0;height:0}
+        .slider{position:absolute;cursor:pointer;inset:0;background:#555;border-radius:23px;transition:.3s}
+        .slider:before{content:"";position:absolute;height:17px;width:17px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+        input:checked+.slider{background:#27ae60}
+        input:checked+.slider:before{transform:translateX(21px)}
+
+        /* ID FIELDS */
+        .id-group{margin-top:11px}
+        .id-group label{display:block;font-size:.78em;color:#95a5a6;margin-bottom:4px;font-weight:bold}
+        .id-input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:5px;color:#ecf0f1;padding:7px 10px;font-size:.85em;font-family:monospace}
+        .id-input:focus{outline:none;border-color:#e74c3c}
+        .id-input.token-field{font-family:monospace;letter-spacing:.5px}
+        .id-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+        /* GRADES TABLE */
+        .grades-controls{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+        .btn-add{padding:8px 16px;border:none;border-radius:6px;background:#27ae60;color:#fff;cursor:pointer;font-size:.85em;font-weight:bold}
+        .btn-add:hover{background:#1e8449}
+        table.gt{width:100%;border-collapse:collapse}
+        table.gt th{background:rgba(231,76,60,.2);color:#ecf0f1;padding:10px;text-align:left;border-bottom:2px solid #e74c3c;font-size:.83em}
+        table.gt td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.83em;vertical-align:middle}
+        table.gt tr:hover td{background:rgba(231,76,60,.05)}
+        table.gt tr.disabled td{opacity:.45}
+        table.gt tr.drag-over td{background:rgba(231,76,60,.15)}
+        .drag-handle{cursor:grab;color:#7f8c8d;padding:0 4px;font-size:1.1em;user-select:none}
+        input.fi{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:4px;color:#ecf0f1;padding:5px 8px;font-size:.82em}
+        input.fi:focus{outline:none;border-color:#e74c3c}
+        input.fi.mono{font-family:monospace}
+        .rbtn{background:transparent;border:1px solid #e74c3c;color:#e74c3c;border-radius:4px;padding:3px 7px;cursor:pointer;font-size:.78em}
+        .rbtn:hover{background:#e74c3c;color:#fff}
+
+        /* BASE CONFIG */
+        .config-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+        .config-field{display:flex;flex-direction:column;gap:5px}
+        .config-field label{font-size:.8em;color:#95a5a6;font-weight:bold;display:flex;align-items:center;gap:6px}
+        .config-field .badge-req{background:#e74c3c;color:#fff;font-size:.7em;padding:1px 5px;border-radius:3px}
+        .config-field .badge-opt{background:#555;color:#ccc;font-size:.7em;padding:1px 5px;border-radius:3px}
+
+        /* MODAL */
+        .modal{display:none;position:fixed;z-index:1000;inset:0;background:rgba(0,0,0,.75)}
+        .modal.show{display:flex;align-items:center;justify-content:center}
+        .modal-content{background:#1a1a2e;border:2px solid #e74c3c;border-radius:10px;padding:26px;max-width:480px;width:92%}
+        .modal-content h3{color:#e74c3c;margin-bottom:16px}
+        .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+        .fg{display:flex;flex-direction:column;gap:4px}
+        .fg label{font-size:.8em;color:#95a5a6}
+        .fg input{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:5px;color:#ecf0f1;padding:7px 9px;font-size:.88em}
+        .fg input:focus{outline:none;border-color:#e74c3c}
+        .fg.full{grid-column:1/-1}
+        .mbtns{display:flex;gap:10px;margin-top:16px}
+        .mbtns button{flex:1;padding:10px;border:none;border-radius:6px;cursor:pointer;font-weight:bold}
+        .btn-ok{background:#e74c3c;color:#fff}
+        .btn-cancel{background:#555;color:#fff}
+
+        .hint{font-size:.76em;color:#7f8c8d;margin-top:6px}
+        .sticky-save{position:sticky;bottom:20px;display:flex;justify-content:flex-end;margin-top:10px;z-index:100}
+        .sticky-save button{padding:12px 28px;font-size:1em;box-shadow:0 4px 15px rgba(231,76,60,.4)}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="/" class="back-link">← Dashboard</a>
+    <header>
+        <h1>⚙️ Options du Bot EMS</h1>
+        <p style="color:#95a5a6;font-size:.88em">Gérez toute la configuration du bot depuis ici — plus besoin de toucher aux variables Railway</p>
+    </header>
+    <div id="toast"></div>
+
+    <!-- TABS -->
+    <div class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab('tab-config')">🔑 Config de base</button>
+        <button class="tab-btn" onclick="switchTab('tab-features')">🔧 Fonctionnalités</button>
+        <button class="tab-btn" onclick="switchTab('tab-grades')">🎖️ Grades & Rôles</button>
+        <button class="tab-btn" onclick="switchTab('tab-categories')">🗂️ Catégories & IDs</button>
+    </div>
+
+    <!-- ═══ TAB : CONFIG DE BASE ═══ -->
+    <div id="tab-config" class="tab-panel active">
+        <div class="section">
+            <div class="section-title">
+                🔑 Configuration de base du bot
+                <button class="save-btn" onclick="saveBotConfig()">💾 Sauvegarder</button>
+            </div>
+            <div class="config-grid">
+                <div class="config-field" style="grid-column:1/-1">
+                    <label>TOKEN Discord <span class="badge-req">REQUIS</span></label>
+                    <input type="password" class="id-input token-field" id="cfg_TOKEN" placeholder="Ton token bot Discord" autocomplete="off">
+                    <span class="hint" id="token_preview"></span>
+                </div>
+                <div class="config-field">
+                    <label>GUILD_ID <span class="badge-req">REQUIS</span></label>
+                    <input type="text" class="id-input mono" id="cfg_GUILD_ID" placeholder="ID de ton serveur Discord">
+                </div>
+                <div class="config-field">
+                    <label>LOGS_CHANNEL_ID <span class="badge-req">REQUIS</span></label>
+                    <input type="text" class="id-input mono" id="cfg_LOGS_CHANNEL_ID" placeholder="ID channel logs EMS">
+                </div>
+                <div class="config-field">
+                    <label>ROLE_DIRECTION_EMS_ID <span class="badge-req">REQUIS</span></label>
+                    <input type="text" class="id-input mono" id="cfg_ROLE_DIRECTION_EMS_ID" placeholder="ID rôle direction EMS">
+                </div>
+                <div class="config-field">
+                    <label>DIRECTION_ROLE_ID <span class="badge-opt">OPT</span></label>
+                    <input type="text" class="id-input mono" id="cfg_DIRECTION_ROLE_ID" placeholder="Même que direction EMS en général">
+                </div>
+            </div>
+            <p class="hint" style="margin-top:14px">⚠️ Ces valeurs sont sauvegardées dans <code>config.json</code>. Le bot les lit au démarrage — un redéploiement Railway est nécessaire après modification.</p>
+        </div>
+    </div>
+
+    <!-- ═══ TAB : FONCTIONNALITÉS ═══ -->
+    <div id="tab-features" class="tab-panel">
+        <div class="section">
+            <div class="section-title">
+                🔧 Fonctionnalités actives & IDs associés
+                <button class="save-btn" onclick="saveAllFeatures()">💾 Tout sauvegarder</button>
+            </div>
+            <p class="hint" style="margin-bottom:16px">Active/désactive chaque fonctionnalité. Clique sur une carte pour configurer les IDs Discord associés.</p>
+            <div class="features-grid" id="featuresGrid"></div>
+        </div>
+        <div class="sticky-save"><button class="save-btn" onclick="saveAllFeatures()">💾 Sauvegarder toutes les fonctionnalités</button></div>
+    </div>
+
+    <!-- ═══ TAB : GRADES ═══ -->
+    <div id="tab-grades" class="tab-panel">
+        <div class="section">
+            <div class="section-title">🎖️ Grades & Rôles Discord</div>
+            <div class="grades-controls">
+                <button class="btn-add" onclick="openAddModal()">➕ Ajouter un grade</button>
+                <button class="save-btn" onclick="saveRolesConfig()">💾 Sauvegarder les grades</button>
+            </div>
+            <p class="hint" style="margin-bottom:14px">☰ Glisser-déposer pour réordonner la hiérarchie (1 = grade le plus haut). Se répercute sur /up, /virer, /payes.</p>
+            <table class="gt">
+                <thead><tr>
+                    <th style="width:28px"></th>
+                    <th style="width:40px">On</th>
+                    <th style="width:60px">Tag</th>
+                    <th style="width:140px">Label</th>
+                    <th>Role ID</th>
+                    <th>Catégorie ID</th>
+                    <th style="width:110px">$/réa</th>
+                    <th style="width:45px"></th>
+                </tr></thead>
+                <tbody id="gradesTbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ═══ TAB : CATÉGORIES & IDs GLOBAUX ═══ -->
+    <div id="tab-categories" class="tab-panel">
+        <div class="section">
+            <div class="section-title">
+                🗂️ Catégories & IDs globaux
+                <button class="save-btn" onclick="saveGlobalIds()">💾 Sauvegarder</button>
+            </div>
+            <div class="config-grid">
+                <div class="config-field">
+                    <label>Catégorie INDISPO ID</label>
+                    <input type="text" class="id-input mono" id="category_indispo_id" placeholder="ID catégorie indisponibilité">
+                </div>
+                <div class="config-field">
+                    <label>Salaire DIRECTION fixe ($)</label>
+                    <input type="text" class="id-input" id="direction_salary" placeholder="9000000">
+                </div>
+                <div class="config-field" style="grid-column:1/-1">
+                    <label>Rôles supplémentaires à retirer au /virer (IDs séparés par virgule)</label>
+                    <input type="text" class="id-input mono" id="extra_roles_to_remove" placeholder="Ex: 838102445095256068, 838102445095256070">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL AJOUT GRADE -->
+<div class="modal" id="addModal">
+    <div class="modal-content">
+        <h3>➕ Ajouter un grade</h3>
+        <div class="frow">
+            <div class="fg"><label>Tag (ex: INF)</label><input type="text" id="new_tag" placeholder="INF" maxlength="6"></div>
+            <div class="fg"><label>Label</label><input type="text" id="new_label" placeholder="Infirmier"></div>
+        </div>
+        <div class="frow">
+            <div class="fg full"><label>Role ID Discord</label><input type="text" id="new_role_id" placeholder="ID rôle Discord"></div>
+        </div>
+        <div class="frow">
+            <div class="fg full"><label>Catégorie ID Discord (0 = aucune)</label><input type="text" id="new_category_id" placeholder="0" value="0"></div>
+        </div>
+        <div class="frow">
+            <div class="fg"><label>Salaire par réa ($)</label><input type="number" id="new_salary_rate" value="30000"></div>
+            <div class="fg"><label>Ordre (1 = plus haut)</label><input type="number" id="new_order" value="10"></div>
+        </div>
+        <div class="mbtns">
+            <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+            <button class="btn-ok" onclick="confirmAddGrade()">➕ Ajouter</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── STATE ──
+let rolesConfig = null;
+let botConfig = null;
+let options = null;
+
+// ── FEATURE DEFINITIONS ──
+const FEATURES = [
+    {
+        key: 'cv_system', name: 'Système CV', icon: '📄',
+        desc: 'Dépôt et validation des candidatures',
+        ids: [
+            {key:'CV_CHANNEL_ID', label:'Canal validation CV'},
+            {key:'CV_ACCEPTED_LOG_CHANNEL_ID', label:'Canal logs CV acceptés'},
+            {key:'DEPOT_CV_CHANNEL_ID', label:'Canal dépôt CV'},
+            {key:'ROLE_ATTENTE_ID', label:'Rôle en attente'},
+        ]
+    },
+    {
+        key: 'dispo', name: 'Recrutement / Dispo', icon: '📋',
+        desc: 'Système de disponibilité et recrutement',
+        ids: [
+            {key:'DISPO_REQUEST_CHANNEL_ID', label:'Canal demandes dispo'},
+            {key:'DISPO_CHANNEL_ID', label:'Canal décisions recrutement'},
+            {key:'DISPO_CONFIRMATION_ROLE_ID', label:'Rôle confirmation dispo'},
+        ]
+    },
+    {
+        key: 'leaderboard', name: 'Leaderboard', icon: '🏆',
+        desc: 'Classement hebdomadaire automatique',
+        ids: [
+            {key:'LEADERBOARD_CHANNEL_ID', label:'Canal leaderboard'},
+            {key:'LEADERBOARD_ROLE_ID', label:'Rôle EMS (mention)'},
+        ]
+    },
+    {
+        key: 'giveaway', name: 'Giveaway', icon: '🎁',
+        desc: 'Commande /giveaway',
+        ids: [
+            {key:'GIVEAWAY_PING_ROLE_ID', label:'Rôle à mentionner'},
+        ]
+    },
+    {
+        key: 'burgershot', name: 'BurgerShot', icon: '🍔',
+        desc: 'Suivi employés BurgerShot',
+        ids: [
+            {key:'BURGERSHOT_CHANNEL_ID', label:'Canal BurgerShot'},
+            {key:'BURGERSHOT_ROLE_ID', label:'Rôle BurgerShot'},
+        ]
+    },
+    {
+        key: 'tickets', name: 'Tickets', icon: '🎫',
+        desc: 'Système de tickets (RDV, demandes)',
+        ids: [
+            {key:'ROLE_REQUEST_CHANNEL_ID', label:'Canal demandes rôle'},
+            {key:'TICKET_CATEGORY_ID', label:'Catégorie tickets'},
+            {key:'APPOINTMENT_CHANNEL_ID', label:'Canal RDV'},
+            {key:'ROLE_LSPD_ID', label:'Rôle LSPD'},
+            {key:'ROLE_BCSO_ID', label:'Rôle BCSO'},
+            {key:'ROLE_MARSHALL_ID', label:'Rôle Marshall'},
+            {key:'ROLE_NO_TEST_ID', label:'Rôle No-Test'},
+            {key:'ROLE_TAXI_REQUEST_ID', label:'Rôle Taxi Request'},
+        ]
+    },
+    {
+        key: 'avertissements', name: 'Avertissements', icon: '⚠️',
+        desc: 'Commande /avert',
+        ids: [
+            {key:'AVERT_ROLE_PING_ID', label:'Rôle à notifier'},
+        ]
+    },
+    {
+        key: 'absences', name: 'Absences', icon: '📅',
+        desc: 'Gestion des absences', ids: []
+    },
+    {
+        key: 'reunions', name: 'Réunions', icon: '📢',
+        desc: 'Annonces de réunion', ids: []
+    },
+    {
+        key: 'formations', name: 'Formations', icon: '🎓',
+        desc: 'Suivi formations', ids: []
+    },
+    {
+        key: 'parrainage', name: 'Parrainage', icon: '🤝',
+        desc: 'Système de parrainage STG', ids: []
+    },
+    {
+        key: 'patients', name: 'Patients', icon: '🏥',
+        desc: 'Dossiers patients', ids: []
+    },
+    {
+        key: 'dispatch', name: 'Dispatch', icon: '📡',
+        desc: 'Historique des dispatches', ids: []
+    },
+    {
+        key: 'matricules', name: 'Matricules', icon: '🔢',
+        desc: 'Commande /matricule',
+        ids: [
+            {key:'ROLE_MATRICULE_ID', label:'Rôle requis pour /matricule'},
+        ]
+    },
+    {
+        key: 'badges', name: 'Badges', icon: '🏅',
+        desc: 'Système de badges', ids: []
+    },
+    {
+        key: 'semaine_auto', name: 'Bilan Semaine Auto', icon: '📊',
+        desc: 'Reset + bilan hebdomadaire auto', ids: []
+    },
+];
+
+// ── LOAD ──
+async function loadAll() {
+    const [rc, bc, opts] = await Promise.all([
+        fetch('/api/roles-config').then(r=>r.json()).catch(()=>({})),
+        fetch('/api/bot-config').then(r=>r.json()).catch(()=>({})),
+        fetch('/api/options').then(r=>r.json()).catch(()=>({})),
+    ]);
+    rolesConfig = rc;
+    botConfig = bc;
+    options = opts;
+    renderBotConfig();
+    renderFeatures();
+    renderGrades();
+    renderGlobalIds();
+}
+
+// ── TAB ──
+function switchTab(id) {
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
+
+// ── BOT CONFIG ──
+function renderBotConfig() {
+    const fields = ['TOKEN','GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID','DIRECTION_ROLE_ID'];
+    fields.forEach(k => {
+        const el = document.getElementById('cfg_'+k);
+        if (!el) return;
+        if (k === 'TOKEN') {
+            el.placeholder = botConfig.TOKEN_PREVIEW || 'Entrer le token Discord';
+        } else {
+            el.value = botConfig[k] || '';
+        }
+    });
+    if (botConfig.TOKEN_PREVIEW) {
+        document.getElementById('token_preview').textContent = '🔒 Token actuel : ' + botConfig.TOKEN_PREVIEW;
+    }
+}
+
+async function saveBotConfig() {
+    const data = {};
+    const fields = ['TOKEN','GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID','DIRECTION_ROLE_ID'];
+    fields.forEach(k => {
+        const el = document.getElementById('cfg_'+k);
+        if (el && el.value.trim()) data[k] = el.value.trim();
+    });
+    const res = await fetch('/api/bot-config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+    const d = await res.json();
+    showToast(d.message, d.status!=='success');
+    if (d.status==='success') await loadAll();
+}
+
+// ── FEATURES ──
+function renderFeatures() {
+    const grid = document.getElementById('featuresGrid');
+    grid.innerHTML = FEATURES.map(f => {
+        const enabled = options[f.key] !== false;
+        const hasIds = f.ids && f.ids.length > 0;
+        return `<div class="feature-card ${enabled?'enabled':'disabled'}" id="fcard_${f.key}">
+            <div class="feature-header" onclick="toggleExpand('${f.key}',${hasIds})">
+                <div class="feature-info">
+                    <strong>${f.icon} ${f.name}</strong>
+                    <small>${f.desc}</small>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                    ${hasIds ? `<span class="expand-arrow">▼</span>` : ''}
+                    <label class="toggle" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="opt_${f.key}" ${enabled?'checked':''} onchange="toggleFeature('${f.key}',this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            ${hasIds ? `<div class="feature-ids">
+                ${f.ids.map(id => `
+                <div class="id-group">
+                    <label>${id.label}</label>
+                    <input type="text" class="id-input mono" id="fid_${id.key}" value="${botConfig[id.key]||''}" placeholder="ID Discord (0 = désactivé)">
+                </div>`).join('')}
+            </div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function toggleExpand(key, hasIds) {
+    if (!hasIds) return;
+    const card = document.getElementById('fcard_'+key);
+    card.classList.toggle('open');
+}
+
+function toggleFeature(key, val) {
+    options[key] = val;
+    const card = document.getElementById('fcard_'+key);
+    card.classList.toggle('enabled', val);
+    card.classList.toggle('disabled', !val);
+}
+
+async function saveAllFeatures() {
+    // Sauvegarder options
+    const optPayload = {};
+    FEATURES.forEach(f => {
+        optPayload[f.key] = document.getElementById('opt_'+f.key)?.checked ?? true;
+    });
+    // Sauvegarder IDs de features dans bot-config
+    const cfgPayload = {};
+    FEATURES.forEach(f => {
+        (f.ids||[]).forEach(id => {
+            const el = document.getElementById('fid_'+id.key);
+            if (el && el.value.trim()) cfgPayload[id.key] = el.value.trim();
+        });
+    });
+    const [r1, r2] = await Promise.all([
+        fetch('/api/options', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(optPayload)}),
+        Object.keys(cfgPayload).length ? fetch('/api/bot-config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(cfgPayload)}) : Promise.resolve({json:()=>({status:'success'})})
+    ]);
+    const d1 = await r1.json();
+    showToast(d1.status==='success' ? '✅ Fonctionnalités & IDs sauvegardés' : d1.message, d1.status!=='success');
+}
+
+// ── GRADES ──
+function renderGrades() {
+    const tbody = document.getElementById('gradesTbody');
+    const sorted = [...(rolesConfig.grades||[])].sort((a,b)=>(a.order||99)-(b.order||99));
+    tbody.innerHTML = sorted.map(g => `
+    <tr class="grade-row ${g.enabled===false?'disabled':''}" data-tag="${g.tag}" draggable="true"
+        ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)" ondragleave="dragLeave(event)">
+        <td><span class="drag-handle">☰</span></td>
+        <td><label class="toggle"><input type="checkbox" ${g.enabled!==false?'checked':''} onchange="setGradeEnabled('${g.tag}',this.checked)"><span class="slider"></span></label></td>
+        <td><input class="fi" style="width:52px;text-transform:uppercase" value="${g.tag}" onchange="updateGrade('${g.tag}','tag',this.value)"></td>
+        <td><input class="fi" style="width:130px" value="${g.label}" onchange="updateGrade('${g.tag}','label',this.value)"></td>
+        <td><input class="fi mono" style="width:185px" value="${g.role_id||0}" onchange="updateGrade('${g.tag}','role_id',this.value)" placeholder="Role ID"></td>
+        <td><input class="fi mono" style="width:185px" value="${g.category_id||0}" onchange="updateGrade('${g.tag}','category_id',this.value)" placeholder="Catégorie ID"></td>
+        <td><input class="fi" style="width:95px;text-align:right" type="number" value="${g.salary_rate||0}" onchange="updateGrade('${g.tag}','salary_rate',parseInt(this.value)||0)"> $</td>
+        <td><button class="rbtn" onclick="removeGrade('${g.tag}')">🗑️</button></td>
+    </tr>`).join('');
+}
+
+function updateGrade(tag, field, value) {
+    const g = rolesConfig.grades.find(g=>g.tag===tag);
+    if (!g) return;
+    if (['role_id','category_id','salary_rate','order'].includes(field)) g[field]=parseInt(value)||0;
+    else g[field]=value;
+}
+function setGradeEnabled(tag, val) {
+    const g = rolesConfig.grades.find(g=>g.tag===tag);
+    if (g) g.enabled=val;
+    const row = document.querySelector(`.grade-row[data-tag="${tag}"]`);
+    if (row) row.classList.toggle('disabled',!val);
+}
+function removeGrade(tag) {
+    if (!confirm(`Supprimer le grade [${tag}] ?`)) return;
+    rolesConfig.grades = rolesConfig.grades.filter(g=>g.tag!==tag);
+    renderGrades();
+}
+
+let dragSrcTag=null;
+function dragStart(e){dragSrcTag=e.currentTarget.dataset.tag;e.currentTarget.style.opacity='.45'}
+function dragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over')}
+function dragLeave(e){e.currentTarget.classList.remove('drag-over')}
+function dropRow(e){
+    e.preventDefault();
+    const tgt=e.currentTarget.dataset.tag;
+    e.currentTarget.classList.remove('drag-over');
+    if(!dragSrcTag||dragSrcTag===tgt){dragSrcTag=null;return}
+    const si=rolesConfig.grades.findIndex(g=>g.tag===dragSrcTag);
+    const ti=rolesConfig.grades.findIndex(g=>g.tag===tgt);
+    if(si<0||ti<0){dragSrcTag=null;return}
+    const [r]=rolesConfig.grades.splice(si,1);
+    rolesConfig.grades.splice(ti,0,r);
+    rolesConfig.grades.forEach((g,i)=>g.order=i+1);
+    dragSrcTag=null;
+    renderGrades();
+}
+
+async function saveRolesConfig() {
+    // Sync inputs
+    document.querySelectorAll('.grade-row').forEach(row=>{
+        const tag=row.dataset.tag;
+        const g=rolesConfig.grades.find(g=>g.tag===tag);
+        if(!g)return;
+        const ins=row.querySelectorAll('input.fi');
+        if(ins[0])g.tag=ins[0].value.trim().toUpperCase()||g.tag;
+        if(ins[1])g.label=ins[1].value.trim()||g.label;
+        if(ins[2])g.role_id=parseInt(ins[2].value)||0;
+        if(ins[3])g.category_id=parseInt(ins[3].value)||0;
+        if(ins[4])g.salary_rate=parseInt(ins[4].value)||0;
+    });
+    rolesConfig.grades.forEach((g,i)=>g.order=i+1);
+    const res=await fetch('/api/roles-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rolesConfig)});
+    const d=await res.json();
+    showToast(d.message,d.status!=='success');
+}
+
+// ── GLOBAL IDS ──
+function renderGlobalIds(){
+    document.getElementById('category_indispo_id').value=rolesConfig.category_indispo_id||0;
+    document.getElementById('direction_salary').value=rolesConfig.direction_salary||9000000;
+    document.getElementById('extra_roles_to_remove').value=(rolesConfig.extra_roles_to_remove||[]).join(', ');
+}
+async function saveGlobalIds(){
+    rolesConfig.category_indispo_id=parseInt(document.getElementById('category_indispo_id').value)||0;
+    rolesConfig.direction_salary=parseInt(document.getElementById('direction_salary').value)||9000000;
+    const raw=document.getElementById('extra_roles_to_remove').value;
+    rolesConfig.extra_roles_to_remove=raw.split(',').map(s=>parseInt(s.trim())||0).filter(v=>v>0);
+    const res=await fetch('/api/roles-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rolesConfig)});
+    const d=await res.json();
+    showToast(d.message,d.status!=='success');
+}
+
+// ── MODAL ──
+function openAddModal(){document.getElementById('addModal').classList.add('show')}
+function closeModal(){document.getElementById('addModal').classList.remove('show')}
+function confirmAddGrade(){
+    const tag=document.getElementById('new_tag').value.trim().toUpperCase();
+    const label=document.getElementById('new_label').value.trim();
+    const role_id=parseInt(document.getElementById('new_role_id').value)||0;
+    const category_id=parseInt(document.getElementById('new_category_id').value)||0;
+    const salary_rate=parseInt(document.getElementById('new_salary_rate').value)||30000;
+    const order=parseInt(document.getElementById('new_order').value)||(rolesConfig.grades.length+1);
+    if(!tag||!label){alert('Tag et Label obligatoires');return}
+    if(rolesConfig.grades.find(g=>g.tag===tag)){alert(`[${tag}] existe déjà`);return}
+    rolesConfig.grades.push({tag,label,role_id,category_id,salary_rate,order,enabled:true});
+    rolesConfig.grades.sort((a,b)=>a.order-b.order);
+    renderGrades();
+    closeModal();
+    showToast('Grade ajouté — sauvegarde pour confirmer');
+}
+document.getElementById('addModal').addEventListener('click',function(e){if(e.target===this)closeModal()});
+
+// ── TOAST ──
+function showToast(msg,isErr=false){
+    const t=document.getElementById('toast');
+    t.textContent=msg;t.className=isErr?'error':'';t.style.display='block';
+    setTimeout(()=>t.style.display='none',3500);
+}
+
+loadAll();
+</script>
+</body>
+</html>

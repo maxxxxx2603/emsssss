@@ -1,0 +1,92 @@
+{
+  "grades": [
+    {
+      "tag": "DIR",
+      "label": "Directeur Médical",
+      "role_id": 1088570974603055195,
+      "category_id": 0,
+      "salary_rate": 55000,
+      "order": 1,
+      "enabled": true
+    },
+    {
+      "tag": "CAD",
+      "label": "Chef Adjoint",
+      "role_id": 1528561040663777310,
+      "category_id": 1528562915458814053,
+      "salary_rate": 52000,
+      "order": 2,
+      "enabled": true
+    },
+    {
+      "tag": "CDS",
+      "label": "Chef de Service",
+      "role_id": 838102445095256071,
+      "category_id": 0,
+      "salary_rate": 50000,
+      "order": 3,
+      "enabled": true
+    },
+    {
+      "tag": "MED",
+      "label": "Médecin",
+      "role_id": 840288242547818507,
+      "category_id": 0,
+      "salary_rate": 45000,
+      "order": 4,
+      "enabled": true
+    },
+    {
+      "tag": "PSY",
+      "label": "Psychologue",
+      "role_id": 1528560704511148092,
+      "category_id": 1528562582804365312,
+      "salary_rate": 42000,
+      "order": 5,
+      "enabled": true
+    },
+    {
+      "tag": "INF",
+      "label": "Infirmier",
+      "role_id": 894311352225656862,
+      "category_id": 0,
+      "salary_rate": 40000,
+      "order": 6,
+      "enabled": true
+    },
+    {
+      "tag": "ADS",
+      "label": "Aide-Soignant",
+      "role_id": 1088116715998687273,
+      "category_id": 0,
+      "salary_rate": 40000,
+      "order": 7,
+      "enabled": true
+    },
+    {
+      "tag": "STG",
+      "label": "Stagiaire",
+      "role_id": 838102445095256069,
+      "category_id": 1515101531186397335,
+      "salary_rate": 35000,
+      "order": 8,
+      "enabled": true
+    },
+    {
+      "tag": "EMT",
+      "label": "EMT",
+      "role_id": 895047492784238652,
+      "category_id": 1515101532746678332,
+      "salary_rate": 30000,
+      "order": 9,
+      "enabled": true
+    }
+  ],
+  "category_indispo_id": 1524182164336279682,
+  "direction_salary": 9000000,
+  "direction_role_id": 838120186585940010,
+  "extra_roles_to_remove": [
+    838102445095256068,
+    838102445095256070
+  ]
+}
