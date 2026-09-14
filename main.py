@@ -1136,10 +1136,10 @@ EMS_ROLE_IDS_TO_REMOVE = [
     838102445095256068,  # Autre rôle EMS 1
     838102445095256070,  # Autre rôle EMS 2
 ]
-ROLE_EMT_1 = 838102445095256070
-ROLE_EMT_2 = 838102445095256068
-ROLE_EMT_3 = 895047492784238652
-ROLE_CITOYEN = 838102445095256068
+ROLE_EMT_1 = cfg("ROLE_EMT_1", 838102445095256070)
+ROLE_EMT_2 = cfg("ROLE_EMT_2", 838102445095256068)
+ROLE_EMT_3 = cfg("ROLE_EMT_3", 895047492784238652)
+ROLE_CITOYEN = cfg("CITOYEN_ROLE_ID", 838102445095256068)
 
 # Configuration Giveaway
 GIVEAWAY_PING_ROLE_ID = cfg("GIVEAWAY_PING_ROLE_ID", 838102445095256068)  # Rôle à ping pour les giveaways
@@ -1239,6 +1239,14 @@ def load_options() -> dict:
 def is_enabled(feature: str) -> bool:
     """Retourne True si la fonctionnalité est active (option JSON)."""
     return load_options().get(feature, True)
+
+def feature_disabled_embed(feature: str) -> discord.Embed:
+    """Embed standard quand une fonctionnalité est désactivée."""
+    return discord.Embed(
+        title="🔒 Fonctionnalité désactivée",
+        description=f"La fonctionnalité **{feature}** est actuellement désactivée.\nActivez-la dans `/options` → Fonctionnalités.",
+        color=discord.Color.red()
+    )
 
 def get_grade_salary_rate(grade_tag: str) -> int:
     """Retourne le taux de salaire par réa pour un grade (depuis roles_config)."""
@@ -1383,8 +1391,8 @@ matricule_board_message_id = None  # ID du message embed dans le salon matricule
 direction_matricules = {}  # {grade: {matricule_str: nom}} ex: {"DIR": {"01": "Jean Dupont"}}
 
 # --- AVERTISSEMENTS ---
-AVERT_CHANNEL_ID = 1524362855816761405
-MATRICULE_CHANNEL_ID = 1524156209891119274
+AVERT_CHANNEL_ID = cfg("AVERT_CHANNEL_ID", 1524362855816761405)
+MATRICULE_CHANNEL_ID = cfg("MATRICULE_CHANNEL_ID", 1524156209891119274)
 AVERT_ROLE_PING_ID = cfg("AVERT_ROLE_PING_ID", 699589324705890334)
 AVERT_FILE = AVERT_FILE_PATH
 avert_board_message_id = None
@@ -1584,7 +1592,7 @@ async def update_matricule_board(guild: discord.Guild):
 
 
 # --- DISPATCH ---
-DISPATCH_CHANNEL_ID = 1524513403048038512
+DISPATCH_CHANNEL_ID = cfg("DISPATCH_CHANNEL_ID", 1524513403048038512)
 dispatch_message_id = None
 dispatch_active = False
 dispatch_state = {}  # {user_id: div_name} — assignation courante de chaque employé
@@ -1795,7 +1803,7 @@ class DispatchDivisionView(discord.ui.View):
             return
 
         # DM direct à la direction (user ID fixe)
-        DIR_USER_ID = 699589324705890334
+        DIR_USER_ID = cfg("DIR_USER_ID", 699589324705890334)
         dir_member = guild.get_member(DIR_USER_ID)
         if not dir_member:
             await interaction.followup.send("❌ Impossible de joindre la direction.", ephemeral=True)
@@ -1817,8 +1825,8 @@ class DispatchDivisionView(discord.ui.View):
             return
 
         # Envoyer dans le channel direction avec ping rôle
-        TANGO_REQUEST_CHANNEL_ID = 1485278000986587333
-        TANGO_PING_ROLE_ID = 838120186585940010
+        TANGO_REQUEST_CHANNEL_ID = cfg("TANGO_REQUEST_CHANNEL_ID", 1485278000986587333)
+        TANGO_PING_ROLE_ID = cfg("ROLE_DIRECTION_EMS_ID", 838120186585940010)
 
         view = TangoXrayRequestView(
             requester_id=interaction.user.id,
@@ -2500,6 +2508,8 @@ async def update_channel_description(channel: discord.TextChannel, count: int):
 @app_commands.checks.has_permissions(administrator=True)
 async def total(interaction: discord.Interaction):
     await interaction.response.defer()
+    if not is_enabled("leaderboard"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Leaderboard / Stats"))
     
     stats = load_stats()
     
@@ -2627,9 +2637,9 @@ async def reset(interaction: discord.Interaction):
 async def info(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
-    # Channel et r�le cibles
-    target_channel_id = 1306021673912238142
-    ping_role_id = 838102445095256068
+    # Channel et rôle cibles
+    target_channel_id = cfg("INFO_CHANNEL_ID", 1306021673912238142)
+    ping_role_id = cfg("LEADERBOARD_ROLE_ID", 838102445095256068)
 
     target_channel = bot.get_channel(target_channel_id)
     if not target_channel:
@@ -2748,6 +2758,8 @@ async def info(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(administrator=True)
 async def stats_info(interaction: discord.Interaction):
     await interaction.response.defer()
+    if not is_enabled("leaderboard"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Leaderboard / Stats"))
     
     stats = load_stats()
     
@@ -3164,6 +3176,8 @@ async def update_colors(interaction: discord.Interaction):
 async def semaine(interaction: discord.Interaction):
     global evening_reas
     await interaction.response.defer()
+    if not is_enabled("semaine_auto"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Réinitialisation semaine"))
     
     guild = interaction.guild
     week_key = get_week_start()
@@ -4418,6 +4432,8 @@ class FormulaireCVButton(discord.ui.View):
 @app_commands.checks.has_permissions(administrator=True)
 async def setup_cv(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("cv_system"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Système CV / Candidatures"), ephemeral=True)
     
     embed = discord.Embed(
         title="🚑 RECRUTEMENT EMS",
@@ -4450,6 +4466,8 @@ async def setup_cv(interaction: discord.Interaction):
 async def formulairecv(interaction: discord.Interaction):
     # Defer immédiatement pour éviter le timeout
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("cv_system"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Système CV / Candidatures"), ephemeral=True)
     
     embed = discord.Embed(
         title="🚑 RECRUTEMENT EMS",
@@ -4581,6 +4599,8 @@ async def giveaway(
     heure: str
 ):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("giveaway"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Giveaway"), ephemeral=True)
     
     try:
         # Parser la date et l'heure
@@ -5245,7 +5265,7 @@ def get_clean_name(member):
 async def sync_stats_from_logs():
     """Récupère les stats depuis le channel de logs pour éviter la perte de données au redémarrage"""
     try:
-        LOGS_SYNC_CHANNEL_ID = 1458464678542970983
+        LOGS_SYNC_CHANNEL_ID = cfg("LOGS_CHANNEL_ID", 1458464678542970983)
         log_channel = bot.get_channel(LOGS_SYNC_CHANNEL_ID)
         
         if not log_channel:
@@ -5361,7 +5381,7 @@ async def setup_categories(interaction: discord.Interaction):
     guild = interaction.guild
     
     # ID de la catégorie cible (on veut positionner au-dessus)
-    TARGET_CATEGORY_ID = 838110173368418325
+    TARGET_CATEGORY_ID = cfg("TARGET_CATEGORY_ID", 838110173368418325)
     
     # Définir les catégories à créer (ordre inversé : DIR en haut, EMT en bas)
     grade_names = [
@@ -5548,6 +5568,8 @@ async def employer(interaction: discord.Interaction, membre: discord.Member, mat
 )
 async def set_matricule(interaction: discord.Interaction, matricule: app_commands.Range[int, 1, 99]):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("matricules"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Matricules"), ephemeral=True)
 
     ROLE_MATRICULE_ID = cfg("ROLE_MATRICULE_ID", 838102445095256068)
     member_role_ids = [r.id for r in interaction.user.roles]
@@ -5623,6 +5645,8 @@ async def set_matricule(interaction: discord.Interaction, matricule: app_command
 @app_commands.checks.has_permissions(administrator=True)
 async def matricules_check(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("matricules"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Matricules"), ephemeral=True)
 
     guild = interaction.guild
 
@@ -6783,7 +6807,7 @@ async def synchronise(interaction: discord.Interaction):
     await interaction.response.defer()
     
     try:
-        LOGS_SYNC_CHANNEL_ID = 1458464678542970983
+        LOGS_SYNC_CHANNEL_ID = cfg("LOGS_CHANNEL_ID", 1458464678542970983)
         log_channel = bot.get_channel(LOGS_SYNC_CHANNEL_ID)
         
         if not log_channel:
@@ -6887,6 +6911,8 @@ async def synchronise(interaction: discord.Interaction):
 async def rea(interaction: discord.Interaction):
     """Affiche les stats de l'utilisateur avec graphique ASCII"""
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("patients"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Suivi patients / Réanimations"), ephemeral=True)
     
     # Récupérer la clé employé
     user_display_name = interaction.user.display_name
@@ -7026,6 +7052,8 @@ async def annonce_rea_command(interaction: discord.Interaction):
 async def cv_command(interaction: discord.Interaction, nombre: int):
     """Ajoute des réas depuis le channel personnel"""
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("patients"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Suivi patients / Réanimations"), ephemeral=True)
     
     # Vérifier que c'est dans un channel EMS
     channel = interaction.channel
@@ -7082,6 +7110,8 @@ async def cv_command(interaction: discord.Interaction, nombre: int):
 async def retrait_command(interaction: discord.Interaction, nombre: int):
     """Retire des réas depuis le channel personnel"""
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("patients"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Suivi patients / Réanimations"), ephemeral=True)
     
     # Vérifier que c'est dans un channel EMS
     channel = interaction.channel
@@ -8198,8 +8228,8 @@ class DispoButton(discord.ui.View):
 
 # --- COMMANDE DISPO ---
 
-ESX_SOCIETY_CHANNEL_ID = 1267921697420345424
-ESX_SOCIETY_ROLE_ID = 838102445095256068
+ESX_SOCIETY_CHANNEL_ID = cfg("ESX_SOCIETY_CHANNEL_ID", 1267921697420345424)
+ESX_SOCIETY_ROLE_ID = cfg("ESX_SOCIETY_ROLE_ID", 838102445095256068)
 
 # Fichiers partagés avec Flask (même process, même DATA_DIR)
 _TEST_LOGS_FILE   = os.path.join(DATA_DIR, 'test_logs.json')
@@ -8780,7 +8810,7 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # --- SYSTÈME DE PRISE DE SERVICE ---
-SERVICE_CHANNEL_ID = 1413994272616611880
+SERVICE_CHANNEL_ID = cfg("SERVICE_CHANNEL_ID", 1413994272616611880)
 
 def build_status_embed():
     """Construit l'embed de statut des services en direct"""
@@ -9196,6 +9226,8 @@ GRADE_TO_CATEGORY = {
 @app_commands.describe(membre="L'employé à mettre en indisponibilité")
 async def indisponible(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("dispo"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Disponibilités"), ephemeral=True)
 
     guild = interaction.guild
     clean_name = get_clean_name(membre)
@@ -9250,6 +9282,8 @@ async def indisponible(interaction: discord.Interaction, membre: discord.Member)
 @app_commands.describe(membre="L'employé à réactiver")
 async def reouverture(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("dispo"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Disponibilités"), ephemeral=True)
 
     guild = interaction.guild
     clean_name = get_clean_name(membre)
@@ -9336,6 +9370,8 @@ async def reouverture(interaction: discord.Interaction, membre: discord.Member):
 @app_commands.checks.has_permissions(administrator=True)
 async def setup_avertissements(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("avertissements"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Avertissements"), ephemeral=True)
     global avert_board_message_id
     avert_board_message_id = None  # Force la recréation
     await update_avert_board(interaction.guild)
@@ -9350,6 +9386,8 @@ async def setup_avertissements(interaction: discord.Interaction):
 )
 async def avertissement(interaction: discord.Interaction, membre: discord.Member, raison: str):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("avertissements"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Avertissements"), ephemeral=True)
 
     guild = interaction.guild
     data = load_avertissements()
@@ -9435,6 +9473,8 @@ async def avertissement(interaction: discord.Interaction, membre: discord.Member
 @app_commands.describe(membre="L'employé concerné")
 async def retirer_avertissement(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("avertissements"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Avertissements"), ephemeral=True)
 
     data = load_avertissements()
     user_id = str(membre.id)
@@ -9466,6 +9506,8 @@ async def retirer_avertissement(interaction: discord.Interaction, membre: discor
 @app_commands.checks.has_permissions(administrator=True)
 async def redispatch(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("dispatch"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Dispatch"), ephemeral=True)
     global dispatch_message_id
     dispatch_message_id = None  # Force recréation
     await run_dispatch(interaction.guild)
@@ -9489,6 +9531,8 @@ async def annonce_command(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(administrator=True)
 async def prise_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("dispo"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Prise de service"), ephemeral=True)
     
     service_channel = bot.get_channel(SERVICE_CHANNEL_ID)
     if not service_channel:
@@ -10045,6 +10089,8 @@ async def on_ready():
 @app_commands.describe(stagiaire="Le stagiaire à parrainer", parrain="Le parrain/mentor")
 async def parrain(interaction: discord.Interaction, stagiaire: discord.Member, parrain: discord.Member):
     await interaction.response.defer()
+    if not is_enabled("parrainage"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Parrainage"))
     guild = interaction.guild
 
     stagiaire_clean = get_clean_name(stagiaire)
@@ -10104,6 +10150,8 @@ async def parrain(interaction: discord.Interaction, stagiaire: discord.Member, p
 @app_commands.describe(stagiaire="Le stagiaire dont on retire le parrain")
 async def retirer_parrain(interaction: discord.Interaction, stagiaire: discord.Member):
     await interaction.response.defer()
+    if not is_enabled("parrainage"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Parrainage"))
     guild = interaction.guild
     stagiaire_key = normalize_employee_key(get_clean_name(stagiaire))
 
@@ -10426,6 +10474,145 @@ async def migration_grades(interaction: discord.Interaction, dry_run: bool = Tru
         await update_matricule_board(guild)
 
 
+# --- COMMANDE /sync_channels ---
+
+@bot.tree.command(name="sync_channels", description="Vérifie que chaque employé EMS a son channel dans la bonne catégorie, le recrée si manquant (admin)")
+@app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(dry_run="True = simulation sans rien créer (défaut), False = crée vraiment les channels manquants")
+async def sync_channels(interaction: discord.Interaction, dry_run: bool = True):
+    """
+    Pour chaque membre qui a le rôle EMS (838102445095256068) :
+    1. Détermine son grade depuis son pseudo [TAG]
+    2. Vérifie si un channel 🔴nom existe dans la catégorie du grade
+    3. Si absent → le crée avec les bonnes permissions
+    """
+    await interaction.response.defer(ephemeral=True)
+    guild = interaction.guild
+
+    EMS_ROLE_ID = cfg("LEADERBOARD_ROLE_ID", 838102445095256068)
+    ems_role = guild.get_role(EMS_ROLE_ID)
+    if not ems_role:
+        await interaction.followup.send("❌ Rôle EMS introuvable.", ephemeral=True)
+        return
+
+    # Chargement des grades et leurs catégories
+    roles_cfg_data = load_roles_config()
+    grades_cfg = roles_cfg_data.get('grades', [])
+    grade_map = {}  # {tag: category_id}
+    for g in grades_cfg:
+        tag = g.get("tag", "").upper()
+        cat_id_raw = g.get("category_id", 0)
+        try:
+            cat_id = int(str(cat_id_raw).split('.')[0]) if cat_id_raw else 0
+        except (ValueError, TypeError):
+            cat_id = 0
+        if tag and cat_id:
+            grade_map[tag] = cat_id
+
+    # Tous les channels existants dans les catégories EMS
+    all_cat_ids = set(grade_map.values())
+    existing_channels = {}  # {employee_key: channel}
+    for ch in guild.text_channels:
+        if ch.category_id in all_cat_ids:
+            key = get_channel_employee_key(ch)
+            if key:
+                existing_channels[key] = ch
+
+    GRADE_TAGS = ["DIR", "CAD", "CDS", "MED", "PSY", "INF", "ADS", "STG", "EMT"]
+
+    created = []
+    already_ok = []
+    skipped_no_grade = []
+    skipped_no_cat = []
+    errors = []
+
+    for member in ems_role.members:
+        if member.bot:
+            continue
+
+        display = member.display_name
+        # Détecter le grade depuis le pseudo [TAG] xx Nom
+        grade_tag = None
+        for tag in GRADE_TAGS:
+            if display.startswith(f"[{tag}]"):
+                grade_tag = tag
+                break
+
+        if not grade_tag:
+            skipped_no_grade.append(f"{display}")
+            continue
+
+        cat_id = grade_map.get(grade_tag)
+        if not cat_id:
+            skipped_no_cat.append(f"{display} ({grade_tag})")
+            continue
+
+        clean = get_clean_name(member)
+        emp_key = normalize_employee_key(clean)
+        channel_name = f"🔴{clean.lower().replace(' ', '-')}"
+
+        if emp_key in existing_channels:
+            already_ok.append(f"{display}")
+            continue
+
+        # Channel manquant → créer
+        if dry_run:
+            created.append(f"{display} → `{channel_name}` dans cat {cat_id}")
+        else:
+            try:
+                category = guild.get_channel(cat_id)
+                if category is None:
+                    skipped_no_cat.append(f"{display} (catégorie {cat_id} introuvable)")
+                    continue
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                    member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                    guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                }
+                # Ajouter les rôles Direction en lecture
+                for g in [x for x in grades_cfg if isinstance(x, dict)]:
+                    dir_role = guild.get_role(int(g.get("role_id", 0))) if g.get("tag") in ["DIR", "CAD", "CDS"] else None
+                    if dir_role:
+                        overwrites[dir_role] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                new_ch = await guild.create_text_channel(name=channel_name, category=category, overwrites=overwrites)
+                created.append(f"{display} → {new_ch.mention}")
+            except Exception as e:
+                errors.append(f"{display} : {e}")
+
+    embed = discord.Embed(
+        title=f"{'🔍 [Simulation]' if dry_run else '✅ [Appliqué]'} Sync Channels EMS",
+        color=discord.Color.orange() if dry_run else discord.Color.green(),
+        timestamp=now_paris()
+    )
+
+    if created:
+        val = "\n".join(created[:15]) + (f"\n… +{len(created)-15} autres" if len(created) > 15 else "")
+        embed.add_field(name=f"{'📋 À créer' if dry_run else '✅ Créés'} ({len(created)})", value=val, inline=False)
+    else:
+        embed.add_field(name="✅ Channels à créer", value="Aucun — tout est déjà en place !", inline=False)
+
+    if already_ok:
+        embed.add_field(name=f"✅ Déjà OK ({len(already_ok)})", value=f"{len(already_ok)} membre(s) ont déjà leur channel", inline=False)
+
+    if skipped_no_grade:
+        val = "\n".join(skipped_no_grade[:10]) + (f"\n… +{len(skipped_no_grade)-10} autres" if len(skipped_no_grade) > 10 else "")
+        embed.add_field(name=f"⚠️ Pseudo sans tag grade ({len(skipped_no_grade)})", value=val, inline=False)
+
+    if skipped_no_cat:
+        val = "\n".join(skipped_no_cat[:10])
+        embed.add_field(name=f"⚠️ Catégorie non configurée ({len(skipped_no_cat)})", value=val, inline=False)
+
+    if errors:
+        embed.add_field(name=f"❌ Erreurs ({len(errors)})", value="\n".join(errors[:5]), inline=False)
+
+    embed.set_footer(text=f"{'Simulation — aucun channel créé' if dry_run else 'Terminé'} · {len(ems_role.members)} membres EMS scannés")
+
+    if dry_run and created:
+        embed.description = f"> 💡 Lance `/sync_channels dry_run:False` pour créer les **{len(created)}** channels manquants."
+
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
+
 # --- COMMANDE /blacklist_cv ---
 
 @bot.tree.command(name="blacklist_cv", description="Gérer la blacklist des candidatures CV (admin)")
@@ -10621,7 +10808,7 @@ async def before_check_rea_inactivity():
 
 # --- COMMANDE /absence - SIMPLE ET DIRECTE ---
 ABSENCE_FILE = os.path.join(DATA_DIR, 'absences.json')
-ABSENCE_LOG_CHANNEL = 1523355492368515222
+ABSENCE_LOG_CHANNEL = cfg("ABSENCE_LOG_CHANNEL", 1523355492368515222)
 
 def load_absences():
     """Charge les absences du fichier"""
@@ -10664,6 +10851,8 @@ async def declare_absence(
 ):
     """Enregistrer une absence directement dans le fichier et loguer"""
     await interaction.response.defer(ephemeral=True)
+    if not is_enabled("absences"):
+        return await interaction.followup.send(embed=feature_disabled_embed("Absences"), ephemeral=True)
     
     try:
         # Convertir les dates jj/mm → YYYY-MM-DD
@@ -10714,7 +10903,7 @@ async def declare_absence(
         await interaction.followup.send(f"❌ Erreur: {str(e)}", ephemeral=True)
 
 # --- LOG DE CHAQUE COMMANDE UTILISÉE ---
-COMMAND_LOG_CHANNEL_ID = 1494003170299613254
+COMMAND_LOG_CHANNEL_ID = cfg("COMMAND_LOG_CHANNEL_ID", 1494003170299613254)
 
 @bot.listen('on_interaction')
 async def log_all_commands(interaction: discord.Interaction):
@@ -11023,8 +11212,8 @@ if __name__ == "__main__":
             if not img_buf:
                 return jsonify({'ok': False, 'error': "Génération de l'image indisponible (Pillow manquant)"}), 500
 
-            CHANNEL_LSPD = 1158372479971115009
-            CHANNEL_BCSO = 1297607904790188143
+            CHANNEL_LSPD = cfg("CHANNEL_LSPD", 1158372479971115009)
+            CHANNEL_BCSO = cfg("CHANNEL_BCSO", 1297607904790188143)
             target_channel_id = CHANNEL_LSPD if org == 'LSPD' else CHANNEL_BCSO
 
             async def send_report():
@@ -11250,7 +11439,7 @@ if __name__ == "__main__":
             save_patients(patients)
 
             async def send_attestation():
-                CHANNEL_ID = 1531700699010826250
+                CHANNEL_ID = cfg("ATTESTATION_CHANNEL_ID", 1531700699010826250)
                 for guild in bot.guilds:
                     ch = guild.get_channel(CHANNEL_ID)
                     if not ch:
@@ -11509,7 +11698,7 @@ if __name__ == "__main__":
             atomic_write_json(FORMATIONS_FILE, formations)
 
             async def do_formation():
-                FORMATION_LOG_CHANNEL = 991076525904367616
+                FORMATION_LOG_CHANNEL = cfg("FORMATION_LOG_CHANNEL", 991076525904367616)
                 for guild in bot.guilds:
                     member = None
                     if discord_id:
@@ -12560,9 +12749,9 @@ if __name__ == "__main__":
             atomic_write_json(REUNION_FILE, reunion_data)
 
             async def send_announce():
-                REUNION_CHANNEL = 1482843520254611653
-                REUNION_ROLE = 838102445095256068
-                ABSENCE_CHANNEL = 1523355492368515222
+                REUNION_CHANNEL = cfg("REUNION_CHANNEL_ID", 1482843520254611653)
+                REUNION_ROLE = cfg("LEADERBOARD_ROLE_ID", 838102445095256068)
+                ABSENCE_CHANNEL = cfg("ABSENCE_LOG_CHANNEL", 1523355492368515222)
                 
                 for guild in bot.guilds:
                     ch = guild.get_channel(REUNION_CHANNEL)
@@ -12621,8 +12810,8 @@ La direction des EMS"""
             chart_buf = generate_debrief_chart(all_stats, title=f"Débrief de la semaine")
 
             async def send_debrief():
-                DEBRIEF_CHANNEL = 1482843520254611653
-                DEBRIEF_ROLE = 838102445095256068
+                DEBRIEF_CHANNEL = cfg("REUNION_CHANNEL_ID", 1482843520254611653)
+                DEBRIEF_ROLE = cfg("LEADERBOARD_ROLE_ID", 838102445095256068)
 
                 for guild in bot.guilds:
                     ch = guild.get_channel(DEBRIEF_CHANNEL)
@@ -12945,6 +13134,108 @@ La direction des EMS"""
         return jsonify({'status': 'success', 'cleared': target})
 
     # ============ FIN DES ROUTES DE TEST ============
+
+    # ============ ROUTES BOT CONFIG & OPTIONS ============
+
+    _DEFAULT_BOT_CONFIG = {
+        "TOKEN": "", "GUILD_ID": 0, "LOGS_CHANNEL_ID": 0,
+        "CV_CHANNEL_ID": 0, "CV_ACCEPTED_LOG_CHANNEL_ID": 0, "DEPOT_CV_CHANNEL_ID": 0,
+        "ROLE_ATTENTE_ID": 0, "DISPO_REQUEST_CHANNEL_ID": 0, "DISPO_CHANNEL_ID": 0,
+        "DISPO_CONFIRMATION_ROLE_ID": 0, "DIRECTION_ROLE_ID": 0,
+        "LEADERBOARD_CHANNEL_ID": 0, "LEADERBOARD_ROLE_ID": 0,
+        "GIVEAWAY_PING_ROLE_ID": 0, "BURGERSHOT_CHANNEL_ID": 0, "BURGERSHOT_ROLE_ID": 0,
+        "ROLE_REQUEST_CHANNEL_ID": 0, "TICKET_CATEGORY_ID": 0, "APPOINTMENT_CHANNEL_ID": 0,
+        "ROLE_LSPD_ID": 0, "ROLE_BCSO_ID": 0, "ROLE_MARSHALL_ID": 0,
+        "ROLE_NO_TEST_ID": 0, "ROLE_TAXI_REQUEST_ID": 0,
+        "AVERT_ROLE_PING_ID": 0, "AVIS_CHANNEL_ID": 0, "CITOYEN_ROLE_ID": 0,
+        "ROLE_MATRICULE_ID": 0, "TAXI_ROLE_ID": 0, "ROLE_DIRECTION_TAXI_ID": 0,
+        "RESET_CHANNEL_ID": 0, "ROLE_DIRECTION_EMS_ID": 0,
+        # Nouveaux IDs configurables
+        "AVERT_CHANNEL_ID": 0, "MATRICULE_CHANNEL_ID": 0, "ABSENCE_LOG_CHANNEL": 0,
+        "REUNION_CHANNEL_ID": 0, "FORMATION_LOG_CHANNEL": 0, "ATTESTATION_CHANNEL_ID": 0,
+        "DISPATCH_CHANNEL_ID": 0, "SERVICE_CHANNEL_ID": 0, "COMMAND_LOG_CHANNEL_ID": 0,
+        "DIR_USER_ID": 0, "TANGO_REQUEST_CHANNEL_ID": 0, "INFO_CHANNEL_ID": 0,
+        "CHANNEL_LSPD": 0, "CHANNEL_BCSO": 0, "TARGET_CATEGORY_ID": 0,
+        "ESX_SOCIETY_CHANNEL_ID": 0, "ESX_SOCIETY_ROLE_ID": 0,
+        "ROLE_EMT_1": 0, "ROLE_EMT_2": 0, "ROLE_EMT_3": 0,
+    }
+
+    BOT_CONFIG_FILE_PATH = os.path.join(DATA_DIR, 'config.json')
+
+    @web_app.route('/options')
+    def options_page():
+        return render_template('options.html')
+
+    @web_app.route('/api/bot-config', methods=['GET'])
+    def api_get_bot_config():
+        c = robust_load_json(BOT_CONFIG_FILE_PATH, {})
+        merged = dict(_DEFAULT_BOT_CONFIG)
+        merged.update(c)
+        if merged.get('TOKEN'):
+            t = merged['TOKEN']
+            merged['TOKEN_PREVIEW'] = t[:10] + '...' + t[-5:] if len(t) > 15 else '***'
+        return jsonify(merged)
+
+    @web_app.route('/api/bot-config', methods=['POST'])
+    def api_save_bot_config():
+        try:
+            data = request.get_json(silent=True) or {}
+            current = robust_load_json(BOT_CONFIG_FILE_PATH, {})
+            if not data.get('TOKEN') or '...' in str(data.get('TOKEN', '')):
+                data.pop('TOKEN', None)
+            for k, v in data.items():
+                if k != 'TOKEN' and v is not None:
+                    try:
+                        data[k] = int(v)
+                    except (ValueError, TypeError):
+                        pass
+            current.update(data)
+            atomic_write_json(BOT_CONFIG_FILE_PATH, current)
+            return jsonify({'status': 'success', 'message': 'Config bot sauvegardée ✅'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    @web_app.route('/api/roles-config', methods=['GET'])
+    def api_get_roles_config():
+        return jsonify(robust_load_json(ROLES_CONFIG_FILE, _DEFAULT_ROLES_CONFIG))
+
+    @web_app.route('/api/roles-config', methods=['POST'])
+    def api_save_roles_config():
+        try:
+            data = request.get_json(silent=True)
+            if not data or 'grades' not in data or not isinstance(data['grades'], list):
+                return jsonify({'status': 'error', 'message': 'Données invalides'}), 400
+            # Convertir role_id et category_id en int pour éviter la troncature float
+            for g in data['grades']:
+                for field in ('role_id', 'category_id'):
+                    val = g.get(field, 0)
+                    try:
+                        g[field] = int(str(val).split('.')[0]) if val else 0
+                    except (ValueError, TypeError):
+                        g[field] = 0
+            atomic_write_json(ROLES_CONFIG_FILE, data)
+            return jsonify({'status': 'success', 'message': 'Config des grades sauvegardée ✅'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    @web_app.route('/api/options', methods=['GET'])
+    def api_get_options():
+        return jsonify(robust_load_json(OPTIONS_FILE, {}))
+
+    @web_app.route('/api/options', methods=['POST'])
+    def api_save_options():
+        try:
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict):
+                return jsonify({'status': 'error', 'message': 'Données invalides'}), 400
+            current = robust_load_json(OPTIONS_FILE, {})
+            current.update({k: bool(v) for k, v in data.items()})
+            atomic_write_json(OPTIONS_FILE, current)
+            return jsonify({'status': 'success', 'message': 'Options sauvegardées ✅'})
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    # ============ FIN DES ROUTES BOT CONFIG & OPTIONS ============
 
     def run_web():
         port = int(os.environ.get('PORT', 8080))

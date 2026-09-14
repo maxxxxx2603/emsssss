@@ -13,39 +13,36 @@
         .back-link{display:inline-block;margin-bottom:18px;padding:9px 18px;background:#95a5a6;color:#fff;text-decoration:none;border-radius:5px;font-size:.88em}
         .back-link:hover{background:#7f8c8d}
 
-        /* TABS NAV */
+        /* TABS */
         .tabs-nav{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap}
         .tab-btn{padding:10px 20px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.05);color:#ecf0f1;cursor:pointer;font-size:.9em;transition:all .2s}
         .tab-btn:hover,.tab-btn.active{background:rgba(231,76,60,.2);border-color:#e74c3c;color:#e74c3c;font-weight:bold}
-
-        /* SECTIONS */
         .tab-panel{display:none}
         .tab-panel.active{display:block}
+
+        /* SECTIONS */
         .section{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:20px;margin-bottom:22px}
-        .section-title{color:#e74c3c;font-size:1.15em;font-weight:bold;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e74c3c;display:flex;align-items:center;justify-content:space-between}
+        .section-title{color:#e74c3c;font-size:1.1em;font-weight:bold;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #e74c3c;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 
         /* SAVE BTN */
         .save-btn{padding:9px 22px;border:none;border-radius:6px;background:#e74c3c;color:#fff;cursor:pointer;font-size:.88em;font-weight:bold;transition:background .2s;white-space:nowrap}
         .save-btn:hover{background:#c0392b}
+        .btn-secondary{padding:8px 16px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:transparent;color:#ecf0f1;cursor:pointer;font-size:.85em;white-space:nowrap}
+        .btn-secondary:hover{background:rgba(255,255,255,.1)}
 
         /* TOAST */
         #toast{position:fixed;top:20px;right:20px;z-index:9999;background:#27ae60;color:#fff;padding:13px 20px;border-radius:8px;font-weight:bold;display:none;box-shadow:0 4px 15px rgba(0,0,0,.4);max-width:320px}
         #toast.error{background:#e74c3c}
 
-        /* FEATURE CARDS */
-        .features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-        .feature-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:10px;overflow:hidden;transition:border-color .2s}
-        .feature-card.enabled{border-color:rgba(39,174,96,.35)}
-        .feature-card.disabled{border-color:rgba(231,76,60,.25);opacity:.75}
-        .feature-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none}
-        .feature-header:hover{background:rgba(255,255,255,.04)}
-        .feature-info strong{display:block;font-size:.95em;margin-bottom:2px}
-        .feature-info small{color:#7f8c8d;font-size:.78em}
-        .feature-ids{padding:0 16px 14px;display:none;border-top:1px solid rgba(255,255,255,.07);margin-top:0}
-        .feature-card.has-ids .feature-ids{display:block}
-        .feature-card .expand-arrow{color:#7f8c8d;font-size:.8em;transition:transform .2s}
-        .feature-card.open .expand-arrow{transform:rotate(180deg)}
-        .feature-card.open .feature-ids{display:block!important}
+        /* CONFIG FIELDS */
+        .config-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+        .config-field{display:flex;flex-direction:column;gap:5px}
+        .config-field.full{grid-column:1/-1}
+        .config-field label{font-size:.82em;color:#bdc3c7;font-weight:600;display:flex;align-items:center;gap:6px}
+        .config-field .desc{font-size:.74em;color:#7f8c8d;margin-top:2px}
+        .badge-req{background:#e74c3c;color:#fff;font-size:.68em;padding:1px 5px;border-radius:3px;font-weight:bold}
+        .id-input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:5px;color:#ecf0f1;padding:7px 10px;font-size:.85em;font-family:monospace}
+        .id-input:focus{outline:none;border-color:#e74c3c}
 
         /* TOGGLE */
         .toggle{position:relative;display:inline-block;width:44px;height:23px;flex-shrink:0}
@@ -55,22 +52,33 @@
         input:checked+.slider{background:#27ae60}
         input:checked+.slider:before{transform:translateX(21px)}
 
-        /* ID FIELDS */
-        .id-group{margin-top:11px}
-        .id-group label{display:block;font-size:.78em;color:#95a5a6;margin-bottom:4px;font-weight:bold}
-        .id-input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:5px;color:#ecf0f1;padding:7px 10px;font-size:.85em;font-family:monospace}
-        .id-input:focus{outline:none;border-color:#e74c3c}
-        .id-input.token-field{font-family:monospace;letter-spacing:.5px}
-        .id-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        /* FEATURE CARDS */
+        .features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+        .feature-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:10px;overflow:hidden;transition:border-color .2s}
+        .feature-card.enabled{border-color:rgba(39,174,96,.4)}
+        .feature-card.disabled{border-color:rgba(231,76,60,.2);opacity:.7}
+        .feature-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none;gap:10px}
+        .feature-header:hover{background:rgba(255,255,255,.04)}
+        .feature-info{flex:1}
+        .feature-info strong{display:block;font-size:.92em;margin-bottom:2px}
+        .feature-info small{color:#7f8c8d;font-size:.76em}
+        .feature-ids{padding:12px 16px 14px;border-top:1px solid rgba(255,255,255,.07);display:none}
+        .feature-card.open .feature-ids{display:block}
+        .expand-arrow{color:#7f8c8d;font-size:.8em;transition:transform .2s;flex-shrink:0}
+        .feature-card.open .expand-arrow{transform:rotate(180deg)}
+
+        /* ID GROUPS inside features */
+        .id-group{margin-top:10px}
+        .id-group label{display:block;font-size:.78em;color:#95a5a6;margin-bottom:3px;font-weight:600}
+        .id-group .id-desc{font-size:.72em;color:#606e77;margin-bottom:5px}
 
         /* GRADES TABLE */
-        .grades-controls{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+        .grades-controls{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
         .btn-add{padding:8px 16px;border:none;border-radius:6px;background:#27ae60;color:#fff;cursor:pointer;font-size:.85em;font-weight:bold}
         .btn-add:hover{background:#1e8449}
         table.gt{width:100%;border-collapse:collapse}
-        table.gt th{background:rgba(231,76,60,.2);color:#ecf0f1;padding:10px;text-align:left;border-bottom:2px solid #e74c3c;font-size:.83em}
-        table.gt td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.83em;vertical-align:middle}
-        table.gt tr:hover td{background:rgba(231,76,60,.05)}
+        table.gt th{background:rgba(231,76,60,.2);color:#ecf0f1;padding:10px;text-align:left;border-bottom:2px solid #e74c3c;font-size:.8em}
+        table.gt td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.82em;vertical-align:middle}
         table.gt tr.disabled td{opacity:.45}
         table.gt tr.drag-over td{background:rgba(231,76,60,.15)}
         .drag-handle{cursor:grab;color:#7f8c8d;padding:0 4px;font-size:1.1em;user-select:none}
@@ -79,13 +87,7 @@
         input.fi.mono{font-family:monospace}
         .rbtn{background:transparent;border:1px solid #e74c3c;color:#e74c3c;border-radius:4px;padding:3px 7px;cursor:pointer;font-size:.78em}
         .rbtn:hover{background:#e74c3c;color:#fff}
-
-        /* BASE CONFIG */
-        .config-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
-        .config-field{display:flex;flex-direction:column;gap:5px}
-        .config-field label{font-size:.8em;color:#95a5a6;font-weight:bold;display:flex;align-items:center;gap:6px}
-        .config-field .badge-req{background:#e74c3c;color:#fff;font-size:.7em;padding:1px 5px;border-radius:3px}
-        .config-field .badge-opt{background:#555;color:#ccc;font-size:.7em;padding:1px 5px;border-radius:3px}
+        .grade-order-badge{background:rgba(231,76,60,.2);color:#e74c3c;border-radius:4px;padding:2px 7px;font-size:.78em;font-weight:bold;min-width:26px;text-align:center}
 
         /* MODAL */
         .modal{display:none;position:fixed;z-index:1000;inset:0;background:rgba(0,0,0,.75)}
@@ -103,7 +105,9 @@
         .btn-ok{background:#e74c3c;color:#fff}
         .btn-cancel{background:#555;color:#fff}
 
-        .hint{font-size:.76em;color:#7f8c8d;margin-top:6px}
+        .hint{font-size:.76em;color:#7f8c8d;margin-top:6px;line-height:1.5}
+        .info-box{background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.2);border-radius:6px;padding:10px 14px;font-size:.8em;color:#abebc6;margin-bottom:16px;line-height:1.6}
+        .warn-box{background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:6px;padding:10px 14px;font-size:.8em;color:#f1948a;margin-bottom:16px;line-height:1.6}
         .sticky-save{position:sticky;bottom:20px;display:flex;justify-content:flex-end;margin-top:10px;z-index:100}
         .sticky-save button{padding:12px 28px;font-size:1em;box-shadow:0 4px 15px rgba(231,76,60,.4)}
     </style>
@@ -113,111 +117,194 @@
     <a href="/" class="back-link">← Dashboard</a>
     <header>
         <h1>⚙️ Options du Bot EMS</h1>
-        <p style="color:#95a5a6;font-size:.88em">Gérez toute la configuration du bot depuis ici — plus besoin de toucher aux variables Railway</p>
+        <p style="color:#95a5a6;font-size:.88em">Toute la config depuis ici — plus besoin de toucher aux variables Railway</p>
     </header>
     <div id="toast"></div>
 
-    <!-- TABS -->
     <div class="tabs-nav">
-        <button class="tab-btn active" onclick="switchTab('tab-config')">🔑 Config de base</button>
-        <button class="tab-btn" onclick="switchTab('tab-features')">🔧 Fonctionnalités</button>
-        <button class="tab-btn" onclick="switchTab('tab-grades')">🎖️ Grades & Rôles</button>
-        <button class="tab-btn" onclick="switchTab('tab-categories')">🗂️ Catégories & IDs</button>
+        <button class="tab-btn active" onclick="switchTab('tab-config',this)">🔑 Config de base</button>
+        <button class="tab-btn" onclick="switchTab('tab-features',this)">🔧 Fonctionnalités & IDs</button>
+        <button class="tab-btn" onclick="switchTab('tab-grades',this)">🎖️ Grades & Rôles</button>
+        <button class="tab-btn" onclick="switchTab('tab-categories',this)">🗂️ Divers</button>
     </div>
 
-    <!-- ═══ TAB : CONFIG DE BASE ═══ -->
+    <!-- ═══ TAB 1 : CONFIG DE BASE ═══ -->
     <div id="tab-config" class="tab-panel active">
         <div class="section">
             <div class="section-title">
-                🔑 Configuration de base du bot
+                🔑 Informations de connexion
                 <button class="save-btn" onclick="saveBotConfig()">💾 Sauvegarder</button>
             </div>
+            <div class="warn-box">⚠️ Après avoir modifié ces valeurs, le bot nécessite un redémarrage Railway pour en tenir compte.</div>
             <div class="config-grid">
-                <div class="config-field" style="grid-column:1/-1">
-                    <label>TOKEN Discord <span class="badge-req">REQUIS</span></label>
-                    <input type="password" class="id-input token-field" id="cfg_TOKEN" placeholder="Ton token bot Discord" autocomplete="off">
+                <div class="config-field full">
+                    <label>🤖 TOKEN Discord <span class="badge-req">REQUIS</span></label>
+                    <div class="desc">Le token de ton bot Discord (commence par MTx... ou OTA...)</div>
+                    <input type="password" class="id-input" id="cfg_TOKEN" placeholder="Entrer le token bot Discord" autocomplete="off">
                     <span class="hint" id="token_preview"></span>
                 </div>
                 <div class="config-field">
-                    <label>GUILD_ID <span class="badge-req">REQUIS</span></label>
-                    <input type="text" class="id-input mono" id="cfg_GUILD_ID" placeholder="ID de ton serveur Discord">
+                    <label>🏠 ID du Serveur Discord <span class="badge-req">REQUIS</span></label>
+                    <div class="desc">L'ID de ton serveur (clic droit → Copier l'ID)</div>
+                    <input type="text" class="id-input" id="cfg_GUILD_ID" placeholder="Ex: 838102445095256066">
                 </div>
                 <div class="config-field">
-                    <label>LOGS_CHANNEL_ID <span class="badge-req">REQUIS</span></label>
-                    <input type="text" class="id-input mono" id="cfg_LOGS_CHANNEL_ID" placeholder="ID channel logs EMS">
+                    <label>📋 Canal de logs principal <span class="badge-req">REQUIS</span></label>
+                    <div class="desc">Salon où le bot envoie tous ses logs internes EMS</div>
+                    <input type="text" class="id-input" id="cfg_LOGS_CHANNEL_ID" placeholder="ID du salon #logs">
                 </div>
                 <div class="config-field">
-                    <label>ROLE_DIRECTION_EMS_ID <span class="badge-req">REQUIS</span></label>
-                    <input type="text" class="id-input mono" id="cfg_ROLE_DIRECTION_EMS_ID" placeholder="ID rôle direction EMS">
-                </div>
-                <div class="config-field">
-                    <label>DIRECTION_ROLE_ID <span class="badge-opt">OPT</span></label>
-                    <input type="text" class="id-input mono" id="cfg_DIRECTION_ROLE_ID" placeholder="Même que direction EMS en général">
+                    <label>👑 Rôle Direction EMS <span class="badge-req">REQUIS</span></label>
+                    <div class="desc">Rôle des directeurs — utilisé pour /payes direction, validation dispo, etc.</div>
+                    <input type="text" class="id-input" id="cfg_ROLE_DIRECTION_EMS_ID" placeholder="ID du rôle direction">
                 </div>
             </div>
-            <p class="hint" style="margin-top:14px">⚠️ Ces valeurs sont sauvegardées dans <code>config.json</code>. Le bot les lit au démarrage — un redéploiement Railway est nécessaire après modification.</p>
         </div>
     </div>
 
-    <!-- ═══ TAB : FONCTIONNALITÉS ═══ -->
+    <!-- ═══ TAB 2 : FONCTIONNALITÉS ═══ -->
     <div id="tab-features" class="tab-panel">
         <div class="section">
             <div class="section-title">
-                🔧 Fonctionnalités actives & IDs associés
+                🔧 Fonctionnalités & IDs Discord associés
                 <button class="save-btn" onclick="saveAllFeatures()">💾 Tout sauvegarder</button>
             </div>
-            <p class="hint" style="margin-bottom:16px">Active/désactive chaque fonctionnalité. Clique sur une carte pour configurer les IDs Discord associés.</p>
+            <div class="info-box">Active ou désactive chaque module. Clique sur une carte pour voir et modifier les IDs Discord utilisés par ce module.</div>
             <div class="features-grid" id="featuresGrid"></div>
         </div>
-        <div class="sticky-save"><button class="save-btn" onclick="saveAllFeatures()">💾 Sauvegarder toutes les fonctionnalités</button></div>
+        <div class="sticky-save"><button class="save-btn" onclick="saveAllFeatures()">💾 Sauvegarder tout</button></div>
     </div>
 
-    <!-- ═══ TAB : GRADES ═══ -->
+    <!-- ═══ TAB 3 : GRADES ═══ -->
     <div id="tab-grades" class="tab-panel">
         <div class="section">
             <div class="section-title">🎖️ Grades & Rôles Discord</div>
+            <div class="info-box">
+                ☰ <strong>Glisser-déposer</strong> les lignes pour changer l'ordre de hiérarchie (1 = grade le plus haut).<br>
+                L'ordre ici détermine le comportement de <code>/up</code> (promotion), <code>/virer</code> (licenciement) et <code>/payes</code> (salaires).
+            </div>
             <div class="grades-controls">
                 <button class="btn-add" onclick="openAddModal()">➕ Ajouter un grade</button>
-                <button class="save-btn" onclick="saveRolesConfig()">💾 Sauvegarder les grades</button>
+                <button class="btn-secondary" onclick="renumberGrades()" title="Renuméroter l'ordre de 1 à N selon la position actuelle">🔢 Remettre l'ordre</button>
+                <button class="save-btn" onclick="saveRolesConfig()">💾 Sauvegarder</button>
             </div>
-            <p class="hint" style="margin-bottom:14px">☰ Glisser-déposer pour réordonner la hiérarchie (1 = grade le plus haut). Se répercute sur /up, /virer, /payes.</p>
             <table class="gt">
                 <thead><tr>
-                    <th style="width:28px"></th>
-                    <th style="width:40px">On</th>
-                    <th style="width:60px">Tag</th>
-                    <th style="width:140px">Label</th>
-                    <th>Role ID</th>
-                    <th>Catégorie ID</th>
+                    <th style="width:28px" title="Glisser pour réordonner">☰</th>
+                    <th style="width:40px" title="Activer/désactiver ce grade">On</th>
+                    <th style="width:36px">#</th>
+                    <th style="width:56px">Tag</th>
+                    <th style="width:140px">Nom du grade</th>
+                    <th>ID Rôle Discord</th>
+                    <th>ID Catégorie Discord</th>
                     <th style="width:110px">$/réa</th>
-                    <th style="width:45px"></th>
+                    <th style="width:40px"></th>
                 </tr></thead>
                 <tbody id="gradesTbody"></tbody>
             </table>
         </div>
     </div>
 
-    <!-- ═══ TAB : CATÉGORIES & IDs GLOBAUX ═══ -->
+    <!-- ═══ TAB 4 : DIVERS ═══ -->
     <div id="tab-categories" class="tab-panel">
         <div class="section">
             <div class="section-title">
-                🗂️ Catégories & IDs globaux
+                🗂️ Paramètres divers
                 <button class="save-btn" onclick="saveGlobalIds()">💾 Sauvegarder</button>
             </div>
             <div class="config-grid">
                 <div class="config-field">
-                    <label>Catégorie INDISPO ID</label>
-                    <input type="text" class="id-input mono" id="category_indispo_id" placeholder="ID catégorie indisponibilité">
+                    <label>📁 Catégorie INDISPO</label>
+                    <div class="desc">ID de la catégorie Discord où les salons des membres en indispo sont déplacés</div>
+                    <input type="text" class="id-input" id="category_indispo_id" placeholder="ID catégorie indisponibilité">
                 </div>
                 <div class="config-field">
-                    <label>Salaire DIRECTION fixe ($)</label>
+                    <label>💰 Salaire fixe Direction ($)</label>
+                    <div class="desc">Salaire versé aux membres direction via /payes (montant fixe, pas par réa)</div>
                     <input type="text" class="id-input" id="direction_salary" placeholder="9000000">
                 </div>
-                <div class="config-field" style="grid-column:1/-1">
-                    <label>Rôles supplémentaires à retirer au /virer (IDs séparés par virgule)</label>
-                    <input type="text" class="id-input mono" id="extra_roles_to_remove" placeholder="Ex: 838102445095256068, 838102445095256070">
+                <div class="config-field full">
+                    <label>🗑️ Rôles supplémentaires retirés au /virer</label>
+                    <div class="desc">IDs séparés par virgule — rôles retirés en plus des rôles de grade lors d'un licenciement</div>
+                    <input type="text" class="id-input" id="extra_roles_to_remove" placeholder="Ex: 838102445095256068, 838102445095256070">
                 </div>
             </div>
+        </div>
+        <div class="section">
+            <div class="section-title">🔧 IDs Discord généraux</div>
+            <div class="config-grid">
+                <div class="config-field">
+                    <label>🚓 Channel PDS/FDS</label>
+                    <div class="desc">ID du channel où les bilans de service PDS sont envoyés (SERVICE_CHANNEL_ID)</div>
+                    <input type="text" class="id-input" id="gcfg_SERVICE_CHANNEL_ID" placeholder="ID channel PDS">
+                </div>
+                <div class="config-field">
+                    <label>📋 Channel logs commandes</label>
+                    <div class="desc">ID du channel où les actions de commande sont loggées (COMMAND_LOG_CHANNEL_ID)</div>
+                    <input type="text" class="id-input" id="gcfg_COMMAND_LOG_CHANNEL_ID" placeholder="ID channel logs">
+                </div>
+                <div class="config-field">
+                    <label>👤 User ID Direction</label>
+                    <div class="desc">ID Discord de l'utilisateur Direction (DIR_USER_ID)</div>
+                    <input type="text" class="id-input" id="gcfg_DIR_USER_ID" placeholder="ID utilisateur">
+                </div>
+                <div class="config-field">
+                    <label>🚁 Channel demandes Tango</label>
+                    <div class="desc">ID du channel pour les demandes Tango (TANGO_REQUEST_CHANNEL_ID)</div>
+                    <input type="text" class="id-input" id="gcfg_TANGO_REQUEST_CHANNEL_ID" placeholder="ID channel Tango">
+                </div>
+                <div class="config-field">
+                    <label>ℹ️ Channel infos</label>
+                    <div class="desc">ID du channel d'informations générales (INFO_CHANNEL_ID)</div>
+                    <input type="text" class="id-input" id="gcfg_INFO_CHANNEL_ID" placeholder="ID channel infos">
+                </div>
+                <div class="config-field">
+                    <label>🚓 Channel LSPD</label>
+                    <div class="desc">ID du channel LSPD (CHANNEL_LSPD)</div>
+                    <input type="text" class="id-input" id="gcfg_CHANNEL_LSPD" placeholder="ID channel LSPD">
+                </div>
+                <div class="config-field">
+                    <label>🤠 Channel BCSO</label>
+                    <div class="desc">ID du channel BCSO (CHANNEL_BCSO)</div>
+                    <input type="text" class="id-input" id="gcfg_CHANNEL_BCSO" placeholder="ID channel BCSO">
+                </div>
+                <div class="config-field">
+                    <label>📁 Catégorie cible migration</label>
+                    <div class="desc">ID de la catégorie cible pour /migration_grades (TARGET_CATEGORY_ID)</div>
+                    <input type="text" class="id-input" id="gcfg_TARGET_CATEGORY_ID" placeholder="ID catégorie">
+                </div>
+                <div class="config-field">
+                    <label>🏢 Channel ESX Société</label>
+                    <div class="desc">ID du channel ESX Société (ESX_SOCIETY_CHANNEL_ID)</div>
+                    <input type="text" class="id-input" id="gcfg_ESX_SOCIETY_CHANNEL_ID" placeholder="ID channel ESX">
+                </div>
+                <div class="config-field">
+                    <label>🏢 Rôle ESX Société</label>
+                    <div class="desc">ID du rôle ESX Société (ESX_SOCIETY_ROLE_ID)</div>
+                    <input type="text" class="id-input" id="gcfg_ESX_SOCIETY_ROLE_ID" placeholder="ID rôle ESX">
+                </div>
+                <div class="config-field">
+                    <label>👥 Rôle EMT-1</label>
+                    <div class="desc">ID du rôle EMT niveau 1 (ROLE_EMT_1)</div>
+                    <input type="text" class="id-input" id="gcfg_ROLE_EMT_1" placeholder="ID rôle EMT-1">
+                </div>
+                <div class="config-field">
+                    <label>👥 Rôle EMT-2</label>
+                    <div class="desc">ID du rôle EMT niveau 2 (ROLE_EMT_2)</div>
+                    <input type="text" class="id-input" id="gcfg_ROLE_EMT_2" placeholder="ID rôle EMT-2">
+                </div>
+                <div class="config-field">
+                    <label>👥 Rôle EMT-3</label>
+                    <div class="desc">ID du rôle EMT niveau 3 (ROLE_EMT_3)</div>
+                    <input type="text" class="id-input" id="gcfg_ROLE_EMT_3" placeholder="ID rôle EMT-3">
+                </div>
+                <div class="config-field">
+                    <label>👤 Rôle Citoyen</label>
+                    <div class="desc">ID du rôle Citoyen (CITOYEN_ROLE_ID)</div>
+                    <input type="text" class="id-input" id="gcfg_CITOYEN_ROLE_ID" placeholder="ID rôle Citoyen">
+                </div>
+            </div>
+            <button class="save-btn" style="margin-top:12px" onclick="saveGeneralIds()">💾 Sauvegarder IDs généraux</button>
         </div>
     </div>
 </div>
@@ -227,18 +314,18 @@
     <div class="modal-content">
         <h3>➕ Ajouter un grade</h3>
         <div class="frow">
-            <div class="fg"><label>Tag (ex: INF)</label><input type="text" id="new_tag" placeholder="INF" maxlength="6"></div>
-            <div class="fg"><label>Label</label><input type="text" id="new_label" placeholder="Infirmier"></div>
+            <div class="fg"><label>Tag court (ex: INF)</label><input type="text" id="new_tag" placeholder="INF" maxlength="6"></div>
+            <div class="fg"><label>Nom complet</label><input type="text" id="new_label" placeholder="Infirmier"></div>
         </div>
         <div class="frow">
-            <div class="fg full"><label>Role ID Discord</label><input type="text" id="new_role_id" placeholder="ID rôle Discord"></div>
+            <div class="fg full"><label>ID Rôle Discord</label><input type="text" id="new_role_id" placeholder="ID du rôle Discord"></div>
         </div>
         <div class="frow">
-            <div class="fg full"><label>Catégorie ID Discord (0 = aucune)</label><input type="text" id="new_category_id" placeholder="0" value="0"></div>
+            <div class="fg full"><label>ID Catégorie Discord (0 = aucune)</label><input type="text" id="new_category_id" placeholder="0" value="0"></div>
         </div>
         <div class="frow">
             <div class="fg"><label>Salaire par réa ($)</label><input type="number" id="new_salary_rate" value="30000"></div>
-            <div class="fg"><label>Ordre (1 = plus haut)</label><input type="number" id="new_order" value="10"></div>
+            <div class="fg"><label>Position dans la hiérarchie</label><input type="number" id="new_order" value="10"></div>
         </div>
         <div class="mbtns">
             <button class="btn-cancel" onclick="closeModal()">Annuler</button>
@@ -248,177 +335,163 @@
 </div>
 
 <script>
-// ── STATE ──
-let rolesConfig = null;
-let botConfig = null;
-let options = null;
+let rolesConfig = null, botConfig = null, options = null;
 
-// ── FEATURE DEFINITIONS ──
+// ── DÉFINITIONS DES FONCTIONNALITÉS ──
+// label = nom affiché, desc = explication courte, ids = IDs Discord nécessaires avec description
 const FEATURES = [
     {
-        key: 'cv_system', name: 'Système CV', icon: '📄',
-        desc: 'Dépôt et validation des candidatures',
-        ids: [
-            {key:'CV_CHANNEL_ID', label:'Canal validation CV'},
-            {key:'CV_ACCEPTED_LOG_CHANNEL_ID', label:'Canal logs CV acceptés'},
-            {key:'DEPOT_CV_CHANNEL_ID', label:'Canal dépôt CV'},
-            {key:'ROLE_ATTENTE_ID', label:'Rôle en attente'},
+        key:'cv_system', name:'Système CV', icon:'📄',
+        desc:'Dépôt et validation des candidatures EMS',
+        ids:[
+            {key:'CV_CHANNEL_ID',        label:'Salon de validation CV',       desc:'Là où la direction reçoit les CVs pour les valider/refuser'},
+            {key:'CV_ACCEPTED_LOG_CHANNEL_ID', label:'Salon logs CV acceptés', desc:'Log automatique quand un CV est accepté'},
+            {key:'DEPOT_CV_CHANNEL_ID',  label:'Salon dépôt des CVs',          desc:'Salon public où les candidats déposent leur CV'},
+            {key:'ROLE_ATTENTE_ID',      label:'Rôle "En attente"',            desc:'Rôle attribué automatiquement aux candidats en attente de réponse'},
         ]
     },
     {
-        key: 'dispo', name: 'Recrutement / Dispo', icon: '📋',
-        desc: 'Système de disponibilité et recrutement',
-        ids: [
-            {key:'DISPO_REQUEST_CHANNEL_ID', label:'Canal demandes dispo'},
-            {key:'DISPO_CHANNEL_ID', label:'Canal décisions recrutement'},
-            {key:'DISPO_CONFIRMATION_ROLE_ID', label:'Rôle confirmation dispo'},
+        key:'dispo', name:'Recrutement / Dispo', icon:'📋',
+        desc:'Gestion des disponibilités et du recrutement',
+        ids:[
+            {key:'DISPO_REQUEST_CHANNEL_ID',    label:'Salon demandes de dispo',       desc:'Salon où les membres envoient leur demande d\'indisponibilité'},
+            {key:'DISPO_CHANNEL_ID',            label:'Salon décisions recrutement',   desc:'Salon interne direction pour valider/refuser les dispos et recrutements'},
+            {key:'DISPO_CONFIRMATION_ROLE_ID',  label:'Rôle confirmation dispo',       desc:'Rôle ping pour confirmer une dispo approuvée'},
         ]
     },
     {
-        key: 'leaderboard', name: 'Leaderboard', icon: '🏆',
-        desc: 'Classement hebdomadaire automatique',
-        ids: [
-            {key:'LEADERBOARD_CHANNEL_ID', label:'Canal leaderboard'},
-            {key:'LEADERBOARD_ROLE_ID', label:'Rôle EMS (mention)'},
+        key:'leaderboard', name:'Leaderboard', icon:'🏆',
+        desc:'Classement hebdomadaire des réanimations',
+        ids:[
+            {key:'LEADERBOARD_CHANNEL_ID', label:'Salon leaderboard',    desc:'Salon où le bot poste le classement chaque semaine'},
+            {key:'LEADERBOARD_ROLE_ID',    label:'Rôle mention EMS',     desc:'Rôle mentionné lors de la publication du leaderboard'},
         ]
     },
     {
-        key: 'giveaway', name: 'Giveaway', icon: '🎁',
-        desc: 'Commande /giveaway',
-        ids: [
-            {key:'GIVEAWAY_PING_ROLE_ID', label:'Rôle à mentionner'},
+        key:'giveaway', name:'Giveaway', icon:'🎁',
+        desc:'Commande /giveaway pour organiser des tirages',
+        ids:[
+            {key:'GIVEAWAY_PING_ROLE_ID', label:'Rôle à mentionner', desc:'Rôle pingé pour notifier les membres du giveaway'},
         ]
     },
     {
-        key: 'burgershot', name: 'BurgerShot', icon: '🍔',
-        desc: 'Suivi employés BurgerShot',
-        ids: [
-            {key:'BURGERSHOT_CHANNEL_ID', label:'Canal BurgerShot'},
-            {key:'BURGERSHOT_ROLE_ID', label:'Rôle BurgerShot'},
+        key:'burgershot', name:'BurgerShot', icon:'🍔',
+        desc:'Suivi des stats employés BurgerShot',
+        ids:[
+            {key:'BURGERSHOT_CHANNEL_ID', label:'Salon BurgerShot',    desc:'Salon dédié au suivi BurgerShot'},
+            {key:'BURGERSHOT_ROLE_ID',    label:'Rôle employé BurgerShot', desc:'Rôle des employés BurgerShot'},
         ]
     },
     {
-        key: 'tickets', name: 'Tickets', icon: '🎫',
-        desc: 'Système de tickets (RDV, demandes)',
-        ids: [
-            {key:'ROLE_REQUEST_CHANNEL_ID', label:'Canal demandes rôle'},
-            {key:'TICKET_CATEGORY_ID', label:'Catégorie tickets'},
-            {key:'APPOINTMENT_CHANNEL_ID', label:'Canal RDV'},
-            {key:'ROLE_LSPD_ID', label:'Rôle LSPD'},
-            {key:'ROLE_BCSO_ID', label:'Rôle BCSO'},
-            {key:'ROLE_MARSHALL_ID', label:'Rôle Marshall'},
-            {key:'ROLE_NO_TEST_ID', label:'Rôle No-Test'},
-            {key:'ROLE_TAXI_REQUEST_ID', label:'Rôle Taxi Request'},
+        key:'tickets', name:'Tickets / Demandes rôle', icon:'🎫',
+        desc:'Tickets de demande de rôle (LSPD, BCSO, Taxi...)',
+        ids:[
+            {key:'ROLE_REQUEST_CHANNEL_ID', label:'Salon demandes de rôle',  desc:'Salon où les joueurs font leur demande de rôle'},
+            {key:'TICKET_CATEGORY_ID',      label:'Catégorie tickets',        desc:'Catégorie Discord où les tickets sont créés'},
+            {key:'APPOINTMENT_CHANNEL_ID',  label:'Salon rendez-vous',        desc:'Salon pour planifier les rendez-vous de passation'},
+            {key:'ROLE_LSPD_ID',            label:'Rôle LSPD',               desc:'ID du rôle LSPD à attribuer'},
+            {key:'ROLE_BCSO_ID',            label:'Rôle BCSO',               desc:'ID du rôle BCSO à attribuer'},
+            {key:'ROLE_MARSHALL_ID',        label:'Rôle Marshall',            desc:'ID du rôle Marshall à attribuer'},
+            {key:'ROLE_NO_TEST_ID',         label:'Rôle No-Test',             desc:'Rôle attribué aux joueurs dispensés de test'},
+            {key:'ROLE_TAXI_REQUEST_ID',    label:'Rôle demande Taxi',        desc:'Rôle pour les demandes de rôle Taxi'},
         ]
     },
     {
-        key: 'avertissements', name: 'Avertissements', icon: '⚠️',
-        desc: 'Commande /avert',
-        ids: [
-            {key:'AVERT_ROLE_PING_ID', label:'Rôle à notifier'},
+        key:'avertissements', name:'Avertissements', icon:'⚠️',
+        desc:'Commande /avert pour émettre des avertissements',
+        ids:[
+            {key:'AVERT_ROLE_PING_ID',  label:'Rôle notifié',        desc:'Rôle pingé quand un avertissement est émis (ex: direction)'},
+            {key:'AVERT_CHANNEL_ID',    label:'Channel logs avert',   desc:'ID du channel où les avertissements sont loggés'},
         ]
     },
     {
-        key: 'absences', name: 'Absences', icon: '📅',
-        desc: 'Gestion des absences', ids: []
-    },
-    {
-        key: 'reunions', name: 'Réunions', icon: '📢',
-        desc: 'Annonces de réunion', ids: []
-    },
-    {
-        key: 'formations', name: 'Formations', icon: '🎓',
-        desc: 'Suivi formations', ids: []
-    },
-    {
-        key: 'parrainage', name: 'Parrainage', icon: '🤝',
-        desc: 'Système de parrainage STG', ids: []
-    },
-    {
-        key: 'patients', name: 'Patients', icon: '🏥',
-        desc: 'Dossiers patients', ids: []
-    },
-    {
-        key: 'dispatch', name: 'Dispatch', icon: '📡',
-        desc: 'Historique des dispatches', ids: []
-    },
-    {
-        key: 'matricules', name: 'Matricules', icon: '🔢',
-        desc: 'Commande /matricule',
-        ids: [
-            {key:'ROLE_MATRICULE_ID', label:'Rôle requis pour /matricule'},
+        key:'matricules', name:'Matricules', icon:'🔢',
+        desc:'Commande /matricule pour attribuer un numéro',
+        ids:[
+            {key:'ROLE_MATRICULE_ID',    label:'Rôle requis pour /matricule', desc:'Seuls les membres avec ce rôle peuvent utiliser /matricule'},
+            {key:'MATRICULE_CHANNEL_ID', label:'Channel logs matricule',       desc:'ID du channel où les matricules sont loggés'},
         ]
     },
     {
-        key: 'badges', name: 'Badges', icon: '🏅',
-        desc: 'Système de badges', ids: []
+        key:'absences', name:'Absences', icon:'📅', desc:'Déclaration et gestion des absences',
+        ids:[
+            {key:'ABSENCE_LOG_CHANNEL', label:'Channel logs absences', desc:'ID du channel où les absences sont loggées'},
+        ]
     },
     {
-        key: 'semaine_auto', name: 'Bilan Semaine Auto', icon: '📊',
-        desc: 'Reset + bilan hebdomadaire auto', ids: []
+        key:'reunions', name:'Réunions', icon:'📢', desc:'Annonces et convocations de réunion',
+        ids:[
+            {key:'REUNION_CHANNEL_ID', label:'Channel réunions', desc:'ID du channel pour les annonces de réunion'},
+        ]
     },
+    {
+        key:'formations', name:'Formations', icon:'🎓', desc:'Suivi et gestion des formations internes',
+        ids:[
+            {key:'FORMATION_LOG_CHANNEL',  label:'Channel logs formations', desc:'ID du channel où les formations sont loggées'},
+            {key:'ATTESTATION_CHANNEL_ID', label:'Channel attestations',    desc:'ID du channel pour les attestations de formation'},
+        ]
+    },
+    {key:'parrainage',  name:'Parrainage',          icon:'🤝', desc:'Système de parrainage des stagiaires',       ids:[]},
+    {key:'patients',    name:'Patients',            icon:'🏥', desc:'Dossiers patients (dashboard web)',          ids:[]},
+    {
+        key:'dispatch', name:'Dispatch', icon:'📡', desc:'Historique des dispatches',
+        ids:[
+            {key:'DISPATCH_CHANNEL_ID', label:'Channel dispatch', desc:'ID du channel pour les dispatches'},
+        ]
+    },
+    {key:'badges',      name:'Badges',              icon:'🏅', desc:'Système de badges et récompenses',           ids:[]},
+    {key:'semaine_auto',name:'Bilan Semaine Auto',  icon:'📊', desc:'Reset + bilan hebdomadaire automatique',     ids:[]},
 ];
 
 // ── LOAD ──
-async function loadAll() {
-    const [rc, bc, opts] = await Promise.all([
+async function loadAll(){
+    const [rc,bc,opts]=await Promise.all([
         fetch('/api/roles-config').then(r=>r.json()).catch(()=>({})),
         fetch('/api/bot-config').then(r=>r.json()).catch(()=>({})),
         fetch('/api/options').then(r=>r.json()).catch(()=>({})),
     ]);
-    rolesConfig = rc;
-    botConfig = bc;
-    options = opts;
-    renderBotConfig();
-    renderFeatures();
-    renderGrades();
-    renderGlobalIds();
+    rolesConfig=rc; botConfig=bc; options=opts;
+    renderBotConfig(); renderFeatures(); renderGrades(); renderGlobalIds();
 }
 
-// ── TAB ──
-function switchTab(id) {
+// ── TABS ──
+function switchTab(id,btn){
     document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    event.currentTarget.classList.add('active');
+    btn.classList.add('active');
 }
 
 // ── BOT CONFIG ──
-function renderBotConfig() {
-    const fields = ['TOKEN','GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID','DIRECTION_ROLE_ID'];
-    fields.forEach(k => {
-        const el = document.getElementById('cfg_'+k);
-        if (!el) return;
-        if (k === 'TOKEN') {
-            el.placeholder = botConfig.TOKEN_PREVIEW || 'Entrer le token Discord';
-        } else {
-            el.value = botConfig[k] || '';
-        }
+function renderBotConfig(){
+    ['GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID'].forEach(k=>{
+        const el=document.getElementById('cfg_'+k);
+        if(el) el.value=botConfig[k]||'';
     });
-    if (botConfig.TOKEN_PREVIEW) {
-        document.getElementById('token_preview').textContent = '🔒 Token actuel : ' + botConfig.TOKEN_PREVIEW;
-    }
+    if(botConfig.TOKEN_PREVIEW)
+        document.getElementById('token_preview').textContent='🔒 Token actuel : '+botConfig.TOKEN_PREVIEW;
 }
-
-async function saveBotConfig() {
-    const data = {};
-    const fields = ['TOKEN','GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID','DIRECTION_ROLE_ID'];
-    fields.forEach(k => {
-        const el = document.getElementById('cfg_'+k);
-        if (el && el.value.trim()) data[k] = el.value.trim();
+async function saveBotConfig(){
+    const data={};
+    const fields=['TOKEN','GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID'];
+    fields.forEach(k=>{
+        const el=document.getElementById('cfg_'+k);
+        if(el&&el.value.trim()) data[k]=el.value.trim();
     });
-    const res = await fetch('/api/bot-config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-    const d = await res.json();
-    showToast(d.message, d.status!=='success');
-    if (d.status==='success') await loadAll();
+    // DIRECTION_ROLE_ID = même valeur que ROLE_DIRECTION_EMS_ID
+    if(data.ROLE_DIRECTION_EMS_ID) data.DIRECTION_ROLE_ID=data.ROLE_DIRECTION_EMS_ID;
+    const res=await fetch('/api/bot-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const d=await res.json();
+    showToast(d.message,d.status!=='success');
+    if(d.status==='success') await loadAll();
 }
 
 // ── FEATURES ──
-function renderFeatures() {
-    const grid = document.getElementById('featuresGrid');
-    grid.innerHTML = FEATURES.map(f => {
-        const enabled = options[f.key] !== false;
-        const hasIds = f.ids && f.ids.length > 0;
+function renderFeatures(){
+    const grid=document.getElementById('featuresGrid');
+    grid.innerHTML=FEATURES.map(f=>{
+        const enabled=options[f.key]!==false;
+        const hasIds=f.ids&&f.ids.length>0;
         return `<div class="feature-card ${enabled?'enabled':'disabled'}" id="fcard_${f.key}">
             <div class="feature-header" onclick="toggleExpand('${f.key}',${hasIds})">
                 <div class="feature-info">
@@ -426,92 +499,89 @@ function renderFeatures() {
                     <small>${f.desc}</small>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
-                    ${hasIds ? `<span class="expand-arrow">▼</span>` : ''}
+                    ${hasIds?`<span class="expand-arrow">▼</span>`:''}
                     <label class="toggle" onclick="event.stopPropagation()">
                         <input type="checkbox" id="opt_${f.key}" ${enabled?'checked':''} onchange="toggleFeature('${f.key}',this.checked)">
                         <span class="slider"></span>
                     </label>
                 </div>
             </div>
-            ${hasIds ? `<div class="feature-ids">
-                ${f.ids.map(id => `
+            ${hasIds?`<div class="feature-ids">${f.ids.map(id=>`
                 <div class="id-group">
                     <label>${id.label}</label>
-                    <input type="text" class="id-input mono" id="fid_${id.key}" value="${botConfig[id.key]||''}" placeholder="ID Discord (0 = désactivé)">
+                    ${id.desc?`<div class="id-desc">${id.desc}</div>`:''}
+                    <input type="text" class="id-input" id="fid_${id.key}" value="${botConfig[id.key]||''}" placeholder="ID Discord (0 = désactivé)">
                 </div>`).join('')}
-            </div>` : ''}
-        </div>`;
+            </div>`:''}</div>`;
     }).join('');
 }
-
-function toggleExpand(key, hasIds) {
-    if (!hasIds) return;
-    const card = document.getElementById('fcard_'+key);
-    card.classList.toggle('open');
+function toggleExpand(key,hasIds){
+    if(!hasIds)return;
+    document.getElementById('fcard_'+key).classList.toggle('open');
 }
-
-function toggleFeature(key, val) {
-    options[key] = val;
-    const card = document.getElementById('fcard_'+key);
-    card.classList.toggle('enabled', val);
-    card.classList.toggle('disabled', !val);
+function toggleFeature(key,val){
+    options[key]=val;
+    const card=document.getElementById('fcard_'+key);
+    card.classList.toggle('enabled',val);
+    card.classList.toggle('disabled',!val);
 }
-
-async function saveAllFeatures() {
-    // Sauvegarder options
-    const optPayload = {};
-    FEATURES.forEach(f => {
-        optPayload[f.key] = document.getElementById('opt_'+f.key)?.checked ?? true;
-    });
-    // Sauvegarder IDs de features dans bot-config
-    const cfgPayload = {};
-    FEATURES.forEach(f => {
-        (f.ids||[]).forEach(id => {
-            const el = document.getElementById('fid_'+id.key);
-            if (el && el.value.trim()) cfgPayload[id.key] = el.value.trim();
+async function saveAllFeatures(){
+    const optPayload={};
+    FEATURES.forEach(f=>{ optPayload[f.key]=document.getElementById('opt_'+f.key)?.checked??true; });
+    const cfgPayload={};
+    FEATURES.forEach(f=>{
+        (f.ids||[]).forEach(id=>{
+            const el=document.getElementById('fid_'+id.key);
+            if(el&&el.value.trim()) cfgPayload[id.key]=el.value.trim();
         });
     });
-    const [r1, r2] = await Promise.all([
-        fetch('/api/options', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(optPayload)}),
-        Object.keys(cfgPayload).length ? fetch('/api/bot-config', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(cfgPayload)}) : Promise.resolve({json:()=>({status:'success'})})
+    const [r1,r2]=await Promise.all([
+        fetch('/api/options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(optPayload)}),
+        Object.keys(cfgPayload).length?fetch('/api/bot-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfgPayload)}):Promise.resolve({json:()=>({status:'success'})})
     ]);
-    const d1 = await r1.json();
-    showToast(d1.status==='success' ? '✅ Fonctionnalités & IDs sauvegardés' : d1.message, d1.status!=='success');
+    const d=await r1.json();
+    showToast(d.status==='success'?'✅ Fonctionnalités & IDs sauvegardés':d.message,d.status!=='success');
+    if(d.status==='success') await loadAll();
 }
 
 // ── GRADES ──
-function renderGrades() {
-    const tbody = document.getElementById('gradesTbody');
-    const sorted = [...(rolesConfig.grades||[])].sort((a,b)=>(a.order||99)-(b.order||99));
-    tbody.innerHTML = sorted.map(g => `
+function renderGrades(){
+    const tbody=document.getElementById('gradesTbody');
+    const sorted=[...(rolesConfig.grades||[])].sort((a,b)=>(a.order||99)-(b.order||99));
+    tbody.innerHTML=sorted.map((g,i)=>`
     <tr class="grade-row ${g.enabled===false?'disabled':''}" data-tag="${g.tag}" draggable="true"
         ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="dropRow(event)" ondragleave="dragLeave(event)">
         <td><span class="drag-handle">☰</span></td>
         <td><label class="toggle"><input type="checkbox" ${g.enabled!==false?'checked':''} onchange="setGradeEnabled('${g.tag}',this.checked)"><span class="slider"></span></label></td>
-        <td><input class="fi" style="width:52px;text-transform:uppercase" value="${g.tag}" onchange="updateGrade('${g.tag}','tag',this.value)"></td>
-        <td><input class="fi" style="width:130px" value="${g.label}" onchange="updateGrade('${g.tag}','label',this.value)"></td>
-        <td><input class="fi mono" style="width:185px" value="${g.role_id||0}" onchange="updateGrade('${g.tag}','role_id',this.value)" placeholder="Role ID"></td>
-        <td><input class="fi mono" style="width:185px" value="${g.category_id||0}" onchange="updateGrade('${g.tag}','category_id',this.value)" placeholder="Catégorie ID"></td>
-        <td><input class="fi" style="width:95px;text-align:right" type="number" value="${g.salary_rate||0}" onchange="updateGrade('${g.tag}','salary_rate',parseInt(this.value)||0)"> $</td>
+        <td><span class="grade-order-badge">${i+1}</span></td>
+        <td><input class="fi" style="width:50px;text-transform:uppercase" value="${g.tag}" onchange="updateGrade('${g.tag}','tag',this.value)"></td>
+        <td><input class="fi" style="width:128px" value="${g.label}" onchange="updateGrade('${g.tag}','label',this.value)"></td>
+        <td><input class="fi mono" style="width:185px" value="${g.role_id||0}" onchange="updateGrade('${g.tag}','role_id',this.value)" placeholder="ID rôle Discord"></td>
+        <td><input class="fi mono" style="width:185px" value="${g.category_id||0}" onchange="updateGrade('${g.tag}','category_id',this.value)" placeholder="ID catégorie (0=aucune)"></td>
+        <td><input class="fi" style="width:90px;text-align:right" type="number" value="${g.salary_rate||0}" onchange="updateGrade('${g.tag}','salary_rate',parseInt(this.value)||0)"> $</td>
         <td><button class="rbtn" onclick="removeGrade('${g.tag}')">🗑️</button></td>
     </tr>`).join('');
 }
-
-function updateGrade(tag, field, value) {
-    const g = rolesConfig.grades.find(g=>g.tag===tag);
-    if (!g) return;
-    if (['role_id','category_id','salary_rate','order'].includes(field)) g[field]=parseInt(value)||0;
+function renumberGrades(){
+    rolesConfig.grades.forEach((g,i)=>g.order=i+1);
+    renderGrades();
+    showToast('Ordre remis à 1, 2, 3... — sauvegarde pour confirmer');
+}
+function updateGrade(tag,field,value){
+    const g=rolesConfig.grades.find(g=>g.tag===tag);
+    if(!g)return;
+    if(['role_id','category_id','salary_rate','order'].includes(field)) g[field]=parseInt(value)||0;
     else g[field]=value;
 }
-function setGradeEnabled(tag, val) {
-    const g = rolesConfig.grades.find(g=>g.tag===tag);
-    if (g) g.enabled=val;
-    const row = document.querySelector(`.grade-row[data-tag="${tag}"]`);
-    if (row) row.classList.toggle('disabled',!val);
+function setGradeEnabled(tag,val){
+    const g=rolesConfig.grades.find(g=>g.tag===tag);
+    if(g) g.enabled=val;
+    const row=document.querySelector(`.grade-row[data-tag="${tag}"]`);
+    if(row) row.classList.toggle('disabled',!val);
 }
-function removeGrade(tag) {
-    if (!confirm(`Supprimer le grade [${tag}] ?`)) return;
-    rolesConfig.grades = rolesConfig.grades.filter(g=>g.tag!==tag);
+function removeGrade(tag){
+    if(!confirm(`Supprimer le grade [${tag}] ?`)) return;
+    rolesConfig.grades=rolesConfig.grades.filter(g=>g.tag!==tag);
     renderGrades();
 }
 
@@ -533,9 +603,7 @@ function dropRow(e){
     dragSrcTag=null;
     renderGrades();
 }
-
-async function saveRolesConfig() {
-    // Sync inputs
+async function saveRolesConfig(){
     document.querySelectorAll('.grade-row').forEach(row=>{
         const tag=row.dataset.tag;
         const g=rolesConfig.grades.find(g=>g.tag===tag);
@@ -553,11 +621,18 @@ async function saveRolesConfig() {
     showToast(d.message,d.status!=='success');
 }
 
-// ── GLOBAL IDS ──
+// ── DIVERS ──
+const GENERAL_IDS=['SERVICE_CHANNEL_ID','COMMAND_LOG_CHANNEL_ID','DIR_USER_ID','TANGO_REQUEST_CHANNEL_ID',
+    'INFO_CHANNEL_ID','CHANNEL_LSPD','CHANNEL_BCSO','TARGET_CATEGORY_ID',
+    'ESX_SOCIETY_CHANNEL_ID','ESX_SOCIETY_ROLE_ID','ROLE_EMT_1','ROLE_EMT_2','ROLE_EMT_3','CITOYEN_ROLE_ID'];
 function renderGlobalIds(){
     document.getElementById('category_indispo_id').value=rolesConfig.category_indispo_id||0;
     document.getElementById('direction_salary').value=rolesConfig.direction_salary||9000000;
     document.getElementById('extra_roles_to_remove').value=(rolesConfig.extra_roles_to_remove||[]).join(', ');
+    GENERAL_IDS.forEach(k=>{
+        const el=document.getElementById('gcfg_'+k);
+        if(el) el.value=botConfig[k]||'';
+    });
 }
 async function saveGlobalIds(){
     rolesConfig.category_indispo_id=parseInt(document.getElementById('category_indispo_id').value)||0;
@@ -567,6 +642,17 @@ async function saveGlobalIds(){
     const res=await fetch('/api/roles-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rolesConfig)});
     const d=await res.json();
     showToast(d.message,d.status!=='success');
+}
+async function saveGeneralIds(){
+    const data={};
+    GENERAL_IDS.forEach(k=>{
+        const el=document.getElementById('gcfg_'+k);
+        if(el&&el.value.trim()) data[k]=el.value.trim();
+    });
+    const res=await fetch('/api/bot-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const d=await res.json();
+    showToast(d.message||'IDs sauvegardés',d.status!=='success');
+    if(d.status==='success') await loadAll();
 }
 
 // ── MODAL ──
@@ -579,13 +665,13 @@ function confirmAddGrade(){
     const category_id=parseInt(document.getElementById('new_category_id').value)||0;
     const salary_rate=parseInt(document.getElementById('new_salary_rate').value)||30000;
     const order=parseInt(document.getElementById('new_order').value)||(rolesConfig.grades.length+1);
-    if(!tag||!label){alert('Tag et Label obligatoires');return}
+    if(!tag||!label){alert('Tag et Nom obligatoires');return}
     if(rolesConfig.grades.find(g=>g.tag===tag)){alert(`[${tag}] existe déjà`);return}
     rolesConfig.grades.push({tag,label,role_id,category_id,salary_rate,order,enabled:true});
     rolesConfig.grades.sort((a,b)=>a.order-b.order);
     renderGrades();
     closeModal();
-    showToast('Grade ajouté — sauvegarde pour confirmer');
+    showToast('Grade ajouté — clique sur Sauvegarder pour confirmer');
 }
 document.getElementById('addModal').addEventListener('click',function(e){if(e.target===this)closeModal()});
 
