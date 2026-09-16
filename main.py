@@ -11013,11 +11013,68 @@ async def before_auto_update_avert():
 if __name__ == "__main__":
     # --- SERVEUR WEB DASHBOARD ---
     web_app = Flask(__name__, static_folder=None)
-    
+    web_app.secret_key = os.environ.get("FLASK_SECRET", "ems-secret-key-2024-xZ9q")
+
     # Désactiver les logs des requêtes HTTP (trop de bruit)
     import logging
     log_werkzeug = logging.getLogger('werkzeug')
     log_werkzeug.setLevel(logging.ERROR)
+
+    DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "laura2603")
+
+    from functools import wraps
+    from flask import session as flask_session, redirect, url_for
+
+    def login_required(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            if not flask_session.get('authenticated'):
+                return redirect('/login')
+            return f(*args, **kwargs)
+        return decorated
+
+    @web_app.route('/login', methods=['GET', 'POST'])
+    def login_page():
+        error = ''
+        if request.method == 'POST':
+            pwd = request.form.get('password', '')
+            if pwd == DASHBOARD_PASSWORD:
+                flask_session['authenticated'] = True
+                flask_session.permanent = True
+                return redirect(request.args.get('next', '/options'))
+            error = '❌ Mot de passe incorrect'
+        return f'''<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>EMS — Connexion</title>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{min-height:100vh;display:flex;align-items:center;justify-content:center;
+background:#0d1117;font-family:-apple-system,sans-serif}}
+.card{{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:40px 48px;
+width:360px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.4)}}
+h2{{color:#e6edf3;font-size:22px;margin-bottom:6px}}
+p{{color:#8b949e;font-size:13px;margin-bottom:28px}}
+input{{width:100%;padding:10px 14px;border:1px solid #30363d;border-radius:8px;
+background:#0d1117;color:#e6edf3;font-size:15px;outline:none;margin-bottom:16px}}
+input:focus{{border-color:#58a6ff}}
+button{{width:100%;padding:11px;border:none;border-radius:8px;background:#238636;
+color:#fff;font-size:15px;font-weight:600;cursor:pointer}}
+button:hover{{background:#2ea043}}
+.err{{color:#f85149;font-size:13px;margin-top:12px}}
+</style></head><body>
+<div class="card">
+<h2>🚑 EMS Dashboard</h2>
+<p>Entrez le mot de passe pour accéder aux options</p>
+<form method="post">
+<input type="password" name="password" placeholder="Mot de passe" autofocus>
+<button type="submit">Connexion</button>
+</form>
+{"<div class='err'>"+error+"</div>" if error else ""}
+</div></body></html>'''
+
+    @web_app.route('/logout')
+    def logout():
+        flask_session.clear()
+        return redirect('/login')
     
     @web_app.route('/')
     def index():
@@ -13175,10 +13232,12 @@ La direction des EMS"""
     BOT_CONFIG_FILE_PATH = os.path.join(DATA_DIR, 'config.json')
 
     @web_app.route('/options')
+    @login_required
     def options_page():
         return render_template('options.html')
 
     @web_app.route('/api/bot-config', methods=['GET'])
+    @login_required
     def api_get_bot_config():
         c = robust_load_json(BOT_CONFIG_FILE_PATH, {})
         merged = dict(_DEFAULT_BOT_CONFIG)
@@ -13189,6 +13248,7 @@ La direction des EMS"""
         return jsonify(merged)
 
     @web_app.route('/api/bot-config', methods=['POST'])
+    @login_required
     def api_save_bot_config():
         try:
             data = request.get_json(silent=True) or {}
@@ -13208,10 +13268,12 @@ La direction des EMS"""
             return jsonify({'status': 'error', 'message': str(e)}), 500
 
     @web_app.route('/api/roles-config', methods=['GET'])
+    @login_required
     def api_get_roles_config():
         return jsonify(robust_load_json(ROLES_CONFIG_FILE, _DEFAULT_ROLES_CONFIG))
 
     @web_app.route('/api/roles-config', methods=['POST'])
+    @login_required
     def api_save_roles_config():
         try:
             data = request.get_json(silent=True)
@@ -13231,10 +13293,12 @@ La direction des EMS"""
             return jsonify({'status': 'error', 'message': str(e)}), 500
 
     @web_app.route('/api/options', methods=['GET'])
+    @login_required
     def api_get_options():
         return jsonify(robust_load_json(OPTIONS_FILE, {}))
 
     @web_app.route('/api/options', methods=['POST'])
+    @login_required
     def api_save_options():
         try:
             data = request.get_json(silent=True)
