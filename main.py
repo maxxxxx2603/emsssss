@@ -5500,35 +5500,16 @@ async def set_categorie_emt(interaction: discord.Interaction, categorie: discord
 @bot.tree.command(name="employer", description="Recruter un EMS (Création channel, rôles, rename)")
 @app_commands.check(employer_check)
 @app_commands.describe(
-    membre="Le membre à employer",
-    matricule="Matricule EMT (0 à 100, ex: 5 → 05)"
+    membre="Le membre à employer"
 )
-async def employer(interaction: discord.Interaction, membre: discord.Member, matricule: app_commands.Range[int, 1, 99]):
+async def employer(interaction: discord.Interaction, membre: discord.Member):
     await interaction.response.defer()
-    
+
     guild = interaction.guild
     clean_name = get_clean_name(membre)
-    matricule_str = str(matricule).zfill(2)
 
-    # Vérifier si la matricule est déjà utilisée par n'importe quel employé EMS
-    ROLE_EMS_ID = 838102445095256068
-    role_ems = guild.get_role(ROLE_EMS_ID)
-    members_to_scan = role_ems.members if role_ems else guild.members
-    for m in members_to_scan:
-        if m.id == membre.id or m.bot:
-            continue
-        match = _re.search(r'\[(\w+)\]\s+(\d{2})\b', m.display_name)
-        if match and match.group(2) == matricule_str:
-            grade_pris = match.group(1)
-            await interaction.followup.send(
-                f"❌ La matricule **{matricule_str}** est déjà prise par **{m.display_name}** ({grade_pris}).\n"
-                f"Veuillez choisir une autre matricule entre **01** et **99**.",
-                ephemeral=True
-            )
-            return
-    
     # 1. Gestion du Pseudo
-    new_nickname = f"[EMT] {matricule_str} {clean_name}"
+    new_nickname = f"[EMT] {clean_name}"
     try:
         await membre.edit(nick=new_nickname)
     except Exception as e:
@@ -5537,16 +5518,16 @@ async def employer(interaction: discord.Interaction, membre: discord.Member, mat
     # 2. Gestion des Rôles
     roles_add_ids = [838102445095256068, 895047492784238652, 838102445095256070]
     role_remove_id = 896103247096471613
-    
+
     roles_to_add = [guild.get_role(rid) for rid in roles_add_ids if guild.get_role(rid)]
     role_to_remove = guild.get_role(role_remove_id)
-    
+
     if roles_to_add:
         await membre.add_roles(*roles_to_add)
     if role_to_remove:
         await membre.remove_roles(role_to_remove)
 
-    # 3. Création du Channel dans la catégorie EMT (sans matricule dans le nom du channel)
+    # 3. Création du Channel dans la catégorie EMT
     category = guild.get_channel(CATEGORY_EMT_ID)
     channel_name = f"🔴{clean_name.lower().replace(' ', '-')}"
 
@@ -5560,16 +5541,13 @@ async def employer(interaction: discord.Interaction, membre: discord.Member, mat
         await interaction.followup.send(
             f"✅ **{membre.mention}** a été employé avec succès !\n"
             f"📛 Renommé en `{new_nickname}`\n"
-            f"🪪 Matricule : **{matricule_str}**\n"
             f"📂 Dossier créé : {new_channel.mention}"
         )
-        await update_matricule_board(guild)
         # Envoyer dans le channel formation
-        formation_ch = guild.get_channel(991076525904367616)
+        formation_ch_id = cfg("FORMATION_LOG_CHANNEL", 991076525904367616)
+        formation_ch = guild.get_channel(formation_ch_id)
         if formation_ch:
-            await formation_ch.send(
-                f"→ formation premier soin [EMT {clean_name}]"
-            )
+            await formation_ch.send(f"→ formation premier soin [EMT {clean_name}]")
     else:
         await interaction.followup.send(f"⚠️ Catégorie EMT introuvable, rôles et pseudo mis à jour mais pas le channel.")
 
