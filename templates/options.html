@@ -158,6 +158,11 @@
                     <div class="desc">Rôle des directeurs — utilisé pour /payes direction, validation dispo, etc.</div>
                     <input type="text" class="id-input" id="cfg_ROLE_DIRECTION_EMS_ID" placeholder="ID du rôle direction">
                 </div>
+                <div class="config-field">
+                    <label>🔄 Rôle EMS (pour /sync)</label>
+                    <div class="desc">Rôle principal EMS — utilisé par /sync pour scanner les membres et créer leurs channels</div>
+                    <input type="text" class="id-input" id="cfg_EMS_SYNC_ROLE_ID" placeholder="Ex: 838102445095256068">
+                </div>
             </div>
         </div>
     </div>
@@ -464,7 +469,7 @@ function switchTab(id,btn){
 
 // ── BOT CONFIG ──
 function renderBotConfig(){
-    ['GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID'].forEach(k=>{
+    ['GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID','EMS_SYNC_ROLE_ID'].forEach(k=>{
         const el=document.getElementById('cfg_'+k);
         if(el) el.value=botConfig[k]||'';
     });
@@ -473,7 +478,7 @@ function renderBotConfig(){
 }
 async function saveBotConfig(){
     const data={};
-    const fields=['TOKEN','GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID'];
+    const fields=['TOKEN','GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID','EMS_SYNC_ROLE_ID'];
     fields.forEach(k=>{
         const el=document.getElementById('cfg_'+k);
         if(el&&el.value.trim()) data[k]=el.value.trim();
