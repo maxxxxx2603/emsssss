@@ -1273,21 +1273,21 @@ def get_grade_role_id(grade_tag: str) -> int:
     cfg = load_roles_config()
     for g in cfg.get('grades', []):
         if g.get('tag', '').upper() == grade_tag.upper():
-            return int(g.get('role_id', 0))
+            return int(str(g.get('role_id', 0)).split('.')[0])
     return 0
 
 def get_all_ems_role_ids() -> list:
     """Retourne la liste de tous les role IDs EMS (pour /virer, etc.)."""
     cfg = load_roles_config()
-    ids = [int(g['role_id']) for g in cfg.get('grades', []) if g.get('role_id')]
-    ids += [int(x) for x in cfg.get('extra_roles_to_remove', []) if x]
+    ids = [int(str(g['role_id']).split('.')[0]) for g in cfg.get('grades', []) if g.get('role_id') and str(g.get('role_id','0')) not in ('0','')]
+    ids += [int(str(x).split('.')[0]) for x in cfg.get('extra_roles_to_remove', []) if x and str(x) not in ('0','')]
     return list(set(ids))
 
 def get_role_hierarchy() -> list:
     """Retourne la hiérarchie de rôles [(role_id, '[TAG]'), ...] triée par ordre décroissant de grade."""
     cfg = load_roles_config()
     grades = sorted(cfg.get('grades', []), key=lambda g: g.get('order', 99))
-    return [(int(g['role_id']), f"[{g['tag']}]") for g in grades if g.get('role_id') and g.get('enabled', True)]
+    return [(int(str(g['role_id']).split('.')[0]), f"[{g['tag']}]") for g in grades if g.get('role_id') and str(g.get('role_id','0')) not in ('0','') and g.get('enabled', True)]
 
 def get_grade_to_category() -> dict:
     """Retourne {grade_tag: category_key} pour /reouverture et /indisponible."""

@@ -570,7 +570,8 @@ function renumberGrades(){
 function updateGrade(tag,field,value){
     const g=rolesConfig.grades.find(g=>g.tag===tag);
     if(!g)return;
-    if(['role_id','category_id','salary_rate','order'].includes(field)) g[field]=parseInt(value)||0;
+    if(['role_id','category_id'].includes(field)) g[field]=String(value).trim()||'0';
+    else if(['salary_rate','order'].includes(field)) g[field]=parseInt(value)||0;
     else g[field]=value;
 }
 function setGradeEnabled(tag,val){
@@ -611,8 +612,8 @@ async function saveRolesConfig(){
         const ins=row.querySelectorAll('input.fi');
         if(ins[0])g.tag=ins[0].value.trim().toUpperCase()||g.tag;
         if(ins[1])g.label=ins[1].value.trim()||g.label;
-        if(ins[2])g.role_id=parseInt(ins[2].value)||0;
-        if(ins[3])g.category_id=parseInt(ins[3].value)||0;
+        if(ins[2])g.role_id=String(ins[2].value).trim()||'0';
+        if(ins[3])g.category_id=String(ins[3].value).trim()||'0';
         if(ins[4])g.salary_rate=parseInt(ins[4].value)||0;
     });
     rolesConfig.grades.forEach((g,i)=>g.order=i+1);
@@ -638,7 +639,7 @@ async function saveGlobalIds(){
     rolesConfig.category_indispo_id=parseInt(document.getElementById('category_indispo_id').value)||0;
     rolesConfig.direction_salary=parseInt(document.getElementById('direction_salary').value)||9000000;
     const raw=document.getElementById('extra_roles_to_remove').value;
-    rolesConfig.extra_roles_to_remove=raw.split(',').map(s=>parseInt(s.trim())||0).filter(v=>v>0);
+    rolesConfig.extra_roles_to_remove=raw.split(',').map(s=>s.trim()).filter(v=>v&&v!=='0');
     const res=await fetch('/api/roles-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rolesConfig)});
     const d=await res.json();
     showToast(d.message,d.status!=='success');
@@ -661,8 +662,8 @@ function closeModal(){document.getElementById('addModal').classList.remove('show
 function confirmAddGrade(){
     const tag=document.getElementById('new_tag').value.trim().toUpperCase();
     const label=document.getElementById('new_label').value.trim();
-    const role_id=parseInt(document.getElementById('new_role_id').value)||0;
-    const category_id=parseInt(document.getElementById('new_category_id').value)||0;
+    const role_id=String(document.getElementById('new_role_id').value).trim()||'0';
+    const category_id=String(document.getElementById('new_category_id').value).trim()||'0';
     const salary_rate=parseInt(document.getElementById('new_salary_rate').value)||30000;
     const order=parseInt(document.getElementById('new_order').value)||(rolesConfig.grades.length+1);
     if(!tag||!label){alert('Tag et Nom obligatoires');return}
