@@ -6145,91 +6145,72 @@ async def up(interaction: discord.Interaction, membre: discord.Member):
     # Mapping des transitions
     # (Role Actuel -> Role Suivant, Nouveau Prefix, Prefix Channel, Ancre/Cible move, Regex Cible)
     
-    # IDs des Rôles
-    # Hiérarchie : EMT → STG → ADS → INF → PSY → MED → CDS (Chef de Service) → CAD (Chef Adjoint) → DIR (Directeur Médical)
-    R_EMT = 895047492784238652
-    R_STG = 838102445095256069   # Stagiaire
-    R_ADS = 1088116715998687273
-    R_INF = 894311352225656862
-    R_PSY = 1528560704511148092  # Psychologue
-    R_MED = 840288242547818507
-    R_CDS = 838102445095256071   # Chef de Service
-    R_CAD = 1528561040663777310  # Chef Adjoint
-    R_DIR = 1088570974603055195  # Directeur Médical
+    # Charger la hiérarchie depuis roles_config.json (triée par order croissant = du plus bas au plus haut)
+    _roles_cfg = load_roles_config()
+    _grades_sorted = sorted([g for g in _roles_cfg.get('grades', []) if g.get('enabled', True)], key=lambda g: g.get('order', 99), reverse=True)
+    # _grades_sorted[0] = grade le plus haut (order=1), [-1] = grade le plus bas
+    # On trie du plus bas au plus haut pour la promotion
+    _grades_asc = list(reversed(_grades_sorted))  # du plus bas au plus haut
 
-    # Logique de promotion — du plus bas au plus haut
-    next_step = None
-
-    # Pour distinguer STG de PSY (même ID pour l'instant), on se base sur le tag pseudo
-    has_psy_tag = "[PSY]" in membre.display_name.upper()
-    has_stg_tag = "[STG]" in membre.display_name.upper() or "[INT]" in membre.display_name.upper()
-    has_inf_tag = "[INF]" in membre.display_name.upper()
-
-    if R_EMT in member_roles_ids and not any(r in member_roles_ids for r in [R_ADS, R_INF, R_MED, R_CDS, R_DIR]):
-        # EMT -> STG
-        next_step = {
-            "remove": R_EMT, "add": R_STG,
-            "tag": "STG",
-            "category_id": CATEGORY_STG_ID
-        }
-    elif R_STG in member_roles_ids and has_stg_tag and R_ADS not in member_roles_ids:
-        # STG -> ADS
-        next_step = {
-            "remove": R_STG, "add": R_ADS,
-            "tag": "ADS",
-            "category_id": CATEGORY_ADS_ID
-        }
-    elif R_ADS in member_roles_ids and R_INF not in member_roles_ids:
-        # ADS -> INF
-        next_step = {
-            "remove": R_ADS, "add": R_INF,
-            "tag": "INF",
-            "category_id": CATEGORY_INF_ID
-        }
-    elif R_INF in member_roles_ids and has_inf_tag and R_MED not in member_roles_ids:
-        # INF -> PSY
-        next_step = {
-            "remove": R_INF, "add": R_PSY,
-            "tag": "PSY",
-            "category_id": CATEGORY_PSY_ID
-        }
-    elif R_PSY in member_roles_ids and has_psy_tag and R_MED not in member_roles_ids:
-        # PSY -> MED
-        next_step = {
-            "remove": R_PSY, "add": R_MED,
-            "tag": "MED",
-            "category_id": CATEGORY_MED_ID
-        }
-    elif R_MED in member_roles_ids and R_CDS not in member_roles_ids and R_CAD not in member_roles_ids:
-        # MED -> CDS (Chef de Service)
-        next_step = {
-            "remove": R_MED, "add": R_CDS,
-            "tag": "CDS",
-            "category_id": CATEGORY_CDS_ID
-        }
-    elif R_CDS in member_roles_ids and R_CAD not in member_roles_ids:
-        # CDS -> CAD (Chef Adjoint)
-        next_step = {
-            "remove": R_CDS, "add": R_CAD,
-            "tag": "CAD",
-            "category_id": CATEGORY_CAD_ID
-        }
-    elif R_CAD in member_roles_ids and R_DIR not in member_roles_ids:
-        # CAD -> DIR (Directeur Médical)
-        next_step = {
-            "remove": R_CAD, "add": R_DIR,
-            "tag": "DIR",
-            "category_id": CATEGORY_DIR_ID
-        }
-    else:
-        await interaction.followup.send("❌ Ce membre n'a pas de grade évolutif connu ou est déjà au maximum (Directeur Médical).")
+    if len(_grades_asc) < 2:
+        await interaction.followup.send("❌ Pas assez de grades configurés dans `/options` → Grades & Rôles.", ephemeral=True)
         return
 
+    # Trouver le grade actuel du membre
+    _current_grade_idx = None
+    _current_grade = None
+    for _i, _g in enumerate(_grades_asc):
+        _rid = int(str(_g.get('role_id', 0)).split('.')[0])
+        if _rid and _rid in member_roles_ids:
+            _current_grade_idx = _i
+            _current_grade = _g
+            break
+
+    if _current_grade is None:
+        await interaction.followup.send("❌ Ce membre n'a aucun grade EMS reconnu. Vérifiez la config Grades & Rôles.", ephemeral=True)
+        return
+
+    if _current_grade_idx >= len(_grades_asc) - 1:
+        await interaction.followup.send(f"❌ Ce membre est déjà au grade maximum (**{_current_grade.get('tag','?')}**).", ephemeral=True)
+        return
+
+    _next_grade = _grades_asc[_current_grade_idx + 1]
+    _remove_role_id = int(str(_current_grade.get('role_id', 0)).split('.')[0])
+    _add_role_id = int(str(_next_grade.get('role_id', 0)).split('.')[0])
+    _next_tag = _next_grade.get('tag', '?').upper()
+    _next_cat_id = int(str(_next_grade.get('category_id', 0)).split('.')[0])
+
+    next_step = {
+        "remove": _remove_role_id,
+        "add": _add_role_id,
+        "tag": _next_tag,
+        "category_id": _next_cat_id
+    }
+
+    # IDs legacy (non utilisés mais gardés pour référence)
+    R_EMT = 895047492784238652
+    R_STG = 838102445095256069
+    R_ADS = 1088116715998687273
+    R_INF = 894311352225656862
+    R_PSY = 1528560704511148092
+    R_MED = 840288242547818507
+    R_CDS = 838102445095256071
+    R_CAD = 1528561040663777310
+    R_DIR = 1088570974603055195
+
     # Appliquer les changements
-    
-    # 1. Rôles
-    await membre.remove_roles(guild.get_role(next_step["remove"]))
-    await membre.add_roles(guild.get_role(next_step["add"]))
+
+    # 1. Rôles (next_step déjà calculé depuis roles_config.json)
+    _role_remove = guild.get_role(next_step["remove"])
+    _role_add = guild.get_role(next_step["add"])
+    if not _role_remove:
+        await interaction.followup.send(f"❌ Rôle à retirer introuvable (ID: {next_step['remove']}). Vérifiez les IDs dans `/options` → Grades & Rôles.", ephemeral=True)
+        return
+    if not _role_add:
+        await interaction.followup.send(f"❌ Rôle à attribuer introuvable (ID: {next_step['add']}). Vérifiez les IDs dans `/options` → Grades & Rôles.", ephemeral=True)
+        return
+    await membre.remove_roles(_role_remove)
+    await membre.add_roles(_role_add)
     
     # 2. Pseudo — conserver la matricule si présente
     mat_match = _re.search(r'\]\s+(\d{2})\s+', membre.display_name)
