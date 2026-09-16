@@ -13196,6 +13196,22 @@ La direction des EMS"""
     def options_page():
         return render_template('options.html')
 
+    def _ids_to_str(d):
+        """Convertit tous les IDs Discord (grands entiers) en strings pour éviter perte de précision JS."""
+        result = {}
+        for k, v in d.items():
+            if v is None:
+                result[k] = v
+            elif isinstance(v, int) and v > 999999999:
+                result[k] = str(v)
+            elif isinstance(v, float) and v > 999999999:
+                result[k] = str(int(v))
+            elif isinstance(v, str) and v.isdigit() and len(v) > 9:
+                result[k] = v  # déjà string, garder tel quel
+            else:
+                result[k] = v
+        return result
+
     @web_app.route('/api/bot-config', methods=['GET'])
     @login_required
     def api_get_bot_config():
@@ -13205,7 +13221,7 @@ La direction des EMS"""
         if merged.get('TOKEN'):
             t = merged['TOKEN']
             merged['TOKEN_PREVIEW'] = t[:10] + '...' + t[-5:] if len(t) > 15 else '***'
-        return jsonify(merged)
+        return jsonify(_ids_to_str(merged))
 
     @web_app.route('/api/bot-config', methods=['POST'])
     @login_required
@@ -13215,8 +13231,25 @@ La direction des EMS"""
             current = robust_load_json(BOT_CONFIG_FILE_PATH, {})
             if not data.get('TOKEN') or '...' in str(data.get('TOKEN', '')):
                 data.pop('TOKEN', None)
+            # Clés qui sont des Discord IDs (grands entiers) → stocker comme strings pour éviter perte de précision JSON
+            _DISCORD_ID_KEYS = {
+                'GUILD_ID','LOGS_CHANNEL_ID','ROLE_DIRECTION_EMS_ID','EMS_SYNC_ROLE_ID',
+                'AVERT_CHANNEL_ID','MATRICULE_CHANNEL_ID','ABSENCE_LOG_CHANNEL','REUNION_CHANNEL_ID',
+                'FORMATION_LOG_CHANNEL','ATTESTATION_CHANNEL_ID','DISPATCH_CHANNEL_ID',
+                'SERVICE_CHANNEL_ID','COMMAND_LOG_CHANNEL_ID','DIR_USER_ID','TANGO_REQUEST_CHANNEL_ID',
+                'INFO_CHANNEL_ID','CHANNEL_LSPD','CHANNEL_BCSO','TARGET_CATEGORY_ID',
+                'ESX_SOCIETY_CHANNEL_ID','ESX_SOCIETY_ROLE_ID','ROLE_EMT_1','ROLE_EMT_2','ROLE_EMT_3',
+                'CITOYEN_ROLE_ID','ROLE_MATRICULE_ID','LEADERBOARD_ROLE_ID','LEADERBOARD_CHANNEL_ID',
+                'LOGS_SYNC_CHANNEL_ID','CATEGORY_EMT_ID',
+            }
             for k, v in data.items():
-                if k != 'TOKEN' and v is not None:
+                if k == 'TOKEN' or v is None:
+                    continue
+                if k in _DISCORD_ID_KEYS:
+                    # Stocker comme string pour préserver la précision des grands IDs Discord
+                    sv = str(v).strip().split('.')[0]
+                    data[k] = sv if sv and sv != '0' else '0'
+                else:
                     try:
                         data[k] = int(v)
                     except (ValueError, TypeError):
@@ -13230,7 +13263,19 @@ La direction des EMS"""
     @web_app.route('/api/roles-config', methods=['GET'])
     @login_required
     def api_get_roles_config():
-        return jsonify(robust_load_json(ROLES_CONFIG_FILE, _DEFAULT_ROLES_CONFIG))
+        data = robust_load_json(ROLES_CONFIG_FILE, _DEFAULT_ROLES_CONFIG)
+        # Convertir role_id et category_id en strings pour éviter perte de précision JS
+        for g in data.get('grades', []):
+            for field in ('role_id', 'category_id'):
+                v = g.get(field, 0)
+                if v and str(v) not in ('0', ''):
+                    g[field] = str(v).split('.')[0]
+        # Convertir extra_roles_to_remove en strings
+        data['extra_roles_to_remove'] = [str(x).split('.')[0] for x in data.get('extra_roles_to_remove', []) if x]
+        # Convertir category_indispo_id
+        if data.get('category_indispo_id'):
+            data['category_indispo_id'] = str(data['category_indispo_id']).split('.')[0]
+        return jsonify(data)
 
     @web_app.route('/api/roles-config', methods=['POST'])
     @login_required
@@ -13239,14 +13284,12 @@ La direction des EMS"""
             data = request.get_json(silent=True)
             if not data or 'grades' not in data or not isinstance(data['grades'], list):
                 return jsonify({'status': 'error', 'message': 'Données invalides'}), 400
-            # Convertir role_id et category_id en int pour éviter la troncature float
+            # Stocker role_id et category_id comme strings pour préserver précision
             for g in data['grades']:
                 for field in ('role_id', 'category_id'):
                     val = g.get(field, 0)
-                    try:
-                        g[field] = int(str(val).split('.')[0]) if val else 0
-                    except (ValueError, TypeError):
-                        g[field] = 0
+                    sv = str(val).strip().split('.')[0] if val else '0'
+                    g[field] = sv if sv and sv not in ('', 'None') else '0'
             atomic_write_json(ROLES_CONFIG_FILE, data)
             return jsonify({'status': 'success', 'message': 'Config des grades sauvegardée ✅'})
         except Exception as e:
