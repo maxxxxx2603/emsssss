@@ -10501,7 +10501,7 @@ async def sync_channels(interaction: discord.Interaction, dry_run: bool = True):
     await interaction.response.defer(ephemeral=True)
     guild = interaction.guild
 
-    EMS_ROLE_ID = cfg("LEADERBOARD_ROLE_ID", 838102445095256068)
+    EMS_ROLE_ID = cfg("EMS_SYNC_ROLE_ID", 838102445095256068)
     ems_role = guild.get_role(EMS_ROLE_ID)
     if not ems_role:
         await interaction.followup.send("❌ Rôle EMS introuvable.", ephemeral=True)
