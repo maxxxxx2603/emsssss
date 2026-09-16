@@ -767,13 +767,25 @@ if config is None:
     }
 
 def cfg(key, default=0):
-    """Lit une clé depuis config.json (chargé dans `config`), avec valeur par défaut."""
-    val = config.get(key, None)
+    """Lit une clé depuis config.json sur disque (dynamique), avec valeur par défaut."""
+    # Lire depuis le fichier disque (DATA_DIR/config.json) pour que les changements
+    # du dashboard /options prennent effet sans redémarrer le bot.
+    _data_dir = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", ".")
+    _cfg_file = os.path.join(_data_dir, 'config.json')
+    if os.path.exists(_cfg_file):
+        try:
+            with open(_cfg_file, 'r', encoding='utf-8') as _f:
+                _live = json.load(_f)
+            val = _live.get(key, None)
+        except Exception:
+            val = config.get(key, None) if config else None
+    else:
+        val = config.get(key, None) if config else None
     if val is None or val == "" or val == 0:
         return default
     if isinstance(default, int):
         try:
-            return int(val)
+            return int(str(val).split('.')[0])
         except (ValueError, TypeError):
             return default
     return val
